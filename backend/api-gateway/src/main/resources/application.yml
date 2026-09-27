@@ -1,0 +1,63 @@
+server:
+  port: ${PUERTO:8080}
+
+spring:
+  application:
+    name: api-gateway
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/crm_maxiconecta}
+    username: ${DB_USUARIO:crm}
+    password: ${DB_PASSWORD:crm}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+  flyway:
+    schemas: seguridad
+    locations: classpath:db/migration
+
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: perfil
+            uri: ${SERVICIO_PERFIL_URL:http://localhost:8081}
+            predicates:
+              - Path=/api/perfil/**
+          - id: comportamiento
+            uri: ${SERVICIO_COMPORTAMIENTO_URL:http://localhost:8082}
+            predicates:
+              - Path=/api/comportamiento/**
+          - id: segmentacion
+            uri: ${SERVICIO_SEGMENTACION_URL:http://localhost:8083}
+            predicates:
+              - Path=/api/segmentacion/**
+          - id: fidelizacion
+            uri: ${SERVICIO_FIDELIZACION_URL:http://localhost:8084}
+            predicates:
+              - Path=/api/fidelizacion/**
+          - id: interacciones
+            uri: ${SERVICIO_INTERACCIONES_URL:http://localhost:8085}
+            predicates:
+              - Path=/api/interacciones/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+crm:
+  seguridad:
+    jwt:
+      # Mínimo 32 caracteres. Se define con la variable de entorno JWT_SECRETO; nunca se sube al repositorio.
+      secreto: ${JWT_SECRETO:}
+      expiracion-minutos: ${JWT_EXPIRACION_MINUTOS:60}
+    admin-inicial:
+      # Si la base no tiene usuarios, se crea este administrador al arrancar (solo si ADMIN_PASSWORD está definido).
+      usuario: ${ADMIN_USUARIO:admin}
+      nombre-completo: ${ADMIN_NOMBRE:Administrador del CRM}
+      password: ${ADMIN_PASSWORD:}
