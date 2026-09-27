@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.gateway.comun;
 
+import com.maxiconecta.crm.gateway.auth.CredencialesInvalidasException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,11 @@ public class ManejadorDeErrores {
     @ExceptionHandler(ReglaNegocioException.class)
     public ResponseEntity<ApiError> reglaNegocio(ReglaNegocioException ex, HttpServletRequest solicitud) {
         return respuesta(HttpStatus.BAD_REQUEST, ex.getMessage(), solicitud);
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<ApiError> credencialesInvalidas(CredencialesInvalidasException ex, HttpServletRequest solicitud) {
+        return respuesta(HttpStatus.UNAUTHORIZED, ex.getMessage(), solicitud);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UsuarioService {
@@ -23,6 +24,17 @@ public class UsuarioService {
         this.usuarioRepository = usuarioRepository;
         this.rolService = rolService;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    /**
+     * Devuelve el usuario si la contraseña es correcta y tanto el usuario como su rol están activos.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Usuario> autenticar(String nombreUsuario, String password) {
+        return usuarioRepository.findByNombreUsuario(nombreUsuario)
+                .filter(Usuario::isActivo)
+                .filter(usuario -> usuario.getRol().isActivo())
+                .filter(usuario -> passwordEncoder.matches(password, usuario.getPasswordHash()));
     }
 
     @Transactional(readOnly = true)
