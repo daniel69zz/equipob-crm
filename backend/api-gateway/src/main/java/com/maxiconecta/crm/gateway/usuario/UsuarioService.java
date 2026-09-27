@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.gateway.usuario;
 
+import com.maxiconecta.crm.gateway.auditoria.AuditoriaService;
 import com.maxiconecta.crm.gateway.comun.ConflictoException;
 import com.maxiconecta.crm.gateway.comun.RecursoNoEncontradoException;
 import com.maxiconecta.crm.gateway.comun.ReglaNegocioException;
@@ -19,11 +20,14 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final RolService rolService;
     private final PasswordEncoder passwordEncoder;
+    private final AuditoriaService auditoriaService;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, RolService rolService, PasswordEncoder passwordEncoder) {
+    public UsuarioService(UsuarioRepository usuarioRepository, RolService rolService, PasswordEncoder passwordEncoder,
+                          AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.rolService = rolService;
         this.passwordEncoder = passwordEncoder;
+        this.auditoriaService = auditoriaService;
     }
 
     /**
@@ -50,7 +54,10 @@ public class UsuarioService {
         Rol rol = rolService.buscarActivoPorCodigo(solicitud.rol());
         Usuario usuario = new Usuario(solicitud.nombreUsuario(), solicitud.nombreCompleto(),
                 passwordEncoder.encode(solicitud.password()), rol);
-        return usuarioRepository.save(usuario);
+        Usuario guardado = usuarioRepository.save(usuario);
+        auditoriaService.registrar(actor, AuditoriaService.USUARIO_CREADO, "USUARIO", guardado.getId(),
+                "usuario=" + guardado.getNombreUsuario() + "; rol=" + rol.getCodigo());
+        return guardado;
     }
 
     @Transactional
@@ -61,6 +68,8 @@ public class UsuarioService {
             return usuario;
         }
         usuario.asignarRol(rolService.buscarActivoPorCodigo(codigoRol));
+        auditoriaService.registrar(actor, AuditoriaService.ROL_ASIGNADO, "USUARIO", usuario.getId(),
+                "usuario=" + usuario.getNombreUsuario() + "; rol anterior=" + rolAnterior + "; rol nuevo=" + codigoRol);
         return usuario;
     }
 
@@ -71,6 +80,8 @@ public class UsuarioService {
             throw new ReglaNegocioException("Un usuario no puede desactivarse a sí mismo");
         }
         usuario.desactivar();
+        auditoriaService.registrar(actor, AuditoriaService.USUARIO_DESACTIVADO, "USUARIO", usuario.getId(),
+                "usuario=" + usuario.getNombreUsuario());
         return usuario;
     }
 
@@ -80,7 +91,10 @@ public class UsuarioService {
             return;
         }
         Rol administrador = rolService.buscarActivoPorCodigo("ADMINISTRADOR_CRM");
-        usuarioRepository.save(new Usuario(nombreUsuario, nombreCompleto, passwordEncoder.encode(password), administrador));
+        Usuario guardado = usuarioRepository.save(
+                new Usuario(nombreUsuario, nombreCompleto, passwordEncoder.encode(password), administrador));
+        auditoriaService.registrar("sistema", AuditoriaService.USUARIO_CREADO, "USUARIO", guardado.getId(),
+                "usuario=" + nombreUsuario + "; rol=ADMINISTRADOR_CRM; administrador inicial");
     }
 
     private Usuario buscar(Long id) {

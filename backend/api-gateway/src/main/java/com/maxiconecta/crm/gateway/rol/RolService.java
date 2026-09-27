@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.gateway.rol;
 
+import com.maxiconecta.crm.gateway.auditoria.AuditoriaService;
 import com.maxiconecta.crm.gateway.comun.ConflictoException;
 import com.maxiconecta.crm.gateway.comun.RecursoNoEncontradoException;
 import com.maxiconecta.crm.gateway.comun.ReglaNegocioException;
@@ -18,10 +19,13 @@ public class RolService {
 
     private final RolRepository rolRepository;
     private final PermisoRepository permisoRepository;
+    private final AuditoriaService auditoriaService;
 
-    public RolService(RolRepository rolRepository, PermisoRepository permisoRepository) {
+    public RolService(RolRepository rolRepository, PermisoRepository permisoRepository,
+                      AuditoriaService auditoriaService) {
         this.rolRepository = rolRepository;
         this.permisoRepository = permisoRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional(readOnly = true)
@@ -41,13 +45,20 @@ public class RolService {
         }
         Rol rol = new Rol(solicitud.codigo(), solicitud.nombre(), solicitud.descripcion(),
                 permisosExistentes(solicitud.permisos()));
-        return rolRepository.save(rol);
+        Rol guardado = rolRepository.save(rol);
+        auditoriaService.registrar(actor, AuditoriaService.ROL_CREADO, "ROL", guardado.getId(),
+                "codigo=" + guardado.getCodigo() + "; permisos=" + guardado.codigosDePermisos());
+        return guardado;
     }
 
     @Transactional
     public Rol actualizar(Integer id, ActualizarRolRequest solicitud, String actor) {
         Rol rol = buscar(id);
+        var permisosAnteriores = rol.codigosDePermisos();
         rol.actualizar(solicitud.nombre(), solicitud.descripcion(), permisosExistentes(solicitud.permisos()));
+        auditoriaService.registrar(actor, AuditoriaService.ROL_ACTUALIZADO, "ROL", rol.getId(),
+                "codigo=" + rol.getCodigo() + "; permisos antes=" + permisosAnteriores
+                        + "; permisos despues=" + rol.codigosDePermisos());
         return rol;
     }
 
@@ -55,6 +66,8 @@ public class RolService {
     public Rol desactivar(Integer id, String actor) {
         Rol rol = buscar(id);
         rol.desactivar();
+        auditoriaService.registrar(actor, AuditoriaService.ROL_DESACTIVADO, "ROL", rol.getId(),
+                "codigo=" + rol.getCodigo());
         return rol;
     }
 
