@@ -7,3 +7,21 @@ Mantiene la ficha única de cada cliente.
 - **Esquema en la base:** `perfil`
 
 Historias del Sprint 1: crear y actualizar perfil, actualización ante cambios, identificadores de origen, perfiles incompletos, unificación de duplicados, consentimiento, histórico de cambios y ficha integral.
+
+## Ejecutar en local
+
+Requiere PostgreSQL y RabbitMQ (ver los comandos de Docker en `backend/servicio-comportamiento/README.md`). Con las variables de `.env.example`:
+
+```bash
+mvn spring-boot:run
+```
+
+El servicio escucha en el puerto **8081**. La aplicación web llega a él a través del API Gateway (`/api/perfil/**`).
+
+## Pruebas
+
+```bash
+mvn test
+```
+
+Las pruebas de integración levantan PostgreSQL y RabbitMQ con **Testcontainers**; si Docker no está disponible, se omiten.
