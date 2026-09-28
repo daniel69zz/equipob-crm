@@ -4,17 +4,13 @@ import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
-import com.maxiconecta.crm.comportamiento.validacion.EventoInvalidoException;
-import com.maxiconecta.crm.comportamiento.validacion.ReglaValidacionEvento;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -52,19 +48,6 @@ class IngestaIntegracionTest {
     @Container
     @ServiceConnection
     static final RabbitMQContainer RABBIT = new RabbitMQContainer("rabbitmq:3.13-alpine");
-
-    /** Regla de prueba: rechaza las compras cuyo identificador empieza con "RECHAZAR-". */
-    @TestConfiguration
-    static class ReglaDePrueba {
-        @Bean
-        ReglaValidacionEvento rechazarMarcadas() {
-            return evento -> {
-                if (evento.compra().idCompra().startsWith("RECHAZAR-")) {
-                    throw new EventoInvalidoException("Compra marcada para rechazo en la prueba");
-                }
-            };
-        }
-    }
 
     @Autowired
     private RabbitTemplate rabbit;
@@ -162,12 +145,14 @@ class IngestaIntegracionTest {
 
     @Test
     void unEventoQueNoPasaLasReglasDeValidacionNoSeAlmacena() {
-        publicar(ejemplo("compra-ventas.json").replace("V-100234", "RECHAZAR-1"));
+        publicar(ejemplo("compra-ventas.json")
+                .replace("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c", "id-no-es-uuid"));
 
         EventoRecibido recibido = esperarEstado(1).get(0);
         assertThat(recibido.getEstado()).isEqualTo(EstadoEvento.FALLIDO);
-        assertThat(recibido.getCausa()).contains("Compra marcada para rechazo");
+        assertThat(recibido.getCausa()).contains("EventoInvalidoException").contains("idEvento").contains("UUID");
         assertThat(compras.count()).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.compra_item", Long.class)).isZero();
     }
 
     // --- Criterio 4: la bitácora muestra recibidos, procesados y fallidos por periodo ---
