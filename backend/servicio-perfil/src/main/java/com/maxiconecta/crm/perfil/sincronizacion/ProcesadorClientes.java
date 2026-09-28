@@ -1,18 +1,15 @@
 package com.maxiconecta.crm.perfil.sincronizacion;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxiconecta.crm.perfil.cliente.CambioCampo;
-import com.maxiconecta.crm.perfil.cliente.CambioPerfil;
-import com.maxiconecta.crm.perfil.cliente.CambioPerfilRepository;
 import com.maxiconecta.crm.perfil.cliente.CampoOrigen;
 import com.maxiconecta.crm.perfil.cliente.CampoOrigenRepository;
-import com.maxiconecta.crm.perfil.cliente.ConflictoPerfilRepository;
 import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigen;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigenRepository;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
+import com.maxiconecta.crm.perfil.cliente.ConflictoPerfilRepository;
 import com.maxiconecta.crm.perfil.cliente.EstadoVinculacion;
+import com.maxiconecta.crm.perfil.cliente.HistorialCambios;
 import com.maxiconecta.crm.perfil.cliente.TipoCambio;
 import com.maxiconecta.crm.perfil.cliente.VinculacionPendiente;
 import com.maxiconecta.crm.perfil.cliente.VinculacionPendienteRepository;
@@ -55,7 +52,7 @@ public class ProcesadorClientes {
     private final EventoClienteRepository eventos;
     private final ClienteRepository clientes;
     private final ClienteOrigenRepository origenes;
-    private final CambioPerfilRepository cambiosPerfil;
+    private final HistorialCambios historial;
     private final VinculacionPendienteRepository vinculaciones;
     private final CampoOrigenRepository procedencias;
     private final ConflictoPerfilRepository conflictos;
@@ -63,18 +60,17 @@ public class ProcesadorClientes {
     private final LectorEventosCliente lector;
     private final NormalizadorPerfil normalizador;
     private final ValidadorPerfil validador;
-    private final ObjectMapper objectMapper;
 
     public ProcesadorClientes(EventoClienteRepository eventos, ClienteRepository clientes,
-                              ClienteOrigenRepository origenes, CambioPerfilRepository cambiosPerfil,
+                              ClienteOrigenRepository origenes, HistorialCambios historial,
                               VinculacionPendienteRepository vinculaciones, CampoOrigenRepository procedencias,
                               ConflictoPerfilRepository conflictos, ResolutorConflictos resolutor,
                               LectorEventosCliente lector,
-                              NormalizadorPerfil normalizador, ValidadorPerfil validador, ObjectMapper objectMapper) {
+                              NormalizadorPerfil normalizador, ValidadorPerfil validador) {
         this.eventos = eventos;
         this.clientes = clientes;
         this.origenes = origenes;
-        this.cambiosPerfil = cambiosPerfil;
+        this.historial = historial;
         this.vinculaciones = vinculaciones;
         this.procedencias = procedencias;
         this.conflictos = conflictos;
@@ -82,7 +78,6 @@ public class ProcesadorClientes {
         this.lector = lector;
         this.normalizador = normalizador;
         this.validador = validador;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -144,10 +139,7 @@ public class ProcesadorClientes {
             }
         }
 
-        if (!cambios.isEmpty()) {
-            cambiosPerfil.save(new CambioPerfil(cliente.getId(), tipo, evento.origen(),
-                    evento.responsableDelCambio(), comoJson(cambios), idEvento));
-        }
+        historial.registrar(cliente.getId(), tipo, evento.origen(), evento.responsableDelCambio(), cambios, idEvento);
         registrarProcedencia(cliente.getId(), cambios, procedencia, evento.origen(), fechaCambio);
         String resumenConflictos = null;
         if (resolucion != null && !resolucion.conflictos().isEmpty()) {
@@ -273,11 +265,4 @@ public class ProcesadorClientes {
         throw new EventoDescartadoException(vinculo.getIdCliente(), motivo);
     }
 
-    private String comoJson(List<CambioCampo> cambios) {
-        try {
-            return objectMapper.writeValueAsString(cambios);
-        } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("No se pudo registrar el detalle de los cambios", ex);
-        }
-    }
 }

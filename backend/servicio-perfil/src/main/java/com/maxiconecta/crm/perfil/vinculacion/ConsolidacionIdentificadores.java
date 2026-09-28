@@ -6,7 +6,9 @@ import com.maxiconecta.crm.perfil.cliente.ClienteOrigen;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigenRepository;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
 import com.maxiconecta.crm.perfil.cliente.EstadoVinculacion;
+import com.maxiconecta.crm.perfil.cliente.HistorialCambios;
 import com.maxiconecta.crm.perfil.cliente.Origen;
+import com.maxiconecta.crm.perfil.cliente.TipoCambio;
 import com.maxiconecta.crm.perfil.cliente.VinculacionPendienteRepository;
 import com.maxiconecta.crm.perfil.comun.RecursoNoEncontradoException;
 import com.maxiconecta.crm.perfil.comun.ReglaNegocioException;
@@ -30,15 +32,14 @@ public class ConsolidacionIdentificadores {
     private final ClienteRepository clientes;
     private final ClienteOrigenRepository origenes;
     private final VinculacionPendienteRepository vinculaciones;
-    private final VinculacionIdentificadores vinculacion;
+    private final HistorialCambios historial;
 
     public ConsolidacionIdentificadores(ClienteRepository clientes, ClienteOrigenRepository origenes,
-                                        VinculacionPendienteRepository vinculaciones,
-                                        VinculacionIdentificadores vinculacion) {
+                                        VinculacionPendienteRepository vinculaciones, HistorialCambios historial) {
         this.clientes = clientes;
         this.origenes = origenes;
         this.vinculaciones = vinculaciones;
-        this.vinculacion = vinculacion;
+        this.historial = historial;
     }
 
     /**
@@ -71,10 +72,8 @@ public class ConsolidacionIdentificadores {
 
         absorbido.registrarActualizacion(Origen.CRM, responsable);
         conservado.registrarActualizacion(Origen.CRM, responsable);
-        vinculacion.registrarCambio(idAbsorbido, responsable, cambiosAbsorbido);
-        if (!cambiosConservado.isEmpty()) {
-            vinculacion.registrarCambio(idConservado, responsable, cambiosConservado);
-        }
+        historial.registrar(idAbsorbido, TipoCambio.UNIFICACION, Origen.CRM, responsable, cambiosAbsorbido, null);
+        historial.registrar(idConservado, TipoCambio.UNIFICACION, Origen.CRM, responsable, cambiosConservado, null);
         return movidos;
     }
 

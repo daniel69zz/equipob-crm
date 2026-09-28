@@ -1,15 +1,12 @@
 package com.maxiconecta.crm.perfil.vinculacion;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxiconecta.crm.perfil.cliente.CambioCampo;
-import com.maxiconecta.crm.perfil.cliente.CambioPerfil;
-import com.maxiconecta.crm.perfil.cliente.CambioPerfilRepository;
 import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigen;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigenRepository;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
 import com.maxiconecta.crm.perfil.cliente.EstadoVinculacion;
+import com.maxiconecta.crm.perfil.cliente.HistorialCambios;
 import com.maxiconecta.crm.perfil.cliente.Origen;
 import com.maxiconecta.crm.perfil.cliente.TipoCambio;
 import com.maxiconecta.crm.perfil.cliente.VinculacionPendiente;
@@ -37,18 +34,16 @@ public class VinculacionIdentificadores {
     private final ClienteOrigenRepository origenes;
     private final VinculacionPendienteRepository vinculaciones;
     private final EventoClienteRepository eventos;
-    private final CambioPerfilRepository cambiosPerfil;
-    private final ObjectMapper objectMapper;
+    private final HistorialCambios historial;
 
     public VinculacionIdentificadores(ClienteRepository clientes, ClienteOrigenRepository origenes,
                                       VinculacionPendienteRepository vinculaciones, EventoClienteRepository eventos,
-                                      CambioPerfilRepository cambiosPerfil, ObjectMapper objectMapper) {
+                                      HistorialCambios historial) {
         this.clientes = clientes;
         this.origenes = origenes;
         this.vinculaciones = vinculaciones;
         this.eventos = eventos;
-        this.cambiosPerfil = cambiosPerfil;
-        this.objectMapper = objectMapper;
+        this.historial = historial;
     }
 
     @Transactional
@@ -72,7 +67,8 @@ public class VinculacionIdentificadores {
         origenes.saveAndFlush(ClienteOrigen.vincular(origen, identificador, idCliente, ClienteOrigen.VINCULACION_MANUAL,
                 responsable, null));
         vinculaciones.findById(clave).ifPresent(v -> v.resolver(EstadoVinculacion.VINCULADO, responsable));
-        registrarCambio(idCliente, responsable, List.of(new CambioCampo("identificadoresOrigen", null, clave.toString())));
+        historial.registrar(idCliente, TipoCambio.VINCULACION, Origen.CRM, responsable,
+                List.of(new CambioCampo("identificadoresOrigen", null, clave.toString())), null);
         cliente.registrarActualizacion(Origen.CRM, responsable);
         return eventosPendientes(clave);
     }
@@ -97,14 +93,6 @@ public class VinculacionIdentificadores {
                 .toList();
     }
 
-    void registrarCambio(Long idCliente, String responsable, List<CambioCampo> cambios) {
-        try {
-            cambiosPerfil.save(new CambioPerfil(idCliente, TipoCambio.ACTUALIZACION, Origen.CRM, responsable,
-                    objectMapper.writeValueAsString(cambios), null));
-        } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("No se pudo registrar el detalle de los cambios", ex);
-        }
-    }
 
     private List<Long> eventosPendientes(ClienteOrigen.Clave clave) {
         return eventos.findByOrigenAndIdClienteOrigenAndEstadoOrderByIdAsc(clave.origen().name(),
