@@ -26,6 +26,18 @@ export interface Bitacora {
   total: number;
 }
 
+export type ResultadoReproceso = 'EN_PROCESO' | 'PROCESADO' | 'FALLIDO' | 'DESCARTADO';
+
+export interface IntentoReproceso {
+  id: number;
+  idEvento: number;
+  numero: number;
+  intentadoEn: string;
+  resultado: ResultadoReproceso;
+  causa: string | null;
+  usuario: string | null;
+}
+
 /** Filtros de la bitácora. Las fechas van en formato AAAA-MM-DD; vacías, el servidor usa los últimos 7 días. */
 export interface FiltroBitacora {
   desde: string;
@@ -47,5 +59,13 @@ export class IngestaService {
       }
     }
     return this.http.get<Bitacora>('/api/comportamiento/eventos', { params });
+  }
+
+  reprocesar(idEvento: number): Observable<IntentoReproceso> {
+    return this.http.post<IntentoReproceso>(`/api/comportamiento/eventos/${idEvento}/reprocesar`, {});
+  }
+
+  consultarIntentos(idEvento: number): Observable<IntentoReproceso[]> {
+    return this.http.get<IntentoReproceso[]>(`/api/comportamiento/eventos/${idEvento}/intentos`);
   }
 }
