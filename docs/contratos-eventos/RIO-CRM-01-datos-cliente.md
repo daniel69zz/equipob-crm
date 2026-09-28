@@ -87,6 +87,7 @@ Más ejemplos en `herramientas/simulador-eventos/eventos/`.
 | Situación | Perfil | Bitácora de sincronización |
 |---|---|---|
 | Cliente nuevo (el par `origen` + `idCliente` no está vinculado a ningún perfil) | Se **crea** el perfil y se vincula el identificador de origen | `PROCESADO` |
+| Identificador nuevo cuyo documento coincide con un perfil existente | No se crea otro perfil: espera que un administrador lo vincule o confirme que es otra persona (ver `docs/perfil/identificadores-origen.md`) | `PENDIENTE` |
 | Cliente ya vinculado | Se **actualiza** el mismo perfil; nunca se crea otro | `PROCESADO` |
 | `CLIENTE_ACTUALIZADO` de un cliente que el CRM aún no conoce (el alta se perdió o llegó después) | Se crea el perfil | `PROCESADO` |
 | Dato obligatorio vacío o mal formado | Se guarda lo válido, el dato inválido queda vacío y el perfil queda **incompleto** con el motivo | `INCOMPLETO` con el motivo |
