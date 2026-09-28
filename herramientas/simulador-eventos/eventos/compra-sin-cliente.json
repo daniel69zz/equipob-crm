@@ -1,0 +1,14 @@
+{
+  "idEvento": "0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+  "tipoEvento": "COMPRA_CONFIRMADA",
+  "origen": "VENTAS",
+  "fechaEmision": "2026-09-27T17:10:00-04:00",
+  "compra": {
+    "idCompra": "V-100240",
+    "fecha": "2026-09-27T17:09:30-04:00",
+    "montoTotal": 75.00,
+    "items": [
+      { "categoria": "Bebidas", "cantidad": 3, "monto": 75.00 }
+    ]
+  }
+}

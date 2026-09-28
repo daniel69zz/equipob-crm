@@ -1,0 +1,1 @@
+compra confirmada V-100299 monto 45.00 (mensaje que no es JSON)

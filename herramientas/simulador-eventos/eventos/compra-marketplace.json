@@ -1,0 +1,16 @@
+{
+  "idEvento": "c3d4e5f6-7a8b-4c9d-8e1f-a2b3c4d5e6f7",
+  "tipoEvento": "COMPRA_CONFIRMADA",
+  "origen": "MARKETPLACE",
+  "fechaEmision": "2026-09-27T16:02:41-04:00",
+  "compra": {
+    "idCompra": "MP-88120",
+    "idCliente": "mp-user-3307",
+    "fecha": "2026-09-27T16:02:12-04:00",
+    "montoTotal": 129.90,
+    "items": [
+      { "categoria": "Hogar", "cantidad": 1, "monto": 89.90 },
+      { "categoria": "Limpieza", "cantidad": 4, "monto": 40.00 }
+    ]
+  }
+}
