@@ -32,8 +32,23 @@ public class HistorialCambios {
         if (cambios.isEmpty()) {
             return null;
         }
+        exigirOrigenCoherente(tipo, origen, responsable);
         return repository.save(new CambioPerfil(idCliente, tipo, origen, responsable, cambios, comoJson(cambios),
                 idEvento));
+    }
+
+    /**
+     * El origen tiene que distinguir de dónde vino el cambio: las altas y actualizaciones vienen de
+     * Marketplace o Ventas; las vinculaciones y unificaciones son acciones de un usuario del CRM.
+     */
+    private static void exigirOrigenCoherente(TipoCambio tipo, Origen origen, String responsable) {
+        boolean esAccionDelCrm = tipo == TipoCambio.VINCULACION || tipo == TipoCambio.UNIFICACION;
+        if (origen == null || esAccionDelCrm == origen.esSistemaExterno()) {
+            throw new IllegalArgumentException("Origen " + origen + " no válido para un cambio de tipo " + tipo);
+        }
+        if (responsable == null || responsable.isBlank()) {
+            throw new IllegalArgumentException("Todo cambio del perfil debe tener un responsable");
+        }
     }
 
     private String comoJson(List<CambioCampo> cambios) {

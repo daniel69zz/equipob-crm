@@ -67,7 +67,7 @@ public class VinculacionIdentificadores {
         origenes.saveAndFlush(ClienteOrigen.vincular(origen, identificador, idCliente, ClienteOrigen.VINCULACION_MANUAL,
                 responsable, null));
         vinculaciones.findById(clave).ifPresent(v -> v.resolver(EstadoVinculacion.VINCULADO, responsable));
-        historial.registrar(idCliente, TipoCambio.ACTUALIZACION, Origen.CRM, responsable,
+        historial.registrar(idCliente, TipoCambio.VINCULACION, Origen.CRM, responsable,
                 List.of(new CambioCampo("identificadoresOrigen", null, clave.toString())), null);
         cliente.registrarActualizacion(Origen.CRM, responsable);
         return eventosPendientes(clave);

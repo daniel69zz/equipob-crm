@@ -72,8 +72,8 @@ public class ConsolidacionIdentificadores {
 
         absorbido.registrarActualizacion(Origen.CRM, responsable);
         conservado.registrarActualizacion(Origen.CRM, responsable);
-        historial.registrar(idAbsorbido, TipoCambio.ACTUALIZACION, Origen.CRM, responsable, cambiosAbsorbido, null);
-        historial.registrar(idConservado, TipoCambio.ACTUALIZACION, Origen.CRM, responsable, cambiosConservado, null);
+        historial.registrar(idAbsorbido, TipoCambio.UNIFICACION, Origen.CRM, responsable, cambiosAbsorbido, null);
+        historial.registrar(idConservado, TipoCambio.UNIFICACION, Origen.CRM, responsable, cambiosConservado, null);
         return movidos;
     }
 
