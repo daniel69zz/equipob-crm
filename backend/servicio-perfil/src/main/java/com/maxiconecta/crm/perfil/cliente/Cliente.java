@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.perfil.cliente;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,9 +8,15 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Perfil único del cliente en el CRM.
@@ -51,6 +58,10 @@ public class Cliente {
 
     private String actualizadoPor;
 
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    @OrderBy("id")
+    private List<Direccion> direcciones = new ArrayList<>();
+
     public Cliente() {
     }
 
@@ -64,6 +75,39 @@ public class Cliente {
     public void actualizarContacto(String email, String telefono) {
         this.email = email;
         this.telefono = telefono;
+    }
+
+    /**
+     * Sincroniza las direcciones informadas por un sistema de origen: agrega las nuevas, actualiza
+     * las existentes y desactiva las que ese sistema ya no informa. Las de otros sistemas no se tocan.
+     * Devuelve los cambios aplicados.
+     */
+    public List<CambioCampo> sincronizarDirecciones(Origen origen, List<Direccion.DatosDireccion> recibidas) {
+        List<CambioCampo> cambios = new ArrayList<>();
+        Set<String> informadas = new HashSet<>();
+        boolean hayPrincipal = false;
+        for (Direccion.DatosDireccion datos : recibidas) {
+            if (!informadas.add(datos.idDireccionOrigen())) {
+                continue;
+            }
+            boolean principal = datos.principal() && !hayPrincipal;
+            hayPrincipal |= principal;
+            Direccion.DatosDireccion normalizada = new Direccion.DatosDireccion(datos.idDireccionOrigen(), datos.tipo(),
+                    datos.calle(), datos.numero(), datos.zona(), datos.ciudad(), datos.referencia(), principal);
+            Direccion direccion = direcciones.stream()
+                    .filter(d -> d.getOrigen() == origen && d.getIdDireccionOrigen().equals(datos.idDireccionOrigen()))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        Direccion nueva = new Direccion(this, origen, datos.idDireccionOrigen());
+                        direcciones.add(nueva);
+                        return nueva;
+                    });
+            cambios.addAll(direccion.actualizar(normalizada));
+        }
+        direcciones.stream()
+                .filter(d -> d.getOrigen() == origen && !informadas.contains(d.getIdDireccionOrigen()))
+                .forEach(d -> cambios.addAll(d.desactivar()));
+        return cambios;
     }
 
     public void registrarActualizacion(Origen origen, String responsable) {
@@ -98,6 +142,14 @@ public class Cliente {
 
     public String getTelefono() {
         return telefono;
+    }
+
+    public List<Direccion> getDirecciones() {
+        return direcciones;
+    }
+
+    public List<Direccion> getDireccionesActivas() {
+        return direcciones.stream().filter(Direccion::isActiva).toList();
     }
 
     public EstadoPerfil getEstado() {

@@ -4,8 +4,12 @@ import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigen;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigenRepository;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
+import com.maxiconecta.crm.perfil.cliente.Direccion;
+import com.maxiconecta.crm.perfil.cliente.TipoDireccion;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * Aplica un evento de datos del cliente al perfil. Todo ocurre en una transacción: si algo
@@ -47,10 +51,24 @@ public class ProcesadorClientes {
         Cliente cliente = new Cliente();
         cliente.identificar(datos.nombres(), datos.apellidos(), datos.tipoDocumento(), datos.numeroDocumento());
         cliente.actualizarContacto(datos.contacto().email(), datos.contacto().telefono());
+        cliente.sincronizarDirecciones(evento.origen(), direcciones(datos));
         cliente.registrarActualizacion(evento.origen(), evento.responsableDelCambio());
         clientes.save(cliente);
         origenes.saveAndFlush(new ClienteOrigen(evento.origen(), datos.idCliente(), cliente.getId(),
                 evento.fechaCambio()));
         return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.PROCESADO, null);
+    }
+
+    /** Direcciones con los datos mínimos para guardarse: código, calle y ciudad. */
+    private static List<Direccion.DatosDireccion> direcciones(EventoClienteRecibido.DatosCliente datos) {
+        return datos.direcciones().stream()
+                .filter(d -> presente(d.idDireccion()) && presente(d.calle()) && presente(d.ciudad()))
+                .map(d -> new Direccion.DatosDireccion(d.idDireccion(), TipoDireccion.de(d.tipo()), d.calle(),
+                        d.numero(), d.zona(), d.ciudad(), d.referencia(), d.principal()))
+                .toList();
+    }
+
+    private static boolean presente(String valor) {
+        return valor != null && !valor.isBlank();
     }
 }
