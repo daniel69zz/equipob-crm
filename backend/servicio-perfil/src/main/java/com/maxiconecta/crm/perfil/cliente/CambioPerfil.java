@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.perfil.cliente;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,14 +8,19 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Immutable;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Registro de una creación o modificación del perfil: fecha, sistema de origen, responsable y
- * campos cambiados (JSON con {campo, anterior, nuevo}). Es inmutable: la base rechaza UPDATE y DELETE.
+ * Una operación del histórico del perfil: fecha, tipo, sistema de origen, responsable y los campos
+ * cambiados, uno por fila en {@link CambioPerfilDetalle} (el JSON de {@code cambios} es su resumen).
+ * Es inmutable: la base rechaza UPDATE y DELETE. Ver docs/perfil/historico-cambios.md.
  */
 @Entity
 @Immutable
@@ -47,17 +53,33 @@ public class CambioPerfil {
 
     private Long idEvento;
 
+    @OneToMany(mappedBy = "cambio", cascade = CascadeType.PERSIST)
+    @OrderBy("orden")
+    private List<CambioPerfilDetalle> detalles = new ArrayList<>();
+
     protected CambioPerfil() {
     }
 
+    /** Operación sin detalle por campo; el histórico nuevo usa el constructor con la lista de campos. */
     public CambioPerfil(Long idCliente, TipoCambio tipo, Origen origen, String responsable, String cambios,
                         Long idEvento) {
+        this(idCliente, tipo, origen, responsable, List.of(), cambios, idEvento);
+    }
+
+    /**
+     * @param cambiosComoJson resumen en JSON de {@code campos}, que se guardan además uno por fila
+     */
+    public CambioPerfil(Long idCliente, TipoCambio tipo, Origen origen, String responsable, List<CambioCampo> campos,
+                        String cambiosComoJson, Long idEvento) {
         this.idCliente = idCliente;
         this.tipo = tipo;
         this.origen = origen;
         this.responsable = responsable;
-        this.cambios = cambios;
+        this.cambios = cambiosComoJson;
         this.idEvento = idEvento;
+        for (int i = 0; i < campos.size(); i++) {
+            detalles.add(new CambioPerfilDetalle(this, i + 1, campos.get(i)));
+        }
     }
 
     public Long getId() {
@@ -90,5 +112,9 @@ public class CambioPerfil {
 
     public Long getIdEvento() {
         return idEvento;
+    }
+
+    public List<CambioPerfilDetalle> getDetalles() {
+        return detalles;
     }
 }
