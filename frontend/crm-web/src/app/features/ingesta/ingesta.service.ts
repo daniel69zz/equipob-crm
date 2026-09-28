@@ -9,6 +9,7 @@ export interface EventoRecibido {
   idEventoOrigen: string | null;
   tipoEvento: string | null;
   origen: string | null;
+  idTransaccion: string | null;
   estado: EstadoEvento;
   causa: string | null;
   recibidoEn: string;
@@ -31,6 +32,7 @@ export interface FiltroBitacora {
   hasta: string;
   estado: string;
   origen: string;
+  transaccion: string;
 }
 
 @Injectable({ providedIn: 'root' })

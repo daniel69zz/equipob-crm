@@ -31,9 +31,10 @@ public class BitacoraController {
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
                            @RequestParam(required = false) EstadoEvento estado,
                            @RequestParam(required = false) String origen,
+                           @RequestParam(required = false) String transaccion,
                            @RequestParam(defaultValue = "0") int pagina,
                            @RequestParam(defaultValue = "50") int tamanio) {
-        FiltroBitacora filtro = new FiltroBitacora(desde, hasta, estado, origen);
+        FiltroBitacora filtro = new FiltroBitacora(desde, hasta, estado, origen, transaccion);
         Page<EventoRecibido> resultado = consulta.buscar(filtro, pagina, tamanio);
         return new Bitacora(filtro.desde(), filtro.hasta(), consulta.resumen(filtro),
                 resultado.getContent().stream().map(EventoResponse::de).toList(),
@@ -44,13 +45,14 @@ public class BitacoraController {
                            List<EventoResponse> eventos, int pagina, int tamanio, long total) {
     }
 
-    public record EventoResponse(Long id, String idEventoOrigen, String tipoEvento, String origen, EstadoEvento estado,
-                                 String causa, OffsetDateTime recibidoEn, OffsetDateTime procesadoEn) {
+    public record EventoResponse(Long id, String idEventoOrigen, String tipoEvento, String origen,
+                                 String idTransaccion, EstadoEvento estado, String causa, OffsetDateTime recibidoEn,
+                                 OffsetDateTime procesadoEn) {
 
         static EventoResponse de(EventoRecibido evento) {
             return new EventoResponse(evento.getId(), evento.getIdEventoOrigen(), evento.getTipoEvento(),
-                    evento.getOrigen(), evento.getEstado(), evento.getCausa(), evento.getRecibidoEn(),
-                    evento.getProcesadoEn());
+                    evento.getOrigen(), evento.getIdTransaccion(), evento.getEstado(), evento.getCausa(),
+                    evento.getRecibidoEn(), evento.getProcesadoEn());
         }
     }
 }

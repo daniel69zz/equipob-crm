@@ -31,8 +31,10 @@ class ProcesadorComprasTest {
 
     private final EventoRecibidoRepository eventos = mock(EventoRecibidoRepository.class);
     private final CompraRepository compras = mock(CompraRepository.class);
+    private final EventoProcesadoRepository procesados = mock(EventoProcesadoRepository.class);
     private final LectorEventos lector = mock(LectorEventos.class);
-    private final ProcesadorCompras procesador = new ProcesadorCompras(eventos, compras, lector, validadorReal());
+    private final ProcesadorCompras procesador = new ProcesadorCompras(eventos, compras, procesados, lector,
+            validadorReal());
 
     @Test
     void unEventoValidoContinuaHastaGuardarLaCompra() {
@@ -40,7 +42,7 @@ class ProcesadorComprasTest {
         EventoCompraConfirmada evento = evento("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c");
         when(eventos.findById(7L)).thenReturn(Optional.of(recibido));
         when(lector.leer(recibido.getContenido())).thenReturn(evento);
-        when(compras.findByOrigenAndIdCompraOrigen(Origen.VENTAS, "V-100234")).thenReturn(Optional.empty());
+        when(procesados.buscar(any())).thenReturn(Optional.empty());
         when(compras.save(any(Compra.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
         Compra guardada = procesador.procesar(7L);
@@ -62,7 +64,7 @@ class ProcesadorComprasTest {
                 .hasMessageContaining("idEvento")
                 .hasMessageContaining("UUID");
 
-        verify(compras, never()).findByOrigenAndIdCompraOrigen(any(), any());
+        verify(procesados, never()).buscar(any());
         verify(compras, never()).save(any());
         assertThat(recibido.getEstado()).isEqualTo(EstadoEvento.RECIBIDO);
     }
@@ -75,7 +77,7 @@ class ProcesadorComprasTest {
     }
 
     private static EventoRecibido recibido() {
-        return new EventoRecibido("contenido original", null, null, null);
+        return new EventoRecibido("contenido original", null, null, null, null);
     }
 
     private static EventoCompraConfirmada evento(String idEvento) {

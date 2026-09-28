@@ -12,7 +12,7 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
   { codigo: 'RECIBIDO', nombre: 'Recibidos' },
   { codigo: 'PROCESADO', nombre: 'Procesados' },
   { codigo: 'FALLIDO', nombre: 'Fallidos' },
-  { codigo: 'DESCARTADO', nombre: 'Descartados' },
+  { codigo: 'DESCARTADO', nombre: 'Duplicados' },
 ];
 
 @Component({
@@ -49,6 +49,10 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
           <option value="VENTAS">Ventas</option>
         </select>
       </div>
+      <div>
+        <label for="transaccion">Transacción</label>
+        <input id="transaccion" name="transaccion" [(ngModel)]="filtro.transaccion" placeholder="V-100234" />
+      </div>
       <div class="acciones">
         <button type="submit" [disabled]="cargando()">Buscar</button>
         <button type="button" class="secundario" (click)="limpiar()">Limpiar</button>
@@ -83,6 +87,7 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
             <tr>
               <th>Recibido</th>
               <th>Origen</th>
+              <th>Transacción</th>
               <th>Evento</th>
               <th>Estado</th>
               <th>Causa</th>
@@ -93,12 +98,13 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
               <tr>
                 <td class="fecha">{{ evento.recibidoEn | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
                 <td>{{ evento.origen ?? '—' }}</td>
+                <td class="id">{{ evento.idTransaccion ?? '—' }}</td>
                 <td class="id">{{ evento.idEventoOrigen ?? 'sin identificador' }}</td>
                 <td><span class="etiqueta" [class]="'estado-' + evento.estado">{{ nombreEstado(evento.estado) }}</span></td>
                 <td class="causa">{{ evento.causa }}</td>
               </tr>
             } @empty {
-              <tr><td colspan="5">No hay eventos para estos filtros.</td></tr>
+              <tr><td colspan="6">No hay eventos para estos filtros.</td></tr>
             }
           </tbody>
         </table>
@@ -226,6 +232,6 @@ export class BitacoraIngestaComponent implements OnInit, OnDestroy {
   }
 
   private static filtroVacio(): FiltroBitacora {
-    return { desde: '', hasta: '', estado: '', origen: '' };
+    return { desde: '', hasta: '', estado: '', origen: '', transaccion: '' };
   }
 }

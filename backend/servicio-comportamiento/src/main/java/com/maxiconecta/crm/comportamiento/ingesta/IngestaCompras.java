@@ -29,7 +29,7 @@ public class IngestaCompras {
         try {
             procesador.procesar(idEvento);
         } catch (CompraDuplicadaException ex) {
-            log.info("Evento {} descartado: {}", idEvento, ex.getMessage());
+            log.info("Evento {} descartado por duplicado: {}", idEvento, ex.getMessage());
             bitacora.marcarDescartado(idEvento, ex.getMessage());
         } catch (RuntimeException ex) {
             log.warn("Evento {} fallido: {}", idEvento, causa(ex));

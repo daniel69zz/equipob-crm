@@ -37,7 +37,8 @@ public class LectorEventos {
             JsonNode raiz = objectMapper.readTree(contenido);
             return raiz == null || !raiz.isObject()
                     ? Cabecera.VACIA
-                    : new Cabecera(texto(raiz, "idEvento", 64), texto(raiz, "tipoEvento", 40), texto(raiz, "origen", 15));
+                    : new Cabecera(texto(raiz, "idEvento", 64), texto(raiz, "tipoEvento", 40), texto(raiz, "origen", 15),
+                    texto(raiz.path("compra"), "idCompra", 64));
         } catch (JsonProcessingException ex) {
             return Cabecera.VACIA;
         }
@@ -76,7 +77,7 @@ public class LectorEventos {
     }
 
     private static String texto(JsonNode raiz, String campo, int largoMaximo) {
-        JsonNode valor = raiz.get(campo);
+        JsonNode valor = raiz.isObject() ? raiz.get(campo) : null;
         if (valor == null || !valor.isValueNode()) {
             return null;
         }
@@ -84,7 +85,7 @@ public class LectorEventos {
         return texto.length() > largoMaximo ? texto.substring(0, largoMaximo) : texto;
     }
 
-    public record Cabecera(String idEvento, String tipoEvento, String origen) {
-        static final Cabecera VACIA = new Cabecera(null, null, null);
+    public record Cabecera(String idEvento, String tipoEvento, String origen, String idTransaccion) {
+        static final Cabecera VACIA = new Cabecera(null, null, null, null);
     }
 }
