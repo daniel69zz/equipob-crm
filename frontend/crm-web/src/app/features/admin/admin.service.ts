@@ -19,6 +19,17 @@ export interface Rol {
   permisos: string[];
 }
 
+export interface PermisoDisponible {
+  codigo: string;
+  descripcion: string;
+}
+
+export interface DatosRol {
+  nombre: string;
+  descripcion: string | null;
+  permisos: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly http = inject(HttpClient);
@@ -29,6 +40,22 @@ export class AdminService {
 
   listarRoles(): Observable<Rol[]> {
     return this.http.get<Rol[]>('/api/admin/roles');
+  }
+
+  listarPermisos(): Observable<PermisoDisponible[]> {
+    return this.http.get<PermisoDisponible[]>('/api/admin/permisos');
+  }
+
+  crearRol(codigo: string, datos: DatosRol): Observable<Rol> {
+    return this.http.post<Rol>('/api/admin/roles', { codigo, ...datos });
+  }
+
+  actualizarRol(idRol: number, datos: DatosRol): Observable<Rol> {
+    return this.http.put<Rol>(`/api/admin/roles/${idRol}`, datos);
+  }
+
+  desactivarRol(idRol: number): Observable<Rol> {
+    return this.http.patch<Rol>(`/api/admin/roles/${idRol}/desactivar`, {});
   }
 
   asignarRol(idUsuario: number, rol: string): Observable<UsuarioInterno> {

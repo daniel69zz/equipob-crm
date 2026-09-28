@@ -14,7 +14,10 @@ import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.direct
       <nav>
         <a routerLink="/" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
         <a *appSiTienePermiso="permisos.USUARIOS_ADMINISTRAR" routerLink="/admin/usuarios" routerLinkActive="activo">
-          Usuarios y roles
+          Usuarios
+        </a>
+        <a *appSiTienePermiso="permisos.USUARIOS_ADMINISTRAR" routerLink="/admin/roles" routerLinkActive="activo">
+          Roles y permisos
         </a>
       </nav>
       <div class="usuario">

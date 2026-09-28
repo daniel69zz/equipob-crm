@@ -19,10 +19,16 @@ const MODULOS: Modulo[] = [
   { titulo: 'Fidelización', descripcion: 'Saldo y nivel de puntos', permiso: Permisos.PUNTOS_CONSULTAR },
   { titulo: 'Interacciones', descripcion: 'Atención y seguimiento de clientes', permiso: Permisos.INTERACCIONES_CONSULTAR },
   {
-    titulo: 'Usuarios y roles',
+    titulo: 'Usuarios',
     descripcion: 'Usuarios internos y asignación de roles',
     permiso: Permisos.USUARIOS_ADMINISTRAR,
     ruta: '/admin/usuarios',
+  },
+  {
+    titulo: 'Roles y permisos',
+    descripcion: 'Crear roles y definir sus permisos',
+    permiso: Permisos.USUARIOS_ADMINISTRAR,
+    ruta: '/admin/roles',
   },
   { titulo: 'Auditoría', descripcion: 'Registro de accesos y cambios', permiso: Permisos.AUDITORIA_CONSULTAR },
 ];
