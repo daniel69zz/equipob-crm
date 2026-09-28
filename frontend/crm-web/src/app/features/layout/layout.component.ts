@@ -13,6 +13,9 @@ import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.direct
       <strong>CRM MaxiConecta</strong>
       <nav>
         <a routerLink="/" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
+        <a *appSiTienePermiso="permisos.EVENTOS_REPROCESAR" routerLink="/eventos" routerLinkActive="activo">
+          Eventos de venta
+        </a>
         <a *appSiTienePermiso="permisos.USUARIOS_ADMINISTRAR" routerLink="/admin/usuarios" routerLinkActive="activo">
           Usuarios
         </a>

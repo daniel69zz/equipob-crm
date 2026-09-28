@@ -14,7 +14,12 @@ interface Modulo {
 const MODULOS: Modulo[] = [
   { titulo: 'Clientes', descripcion: 'Ficha integral, perfil e historial de cambios', permiso: Permisos.CLIENTE_CONSULTAR },
   { titulo: 'Compras e indicadores', descripcion: 'Historial de compras y comportamiento', permiso: Permisos.INDICADORES_CONSULTAR },
-  { titulo: 'Eventos de venta', descripcion: 'Bitácora de ingesta y reproceso de fallidos', permiso: Permisos.EVENTOS_REPROCESAR },
+  {
+    titulo: 'Eventos de venta',
+    descripcion: 'Bitácora de ingesta y reproceso de fallidos',
+    permiso: Permisos.EVENTOS_REPROCESAR,
+    ruta: '/eventos',
+  },
   { titulo: 'Segmentación', descripcion: 'Segmentos y clientes por segmento', permiso: Permisos.SEGMENTOS_CONSULTAR },
   { titulo: 'Fidelización', descripcion: 'Saldo y nivel de puntos', permiso: Permisos.PUNTOS_CONSULTAR },
   { titulo: 'Interacciones', descripcion: 'Atención y seguimiento de clientes', permiso: Permisos.INTERACCIONES_CONSULTAR },
