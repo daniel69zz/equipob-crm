@@ -1,14 +1,16 @@
 # crm-web — Aplicación Web del CRM
 
-Aplicación **Angular** para el personal interno: Administrador de CRM, Agente de Atención al Cliente y Gerente Comercial.
+Aplicación **Angular 18** (componentes standalone) para el personal interno: Administrador de CRM, Agente de Atención al Cliente y Gerente Comercial.
 
-Consume los microservicios **solo a través del API Gateway**.
+Consume los microservicios **solo a través del API Gateway**. En desarrollo, `proxy.conf.json` redirige `/api` al Gateway en `http://localhost:8080`.
 
-## Pantallas previstas para el Sprint 1
+## Ejecutar en local
 
-- Inicio de sesión y navegación según el rol
-- Ficha integral del cliente e historial de compras
-- Revisión de perfiles incompletos y unificación de duplicados
-- Consentimiento de tratamiento de datos
-- Histórico de cambios, bitácora de ingesta, reporte de rechazos y reproceso de eventos fallidos
-- Consulta de registros de auditoría
+Requisitos: Node 18 o superior y el API Gateway en ejecución.
+
+```bash
+npm install
+npm start
+```
+
+La aplicación queda en `http://localhost:4200`.
