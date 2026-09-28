@@ -76,29 +76,36 @@ public class ProcesadorClientes {
         EventoClienteRecibido.DatosCliente datos = normalizador.normalizar(evento.cliente());
         ClienteOrigen.Clave clave = new ClienteOrigen.Clave(evento.origen(), datos.idCliente());
         OffsetDateTime fechaCambio = evento.fechaCambio();
-        PerfilValidado perfil = validador.validar(datos);
 
         ClienteOrigen vinculo = origenes.findById(clave).orElse(null);
         Cliente cliente;
         TipoCambio tipo;
+        EventoClienteRecibido.DatosCliente propuesta;
         if (vinculo == null) {
-            ResultadoSincronizacion pendiente = pendienteDeVinculacion(clave, perfil);
+            ResultadoSincronizacion pendiente = pendienteDeVinculacion(clave, validador.validar(datos));
             if (pendiente != null) {
                 return pendiente;
             }
             cliente = new Cliente();
             tipo = TipoCambio.CREACION;
+            propuesta = datos;
         } else {
             descartarSiNoEsPosterior(vinculo, fechaCambio);
             cliente = perfilVigente(vinculo);
             tipo = TipoCambio.ACTUALIZACION;
+            // Una actualización solo cambia los campos que trae: el resto se conserva.
+            propuesta = fusionar(cliente, datos);
         }
+        // Se valida el perfil resultante, no solo lo recibido.
+        PerfilValidado perfil = validador.validar(propuesta);
 
         List<CambioCampo> cambios = new ArrayList<>();
         cambios.addAll(cliente.identificar(perfil.nombres(), perfil.apellidos(), perfil.tipoDocumento(),
                 perfil.numeroDocumento()));
         cambios.addAll(cliente.actualizarContacto(perfil.email(), perfil.telefono()));
-        cambios.addAll(cliente.sincronizarDirecciones(evento.origen(), perfil.direcciones()));
+        if (propuesta.informa(EventoClienteRecibido.Campos.DIRECCIONES)) {
+            cambios.addAll(cliente.sincronizarDirecciones(evento.origen(), perfil.direcciones()));
+        }
         cambios.addAll(cliente.marcarEstado(perfil.motivos()));
 
         if (vinculo == null) {
@@ -123,6 +130,28 @@ public class ProcesadorClientes {
         }
         return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.PROCESADO,
                 cambios.isEmpty() ? "Sin cambios en el perfil" : null);
+    }
+
+    /**
+     * Combina lo recibido con el perfil actual: cada campo que la notificación no trae toma el valor
+     * que ya tenía el perfil. Las direcciones no informadas se dejan como están.
+     */
+    private static EventoClienteRecibido.DatosCliente fusionar(Cliente actual, EventoClienteRecibido.DatosCliente datos) {
+        EventoClienteRecibido.Contacto contacto = datos.contacto();
+        return new EventoClienteRecibido.DatosCliente(datos.idCliente(), datos.fechaActualizacion(),
+                elegir(datos, EventoClienteRecibido.Campos.NOMBRES, datos.nombres(), actual.getNombres()),
+                elegir(datos, EventoClienteRecibido.Campos.APELLIDOS, datos.apellidos(), actual.getApellidos()),
+                elegir(datos, EventoClienteRecibido.Campos.TIPO_DOCUMENTO, datos.tipoDocumento(), actual.getTipoDocumento()),
+                elegir(datos, EventoClienteRecibido.Campos.NUMERO_DOCUMENTO, datos.numeroDocumento(),
+                        actual.getNumeroDocumento()),
+                new EventoClienteRecibido.Contacto(
+                        elegir(datos, EventoClienteRecibido.Campos.EMAIL, contacto.email(), actual.getEmail()),
+                        elegir(datos, EventoClienteRecibido.Campos.TELEFONO, contacto.telefono(), actual.getTelefono())),
+                datos.direcciones(), datos.camposInformados());
+    }
+
+    private static String elegir(EventoClienteRecibido.DatosCliente datos, String campo, String recibido, String actual) {
+        return datos.informa(campo) ? recibido : actual;
     }
 
     /**
