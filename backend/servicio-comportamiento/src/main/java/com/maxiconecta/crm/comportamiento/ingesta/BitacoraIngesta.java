@@ -26,6 +26,11 @@ public class BitacoraIngesta {
     }
 
     @Transactional
+    public void marcarFallido(Long idEvento, String causa) {
+        repository.findById(idEvento).ifPresent(evento -> evento.marcarFallido(causa));
+    }
+
+    @Transactional
     public void marcarDescartado(Long idEvento, String causa) {
         repository.findById(idEvento).ifPresent(evento -> evento.marcarDescartado(causa));
     }

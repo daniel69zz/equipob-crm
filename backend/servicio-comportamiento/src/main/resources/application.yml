@@ -24,6 +24,15 @@ spring:
     port: ${RABBIT_PUERTO:5672}
     username: ${RABBIT_USUARIO:guest}
     password: ${RABBIT_PASSWORD:guest}
+    listener:
+      simple:
+        # Si un mensaje no se puede ni anotar en la bitácora, se reintenta y luego va a la cola de respaldo.
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2
 
 management:
   endpoints:

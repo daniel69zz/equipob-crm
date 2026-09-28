@@ -2,11 +2,13 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.stereotype.Service;
 
 /**
  * Flujo de ingesta de un mensaje de compra confirmada: primero se anota en la bitácora y
- * después se procesa en una transacción aparte.
+ * después se procesa en una transacción aparte. Si el procesamiento falla, el mensaje queda
+ * FALLIDO con su causa y su contenido original, disponible para reproceso.
  */
 @Service
 public class IngestaCompras {
@@ -28,6 +30,16 @@ public class IngestaCompras {
         } catch (CompraDuplicadaException ex) {
             log.info("Evento {} descartado: {}", idEvento, ex.getMessage());
             bitacora.marcarDescartado(idEvento, ex.getMessage());
+        } catch (RuntimeException ex) {
+            log.warn("Evento {} fallido: {}", idEvento, causa(ex));
+            bitacora.marcarFallido(idEvento, causa(ex));
         }
+    }
+
+    /** Mensaje de la causa más específica, que es la que explica el error. */
+    static String causa(Throwable error) {
+        Throwable raiz = NestedExceptionUtils.getMostSpecificCause(error);
+        String mensaje = raiz.getMessage();
+        return raiz.getClass().getSimpleName() + (mensaje != null ? ": " + mensaje : "");
     }
 }
