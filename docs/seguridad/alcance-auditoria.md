@@ -10,7 +10,7 @@ El API Gateway registra **toda petición que trae o modifica datos de un cliente
 /api/{servicio}/clientes[/{clienteId}[/...]]
 ```
 
-donde `{servicio}` es `perfil`, `comportamiento`, `segmentacion`, `fidelizacion` o `interacciones`. Los microservicios deben exponer bajo `/clientes/{clienteId}` toda consulta o cambio que corresponda a un cliente concreto.
+donde `{servicio}` es `perfil`, `comportamiento`, `segmentacion`, `fidelizacion` o `interacciones`. Los microservicios deben exponer bajo `/clientes/{clienteId}` toda consulta o cambio que corresponda a un cliente concreto. La forma exacta de las rutas, con ejemplos por servicio, está en `convencion-rutas-clientes.md`.
 
 | Operación | Cuándo se registra |
 |---|---|
