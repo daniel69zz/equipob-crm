@@ -142,6 +142,39 @@ class ReglaContratoCompraConfirmadaTest {
     }
 
     @Test
+    void rechazaMontoTotalNegativoOCero() {
+        montoTotal = new BigDecimal("-10.00");
+        items = List.of(new EventoCompraConfirmada.Item("Electrónica", 1, new BigDecimal("-10.00")));
+        assertThatThrownBy(() -> regla.validar(evento()))
+                .hasMessage("El campo 'compra.montoTotal' debe ser mayor que cero");
+        montoTotal = BigDecimal.ZERO;
+        assertThatThrownBy(() -> regla.validar(evento()))
+                .hasMessage("El campo 'compra.montoTotal' debe ser mayor que cero");
+    }
+
+    @Test
+    void rechazaCantidadCeroONegativa() {
+        items = List.of(new EventoCompraConfirmada.Item("Electrónica", 0, new BigDecimal("350.50")));
+        assertThatThrownBy(() -> regla.validar(evento()))
+                .hasMessage("El campo 'compra.items[0].cantidad' debe ser mayor que cero");
+    }
+
+    @Test
+    void rechazaMontoDeItemNegativo() {
+        items = List.of(new EventoCompraConfirmada.Item("Electrónica", 1, new BigDecimal("400.50")),
+                new EventoCompraConfirmada.Item("Descuento", 1, new BigDecimal("-50.00")));
+        assertThatThrownBy(() -> regla.validar(evento()))
+                .hasMessage("El campo 'compra.items[1].monto' debe ser mayor que cero");
+    }
+
+    @Test
+    void rechazaQueLaSumaDeLosItemsNoCoincidaConElTotal() {
+        montoTotal = new BigDecimal("999.99");
+        assertThatThrownBy(() -> regla.validar(evento()))
+                .hasMessage("La suma de 'compra.items[].monto' (350.50) no coincide con 'compra.montoTotal' (999.99)");
+    }
+
+    @Test
     void rechazaItemsAusentes() {
         items = null;
         assertThatThrownBy(() -> regla.validar(evento())).hasMessageContaining("compra.items");

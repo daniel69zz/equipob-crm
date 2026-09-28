@@ -13,6 +13,7 @@ import com.maxiconecta.crm.perfil.cliente.EstadoVinculacion;
 import com.maxiconecta.crm.perfil.cliente.TipoCambio;
 import com.maxiconecta.crm.perfil.cliente.VinculacionPendiente;
 import com.maxiconecta.crm.perfil.cliente.VinculacionPendienteRepository;
+import com.maxiconecta.crm.perfil.validacion.NormalizadorPerfil;
 import com.maxiconecta.crm.perfil.validacion.PerfilValidado;
 import com.maxiconecta.crm.perfil.validacion.ValidadorPerfil;
 import org.springframework.stereotype.Service;
@@ -47,19 +48,21 @@ public class ProcesadorClientes {
     private final CambioPerfilRepository cambiosPerfil;
     private final VinculacionPendienteRepository vinculaciones;
     private final LectorEventosCliente lector;
+    private final NormalizadorPerfil normalizador;
     private final ValidadorPerfil validador;
     private final ObjectMapper objectMapper;
 
     public ProcesadorClientes(EventoClienteRepository eventos, ClienteRepository clientes,
                               ClienteOrigenRepository origenes, CambioPerfilRepository cambiosPerfil,
                               VinculacionPendienteRepository vinculaciones, LectorEventosCliente lector,
-                              ValidadorPerfil validador, ObjectMapper objectMapper) {
+                              NormalizadorPerfil normalizador, ValidadorPerfil validador, ObjectMapper objectMapper) {
         this.eventos = eventos;
         this.clientes = clientes;
         this.origenes = origenes;
         this.cambiosPerfil = cambiosPerfil;
         this.vinculaciones = vinculaciones;
         this.lector = lector;
+        this.normalizador = normalizador;
         this.validador = validador;
         this.objectMapper = objectMapper;
     }
@@ -69,7 +72,8 @@ public class ProcesadorClientes {
         EventoCliente registro = eventos.findById(idEvento)
                 .orElseThrow(() -> new IllegalStateException("No existe el evento " + idEvento + " en la bitácora"));
         EventoClienteRecibido evento = lector.leer(registro.getContenido());
-        EventoClienteRecibido.DatosCliente datos = evento.cliente();
+        // Normalizar antes de validar y comparar: un cambio que solo es de formato no es un cambio.
+        EventoClienteRecibido.DatosCliente datos = normalizador.normalizar(evento.cliente());
         ClienteOrigen.Clave clave = new ClienteOrigen.Clave(evento.origen(), datos.idCliente());
         OffsetDateTime fechaCambio = evento.fechaCambio();
         PerfilValidado perfil = validador.validar(datos);

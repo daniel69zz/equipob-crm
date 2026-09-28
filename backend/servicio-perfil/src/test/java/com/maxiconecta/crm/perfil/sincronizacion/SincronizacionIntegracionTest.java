@@ -93,7 +93,7 @@ class SincronizacionIntegracionTest {
     void limpiarBase() {
         // El registro de cambios rechaza TRUNCATE: en las pruebas se desactivan los triggers solo para limpiar.
         jdbc.execute("SET session_replication_role = replica; "
-                + "TRUNCATE perfil.cambio_perfil, perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, perfil.cliente, "
+                + "TRUNCATE perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil, perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, perfil.cliente, "
                 + "perfil.evento_cliente RESTART IDENTITY; "
                 + "SET session_replication_role = DEFAULT");
     }
@@ -116,7 +116,7 @@ class SincronizacionIntegracionTest {
             assertThat(cliente.getTipoDocumento()).isEqualTo("CI");
             assertThat(cliente.getNumeroDocumento()).isEqualTo("4455667");
             assertThat(cliente.getEmail()).isEqualTo("ana.perez@correo.com");
-            assertThat(cliente.getTelefono()).isEqualTo("+591 70012345");
+            assertThat(cliente.getTelefono()).isEqualTo("+59170012345");
             assertThat(cliente.getEstado()).isEqualTo(EstadoPerfil.COMPLETO);
             assertThat(cliente.getDireccionesActivas()).singleElement().satisfies(d -> {
                 assertThat(d.getCalle()).isEqualTo("Av. 6 de Agosto");
@@ -240,7 +240,7 @@ class SincronizacionIntegracionTest {
             assertThat(cliente.getEstado()).isEqualTo(EstadoPerfil.INCOMPLETO);
             assertThat(cliente.getMotivosIncompleto()).contains("numeroDocumento: vacío");
             assertThat(cliente.getNombres()).isEqualTo("Luisa");
-            assertThat(cliente.getTelefono()).isEqualTo("+591 76543210");
+            assertThat(cliente.getTelefono()).isEqualTo("+59176543210");
             assertThat(cliente.getEmail()).isNull();
             assertThat(cliente.getDirecciones()).isEmpty();
         });
