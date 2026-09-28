@@ -1,0 +1,37 @@
+{
+  "idEvento": "8d2e3f4a-5b6c-4d7e-9f8a-0b1c2d3e4f5a",
+  "tipoEvento": "CLIENTE_ACTUALIZADO",
+  "origen": "VENTAS",
+  "fechaEmision": "2026-09-25T16:40:11-04:00",
+  "responsable": "cajero.mlopez",
+  "cliente": {
+    "idCliente": "CLI-5521",
+    "fechaActualizacion": "2026-09-25T16:40:00-04:00",
+    "nombres": "Ana María",
+    "apellidos": "Pérez Rojas",
+    "tipoDocumento": "CI",
+    "numeroDocumento": "4455667",
+    "contacto": { "email": "ana.m.perez@correo.com", "telefono": "+591 70012345" },
+    "direcciones": [
+      {
+        "idDireccion": "D-1",
+        "tipo": "ENTREGA",
+        "calle": "Av. 6 de Agosto",
+        "numero": "2150",
+        "zona": "Sopocachi",
+        "ciudad": "La Paz",
+        "referencia": "Edificio Illimani, piso 5",
+        "principal": false
+      },
+      {
+        "idDireccion": "D-2",
+        "tipo": "FACTURACION",
+        "calle": "Calle 21 de Calacoto",
+        "numero": "8010",
+        "zona": "Calacoto",
+        "ciudad": "La Paz",
+        "principal": true
+      }
+    ]
+  }
+}

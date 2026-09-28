@@ -9,10 +9,13 @@ Ejemplos:
     python3 publicar.py eventos/compra-ventas.json
     python3 publicar.py eventos/compra-ventas.json --veces 2        # el segundo queda DESCARTADO
     python3 publicar.py eventos/compra-marketplace.json --nuevo     # idEvento e idCompra nuevos
+    python3 publicar.py eventos/cliente-ventas-alta.json --nuevo    # otro cliente con los mismos datos
+    python3 publicar.py eventos/cliente-ventas-alta.json --ahora    # mismo cliente, cambio con fecha actual
     python3 publicar.py eventos/*.json eventos/mensaje-ilegible.txt # todos los ejemplos
 """
 import argparse
 import base64
+import datetime
 import json
 import sys
 import urllib.error
@@ -21,21 +24,33 @@ import urllib.request
 import uuid
 
 EXCHANGE = "ventas.eventos"
-RUTA_POR_TIPO = {"COMPRA_CONFIRMADA": "compra.confirmada"}
+RUTA_POR_TIPO = {
+    "COMPRA_CONFIRMADA": "compra.confirmada",
+    "CLIENTE_REGISTRADO": "cliente.registrado",
+    "CLIENTE_ACTUALIZADO": "cliente.actualizado",
+}
 RUTA_POR_DEFECTO = "compra.confirmada"
 
 
-def contenido_a_publicar(ruta_archivo, nuevo):
+def contenido_a_publicar(ruta_archivo, nuevo, ahora):
     with open(ruta_archivo, encoding="utf-8") as archivo:
         texto = archivo.read()
     try:
         evento = json.loads(texto)
     except json.JSONDecodeError:
         return texto, RUTA_POR_DEFECTO
-    if nuevo:
+    if nuevo or ahora:
         evento["idEvento"] = str(uuid.uuid4())
+    if nuevo:
         if isinstance(evento.get("compra"), dict) and evento["compra"].get("idCompra"):
             evento["compra"]["idCompra"] = f"{evento['compra']['idCompra']}-{uuid.uuid4().hex[:6]}"
+        if isinstance(evento.get("cliente"), dict) and evento["cliente"].get("idCliente"):
+            evento["cliente"]["idCliente"] = f"{evento['cliente']['idCliente']}-{uuid.uuid4().hex[:6]}"
+    if ahora:
+        momento = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat(timespec="milliseconds")
+        evento["fechaEmision"] = momento
+        if isinstance(evento.get("cliente"), dict):
+            evento["cliente"]["fechaActualizacion"] = momento
     return json.dumps(evento, ensure_ascii=False), RUTA_POR_TIPO.get(evento.get("tipoEvento"), RUTA_POR_DEFECTO)
 
 
@@ -58,7 +73,10 @@ def main():
     parser = argparse.ArgumentParser(description="Publica eventos de ejemplo de Marketplace y Ventas en RabbitMQ.")
     parser.add_argument("archivos", nargs="+", help="archivos con el contenido de cada evento")
     parser.add_argument("--veces", type=int, default=1, help="cuántas veces publicar cada archivo (por defecto 1)")
-    parser.add_argument("--nuevo", action="store_true", help="genera idEvento e idCompra nuevos en cada publicación")
+    parser.add_argument("--nuevo", action="store_true",
+                        help="genera identificadores nuevos (idEvento, idCompra o idCliente) en cada publicación")
+    parser.add_argument("--ahora", action="store_true",
+                        help="usa la fecha actual como fecha del cambio (para que un evento de cliente se aplique)")
     parser.add_argument("--url", default="http://localhost:15672", help="API de administración de RabbitMQ")
     parser.add_argument("--vhost", default="/")
     parser.add_argument("--usuario", default="guest")
@@ -68,7 +86,7 @@ def main():
     errores = 0
     for ruta_archivo in args.archivos:
         for _ in range(args.veces):
-            contenido, routing_key = contenido_a_publicar(ruta_archivo, args.nuevo)
+            contenido, routing_key = contenido_a_publicar(ruta_archivo, args.nuevo, args.ahora)
             try:
                 enrutado = publicar(args, contenido, routing_key)
             except urllib.error.URLError as error:
@@ -78,7 +96,7 @@ def main():
             if enrutado:
                 print(f"✓ {ruta_archivo} → {EXCHANGE} [{routing_key}]")
             else:
-                print(f"✗ {ruta_archivo}: ninguna cola recibió el mensaje (¿está corriendo servicio-comportamiento?)",
+                print(f"✗ {ruta_archivo}: ninguna cola recibió el mensaje (¿está corriendo el servicio consumidor?)",
                       file=sys.stderr)
                 errores += 1
     sys.exit(1 if errores else 0)
