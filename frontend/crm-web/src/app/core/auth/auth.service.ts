@@ -6,6 +6,9 @@ import { Sesion } from './sesion';
 
 const CLAVE_SESION = 'crm.sesion';
 
+/** Respuesta de GET /api/auth/yo. */
+type SesionVigente = Pick<Sesion, 'usuario' | 'nombreCompleto' | 'rol' | 'permisos'>;
+
 /**
  * Inicio y cierre de sesión. La sesión se guarda en sessionStorage:
  * se pierde al cerrar la pestaña y deja de ser válida al vencer el token.
@@ -27,6 +30,22 @@ export class AuthService {
         this.sesionActual.set(sesion);
       }),
     );
+  }
+
+  /**
+   * Actualiza el rol y los permisos con los vigentes en el servidor, para que el menú
+   * refleje un cambio de rol hecho por el Administrador sin volver a iniciar sesión.
+   */
+  refrescarSesion(): void {
+    const actual = this.sesionActual();
+    if (!actual) {
+      return;
+    }
+    this.http.get<SesionVigente>('/api/auth/yo').subscribe((vigente) => {
+      const actualizada: Sesion = { ...actual, ...vigente };
+      sessionStorage.setItem(CLAVE_SESION, JSON.stringify(actualizada));
+      this.sesionActual.set(actualizada);
+    });
   }
 
   cerrarSesion(): void {

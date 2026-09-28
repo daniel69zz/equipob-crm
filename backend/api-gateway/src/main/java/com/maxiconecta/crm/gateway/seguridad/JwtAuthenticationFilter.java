@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.gateway.seguridad;
 
+import com.maxiconecta.crm.gateway.usuario.UsuarioService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,18 +17,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lee el token "Authorization: Bearer ..." y, si es válido, autentica la petición
- * con el rol (ROLE_...) y los permisos del usuario como autoridades.
- * Un token ausente o inválido deja la petición sin autenticar: la regla de acceso responde 401.
+ * Lee el token "Authorization: Bearer ..." y, si es válido, autentica la petición.
+ * El token solo identifica al usuario: el rol y los permisos se leen de la base en cada
+ * petición, para que un cambio de rol o una desactivación rijan de inmediato.
+ * Un token ausente, inválido o de un usuario desactivado deja la petición sin autenticar (401).
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String PREFIJO = "Bearer ";
 
     private final JwtService jwtService;
+    private final UsuarioService usuarioService;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UsuarioService usuarioService) {
         this.jwtService = jwtService;
+        this.usuarioService = usuarioService;
     }
 
     @Override
@@ -35,15 +39,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String cabecera = solicitud.getHeader(HttpHeaders.AUTHORIZATION);
         if (cabecera != null && cabecera.startsWith(PREFIJO)) {
-            jwtService.validar(cabecera.substring(PREFIJO.length())).ifPresent(sesion -> {
-                List<GrantedAuthority> autoridades = new ArrayList<>();
-                autoridades.add(new SimpleGrantedAuthority("ROLE_" + sesion.rol()));
-                sesion.permisos().forEach(permiso -> autoridades.add(new SimpleGrantedAuthority(permiso)));
-                UsernamePasswordAuthenticationToken autenticacion =
-                        new UsernamePasswordAuthenticationToken(sesion.usuario(), null, autoridades);
-                autenticacion.setDetails(sesion);
-                SecurityContextHolder.getContext().setAuthentication(autenticacion);
-            });
+            jwtService.validar(cabecera.substring(PREFIJO.length()))
+                    .flatMap(token -> usuarioService.sesionVigente(token.usuario()))
+                    .ifPresent(sesion -> {
+                        List<GrantedAuthority> autoridades = new ArrayList<>();
+                        autoridades.add(new SimpleGrantedAuthority("ROLE_" + sesion.rol()));
+                        sesion.permisos().forEach(permiso -> autoridades.add(new SimpleGrantedAuthority(permiso)));
+                        UsernamePasswordAuthenticationToken autenticacion =
+                                new UsernamePasswordAuthenticationToken(sesion.usuario(), null, autoridades);
+                        autenticacion.setDetails(sesion);
+                        SecurityContextHolder.getContext().setAuthentication(autenticacion);
+                    });
         }
         cadena.doFilter(solicitud, respuesta);
     }

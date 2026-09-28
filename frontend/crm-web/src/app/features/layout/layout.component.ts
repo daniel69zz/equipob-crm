@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { NombresDeRol, Permisos } from '../../core/auth/sesion';
@@ -39,11 +39,15 @@ import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.direct
     main { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
   `,
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly permisos = Permisos;
   readonly nombreRol = computed(() => {
     const rol = this.auth.sesion()?.rol ?? '';
     return NombresDeRol[rol] ?? rol;
   });
+
+  ngOnInit(): void {
+    this.auth.refrescarSesion();
+  }
 }

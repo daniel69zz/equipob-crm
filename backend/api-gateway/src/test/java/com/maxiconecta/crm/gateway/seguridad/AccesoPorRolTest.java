@@ -164,6 +164,27 @@ class AccesoPorRolTest {
                 .andExpect(pasaElControlDeAcceso());
     }
 
+    // --- Cambios de rol y desactivaciones rigen de inmediato ---
+
+    @Test
+    void unCambioDeRolRigeSinVolverAIniciarSesion() throws Exception {
+        String token = bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE);
+        mvc.perform(get("/api/admin/usuarios").header("Authorization", token)).andExpect(status().isForbidden());
+
+        when(usuarioService.sesionVigente("ana"))
+                .thenReturn(Optional.of(new SesionToken("ana", "ana", "ADMINISTRADOR_CRM", PERMISOS_ADMINISTRADOR)));
+
+        mvc.perform(get("/api/admin/usuarios").header("Authorization", token)).andExpect(status().isOk());
+    }
+
+    @Test
+    void unUsuarioDesactivadoQuedaFueraAunqueSuTokenNoHayaVencido() throws Exception {
+        String token = bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE);
+        when(usuarioService.sesionVigente("ana")).thenReturn(Optional.empty());
+
+        mvc.perform(get("/api/perfil/clientes/1").header("Authorization", token)).andExpect(status().isUnauthorized());
+    }
+
     @Test
     void unaRutaNoContempladaEnLaMatrizSeDeniega() throws Exception {
         mvc.perform(get("/api/desconocida").header("Authorization", bearerAdministrador()))
@@ -180,7 +201,12 @@ class AccesoPorRolTest {
         return bearer("admin", "ADMINISTRADOR_CRM", PERMISOS_ADMINISTRADOR);
     }
 
+    /**
+     * Emite un token y deja al usuario activo en la "base" (el Gateway consulta el rol vigente en cada petición).
+     */
     private String bearer(String usuario, String rol, List<String> permisos) {
+        when(usuarioService.sesionVigente(usuario))
+                .thenReturn(Optional.of(new SesionToken(usuario, usuario, rol, permisos)));
         return "Bearer " + jwtService.emitir(usuario, usuario, rol, permisos).token();
     }
 

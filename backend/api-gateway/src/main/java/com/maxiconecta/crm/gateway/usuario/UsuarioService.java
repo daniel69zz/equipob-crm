@@ -6,6 +6,7 @@ import com.maxiconecta.crm.gateway.comun.RecursoNoEncontradoException;
 import com.maxiconecta.crm.gateway.comun.ReglaNegocioException;
 import com.maxiconecta.crm.gateway.rol.Rol;
 import com.maxiconecta.crm.gateway.rol.RolService;
+import com.maxiconecta.crm.gateway.seguridad.SesionToken;
 import com.maxiconecta.crm.gateway.usuario.UsuarioDtos.CrearUsuarioRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,20 @@ public class UsuarioService {
                 .filter(Usuario::isActivo)
                 .filter(usuario -> usuario.getRol().isActivo())
                 .filter(usuario -> passwordEncoder.matches(password, usuario.getPasswordHash()));
+    }
+
+    /**
+     * Rol y permisos vigentes del usuario según la base de datos. Vacío si el usuario
+     * no existe, está desactivado o su rol está desactivado. El Gateway lo consulta en cada
+     * petición para que un cambio de rol o una desactivación rijan de inmediato.
+     */
+    @Transactional(readOnly = true)
+    public Optional<SesionToken> sesionVigente(String nombreUsuario) {
+        return usuarioRepository.findByNombreUsuario(nombreUsuario)
+                .filter(Usuario::isActivo)
+                .filter(usuario -> usuario.getRol().isActivo())
+                .map(usuario -> new SesionToken(usuario.getNombreUsuario(), usuario.getNombreCompleto(),
+                        usuario.getRol().getCodigo(), usuario.getRol().codigosDePermisos()));
     }
 
     @Transactional(readOnly = true)
