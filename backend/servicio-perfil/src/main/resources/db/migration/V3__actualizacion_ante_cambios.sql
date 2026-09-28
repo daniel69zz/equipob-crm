@@ -1,6 +1,29 @@
 -- SCRUM-11 · Actualización automática del perfil ante cambios
 -- Políticas: docs/perfil/mapeo-datos-perfil.md
 
+-- Los datos existentes se normalizan con las mismas reglas que NormalizadorPerfil, para que un
+-- valor que solo difiere en el formato (espacios, mayúsculas, guiones) no cuente como cambio ni
+-- como conflicto. Nombres y ciudades ya llegaban con mayúscula inicial y no se tocan.
+UPDATE perfil.cliente
+SET email = lower(regexp_replace(email, '\s', '', 'g'))
+WHERE email IS NOT NULL;
+
+UPDATE perfil.cliente
+SET numero_documento = upper(regexp_replace(numero_documento, '[\s.]', '', 'g'))
+WHERE numero_documento IS NOT NULL;
+
+UPDATE perfil.cliente
+SET telefono = CASE
+        WHEN btrim(telefono) LIKE '+%' THEN '+' || regexp_replace(telefono, '[^0-9]', '', 'g')
+        WHEN length(regexp_replace(telefono, '[^0-9]', '', 'g')) = 8
+            THEN '+591' || regexp_replace(telefono, '[^0-9]', '', 'g')
+        WHEN length(regexp_replace(telefono, '[^0-9]', '', 'g')) = 11
+             AND regexp_replace(telefono, '[^0-9]', '', 'g') LIKE '591%'
+            THEN '+' || regexp_replace(telefono, '[^0-9]', '', 'g')
+        ELSE regexp_replace(telefono, '[^0-9]', '', 'g')
+    END
+WHERE telefono ~ '^\s*[0-9+ ()\-.]+\s*$';
+
 -- Qué sistema puso cada campo del perfil y cuándo (fecha del cambio en ese sistema).
 -- Sirve para detectar conflictos entre Marketplace y Ventas y resolverlos con la regla de prioridad.
 CREATE TABLE perfil.campo_origen (
