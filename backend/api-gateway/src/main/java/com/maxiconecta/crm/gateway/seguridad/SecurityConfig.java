@@ -1,6 +1,8 @@
 package com.maxiconecta.crm.gateway.seguridad;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maxiconecta.crm.gateway.auditoria.AuditoriaAccesoFilter;
+import com.maxiconecta.crm.gateway.auditoria.AuditoriaService;
 import com.maxiconecta.crm.gateway.comun.ApiError;
 import com.maxiconecta.crm.gateway.usuario.UsuarioService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,7 +47,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain cadenaDeSeguridad(HttpSecurity http, JwtService jwtService,
-                                                 UsuarioService usuarioService, ObjectMapper objectMapper)
+                                                 UsuarioService usuarioService, AuditoriaService auditoriaService,
+                                                 ObjectMapper objectMapper)
             throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -87,6 +90,7 @@ public class SecurityConfig {
                         .anyRequest().denyAll())
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService, usuarioService),
                         UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new AuditoriaAccesoFilter(auditoriaService), JwtAuthenticationFilter.class)
                 .addFilterAfter(new IdentidadHeadersFilter(), AuthorizationFilter.class);
         return http.build();
     }

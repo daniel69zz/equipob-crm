@@ -6,8 +6,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Registra en auditoria.evento los cambios de seguridad. Se ejecuta dentro de la misma
- * transacción que el cambio: si el registro falla, el cambio tampoco se guarda.
+ * Registra en auditoria.evento los cambios de seguridad y los accesos a datos de clientes.
+ * Los cambios de seguridad se registran dentro de la misma transacción que el cambio: si el
+ * registro falla, el cambio tampoco se guarda.
  */
 @Service
 public class AuditoriaService {
@@ -18,6 +19,11 @@ public class AuditoriaService {
     public static final String USUARIO_CREADO = "USUARIO_CREADO";
     public static final String ROL_ASIGNADO = "ROL_ASIGNADO";
     public static final String USUARIO_DESACTIVADO = "USUARIO_DESACTIVADO";
+    public static final String CLIENTE_CONSULTADO = "CLIENTE_CONSULTADO";
+    public static final String CLIENTE_MODIFICADO = "CLIENTE_MODIFICADO";
+    public static final String ACCESO_DENEGADO = "ACCESO_DENEGADO";
+
+    public static final String ENTIDAD_CLIENTE = "CLIENTE";
 
     private final EventoAuditoriaRepository repository;
 
