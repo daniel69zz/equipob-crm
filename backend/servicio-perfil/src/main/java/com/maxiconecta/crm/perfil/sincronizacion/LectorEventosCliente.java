@@ -59,6 +59,9 @@ public class LectorEventosCliente {
         TipoEventoCliente tipo = valorDe(TipoEventoCliente.class, escalar(raiz, "tipoEvento"), "tipoEvento",
                 "CLIENTE_REGISTRADO o CLIENTE_ACTUALIZADO");
         Origen origen = valorDe(Origen.class, escalar(raiz, "origen"), "origen", "MARKETPLACE o VENTAS");
+        if (!origen.esSistemaExterno()) {
+            throw new EventoIlegibleException("El campo 'origen' debe ser MARKETPLACE o VENTAS (llegó " + origen + ")");
+        }
         OffsetDateTime fechaEmision = fecha(raiz, "fechaEmision", "fechaEmision");
         if (fechaEmision == null) {
             throw new EventoIlegibleException("Falta el campo obligatorio 'fechaEmision'");

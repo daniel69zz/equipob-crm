@@ -9,7 +9,10 @@ import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigen;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigenRepository;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
+import com.maxiconecta.crm.perfil.cliente.EstadoVinculacion;
 import com.maxiconecta.crm.perfil.cliente.TipoCambio;
+import com.maxiconecta.crm.perfil.cliente.VinculacionPendiente;
+import com.maxiconecta.crm.perfil.cliente.VinculacionPendienteRepository;
 import com.maxiconecta.crm.perfil.validacion.PerfilValidado;
 import com.maxiconecta.crm.perfil.validacion.ValidadorPerfil;
 import org.springframework.stereotype.Service;
@@ -23,10 +26,12 @@ import java.util.List;
  * Aplica un evento de datos del cliente al perfil. Todo ocurre en una transacción: si algo
  * falla, el perfil no queda a medias.
  * <p>
- * Conciliación: el evento se resuelve por su identificador de origen (RF-62). Si el identificador
- * ya está vinculado, se actualiza ese perfil y nunca se crea otro; si no, se crea un perfil nuevo
- * y se vincula. Los eventos de un mismo cliente se ordenan por la fecha del cambio en el sistema
- * de origen: uno igual o más antiguo que el último aplicado se descarta.
+ * Conciliación: el evento se resuelve por su identificador de origen (RF-62,
+ * docs/perfil/identificadores-origen.md). Si el identificador ya está vinculado, se actualiza ese
+ * perfil y nunca se crea otro. Si es desconocido pero su documento coincide con un perfil existente,
+ * queda pendiente de vinculación; si no, se crea un perfil nuevo y se vincula. Los eventos de un
+ * mismo identificador se ordenan por la fecha del cambio en el sistema de origen: uno igual o más
+ * antiguo que el último aplicado se descarta.
  * <p>
  * Cada creación o modificación queda en {@link CambioPerfil} con fecha, origen, responsable y campos.
  * <p>
@@ -40,17 +45,20 @@ public class ProcesadorClientes {
     private final ClienteRepository clientes;
     private final ClienteOrigenRepository origenes;
     private final CambioPerfilRepository cambiosPerfil;
+    private final VinculacionPendienteRepository vinculaciones;
     private final LectorEventosCliente lector;
     private final ValidadorPerfil validador;
     private final ObjectMapper objectMapper;
 
     public ProcesadorClientes(EventoClienteRepository eventos, ClienteRepository clientes,
                               ClienteOrigenRepository origenes, CambioPerfilRepository cambiosPerfil,
-                              LectorEventosCliente lector, ValidadorPerfil validador, ObjectMapper objectMapper) {
+                              VinculacionPendienteRepository vinculaciones, LectorEventosCliente lector,
+                              ValidadorPerfil validador, ObjectMapper objectMapper) {
         this.eventos = eventos;
         this.clientes = clientes;
         this.origenes = origenes;
         this.cambiosPerfil = cambiosPerfil;
+        this.vinculaciones = vinculaciones;
         this.lector = lector;
         this.validador = validador;
         this.objectMapper = objectMapper;
@@ -64,21 +72,24 @@ public class ProcesadorClientes {
         EventoClienteRecibido.DatosCliente datos = evento.cliente();
         ClienteOrigen.Clave clave = new ClienteOrigen.Clave(evento.origen(), datos.idCliente());
         OffsetDateTime fechaCambio = evento.fechaCambio();
+        PerfilValidado perfil = validador.validar(datos);
 
         ClienteOrigen vinculo = origenes.findById(clave).orElse(null);
         Cliente cliente;
         TipoCambio tipo;
         if (vinculo == null) {
+            ResultadoSincronizacion pendiente = pendienteDeVinculacion(clave, perfil);
+            if (pendiente != null) {
+                return pendiente;
+            }
             cliente = new Cliente();
             tipo = TipoCambio.CREACION;
         } else {
             descartarSiNoEsPosterior(vinculo, fechaCambio);
-            cliente = clientes.findById(vinculo.getIdCliente()).orElseThrow(() -> new IllegalStateException(
-                    "El identificador " + clave + " apunta a un perfil inexistente: " + vinculo.getIdCliente()));
+            cliente = perfilVigente(vinculo);
             tipo = TipoCambio.ACTUALIZACION;
         }
 
-        PerfilValidado perfil = validador.validar(datos);
         List<CambioCampo> cambios = new ArrayList<>();
         cambios.addAll(cliente.identificar(perfil.nombres(), perfil.apellidos(), perfil.tipoDocumento(),
                 perfil.numeroDocumento()));
@@ -108,6 +119,59 @@ public class ProcesadorClientes {
         }
         return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.PROCESADO,
                 cambios.isEmpty() ? "Sin cambios en el perfil" : null);
+    }
+
+    /**
+     * Para un identificador desconocido: si ya tiene una vinculación pendiente, o si su documento
+     * coincide con un perfil existente, el evento espera la decisión de un administrador. Devuelve
+     * null si corresponde crear un perfil nuevo.
+     */
+    private ResultadoSincronizacion pendienteDeVinculacion(ClienteOrigen.Clave clave, PerfilValidado perfil) {
+        VinculacionPendiente vinculacion = vinculaciones.findById(clave).orElse(null);
+        if (vinculacion != null) {
+            if (vinculacion.getEstado() == EstadoVinculacion.NUEVO_PERFIL) {
+                return null;
+            }
+            return new ResultadoSincronizacion(null, EstadoEventoCliente.PENDIENTE, "El identificador " + clave
+                    + " está pendiente de vinculación" + sugerido(vinculacion.getIdClienteSugerido()));
+        }
+        if (perfil.tipoDocumento() == null || perfil.numeroDocumento() == null) {
+            return null;
+        }
+        List<Cliente> coincidentes = clientes.findByTipoDocumentoAndNumeroDocumentoAndIdClienteConsolidadoIsNullOrderById(
+                perfil.tipoDocumento(), perfil.numeroDocumento());
+        if (coincidentes.isEmpty()) {
+            return null;
+        }
+        Long sugerido = coincidentes.get(0).getId();
+        String motivo = "Identificador desconocido con el documento " + perfil.tipoDocumento() + " "
+                + perfil.numeroDocumento() + ", que ya tiene el cliente " + sugerido
+                + (coincidentes.size() > 1 ? " (y " + (coincidentes.size() - 1) + " perfil(es) más)" : "");
+        // Si otro mensaje del mismo identificador la registró a la vez, la llave primaria lo detiene aquí.
+        vinculaciones.saveAndFlush(new VinculacionPendiente(clave.origen(), clave.idClienteOrigen(), sugerido, motivo));
+        return new ResultadoSincronizacion(null, EstadoEventoCliente.PENDIENTE,
+                "Pendiente de vinculación: " + motivo);
+    }
+
+    private static String sugerido(Long idCliente) {
+        return idCliente != null ? " (perfil sugerido: " + idCliente + ")" : "";
+    }
+
+    /** El perfil del vínculo; si fue absorbido en una unificación, el perfil que lo absorbió. */
+    private Cliente perfilVigente(ClienteOrigen vinculo) {
+        Cliente cliente = buscarCliente(vinculo.getIdCliente(), vinculo);
+        for (int saltos = 0; cliente.fueConsolidado(); saltos++) {
+            if (saltos > 10) {
+                throw new IllegalStateException("Cadena de perfiles consolidados demasiado larga desde " + vinculo.getId());
+            }
+            cliente = buscarCliente(cliente.getIdClienteConsolidado(), vinculo);
+        }
+        return cliente;
+    }
+
+    private Cliente buscarCliente(Long idCliente, ClienteOrigen vinculo) {
+        return clientes.findById(idCliente).orElseThrow(() -> new IllegalStateException(
+                "El identificador " + vinculo.getId() + " apunta a un perfil inexistente: " + idCliente));
     }
 
     private static void descartarSiNoEsPosterior(ClienteOrigen vinculo, OffsetDateTime fechaCambio) {
