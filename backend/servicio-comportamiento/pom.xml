@@ -21,6 +21,8 @@
         <java.version>17</java.version>
         <!-- Byte Buddy (usado por Mockito) con soporte para ejecutar en JDK 26 -->
         <byte-buddy.version>1.18.14</byte-buddy.version>
+        <!-- Testcontainers con soporte para Docker Engine 29 (la versión de Spring Boot 3.3 usa una API de Docker antigua) -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -82,6 +84,11 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>rabbitmq</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
