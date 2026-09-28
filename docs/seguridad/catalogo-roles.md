@@ -14,4 +14,4 @@ Roles del personal interno que usa la Aplicación Web del CRM. Cada usuario tien
 - Solo el **Administrador de CRM** crea usuarios, asigna roles y administra los permisos de cada rol.
 - Un rol **desactivado** no se puede asignar a usuarios nuevos.
 - Todo cambio de roles, permisos o asignaciones queda registrado en la **auditoría**.
-- El cambio de rol de un usuario se aplica en su **siguiente inicio de sesión**.
+- El cambio de rol de un usuario y la desactivación de un usuario o de un rol **rigen de inmediato**: el API Gateway consulta el rol y los permisos vigentes en cada petición.

@@ -8,7 +8,7 @@ import { AdminService, Rol, UsuarioInterno } from './admin.service';
   standalone: true,
   template: `
     <h1>Usuarios y roles</h1>
-    <p class="subtitulo">El cambio de rol se aplica en el siguiente inicio de sesión del usuario.</p>
+    <p class="subtitulo">El cambio de rol rige de inmediato: el usuario ve sus nuevas opciones al recargar la aplicación.</p>
 
     @if (mensaje()) {
       <p [class.error]="mensajeEsError()" role="status">{{ mensaje() }}</p>
