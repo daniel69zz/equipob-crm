@@ -156,6 +156,7 @@ class IngestaIntegracionTest {
 
         EventoRecibido recibido = esperarEstado(1).get(0);
         assertThat(recibido.getEstado()).isEqualTo(EstadoEvento.FALLIDO);
+        assertThat(recibido.getCausa()).startsWith("EventoIlegibleException: El mensaje no es un JSON válido");
         assertThat(recibido.getContenido()).isEqualTo(contenido);
     }
 

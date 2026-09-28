@@ -57,4 +57,13 @@ class IngestaComprasTest {
 
         assertThat(IngestaCompras.causa(error)).isEqualTo("SQLException: valor nulo en la columna monto");
     }
+
+    @Test
+    void unMensajeIlegibleConservaElMensajeDelLector() {
+        EventoIlegibleException error = new EventoIlegibleException("El mensaje no es un JSON válido de compra confirmada",
+                new IllegalStateException("detalle técnico del parser"));
+
+        assertThat(IngestaCompras.causa(error))
+                .isEqualTo("EventoIlegibleException: El mensaje no es un JSON válido de compra confirmada");
+    }
 }

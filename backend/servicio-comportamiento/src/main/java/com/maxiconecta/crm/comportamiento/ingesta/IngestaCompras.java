@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.comportamiento.ingesta;
 
+import com.maxiconecta.crm.comportamiento.validacion.EventoInvalidoException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.NestedExceptionUtils;
@@ -36,9 +37,14 @@ public class IngestaCompras {
         }
     }
 
-    /** Mensaje de la causa más específica, que es la que explica el error. */
+    /**
+     * Causa para la bitácora. Los errores de lectura y de validación ya traen un mensaje claro;
+     * para los demás se usa la causa más específica, que es la que explica el error.
+     */
     static String causa(Throwable error) {
-        Throwable raiz = NestedExceptionUtils.getMostSpecificCause(error);
+        Throwable raiz = error instanceof EventoIlegibleException || error instanceof EventoInvalidoException
+                ? error
+                : NestedExceptionUtils.getMostSpecificCause(error);
         String mensaje = raiz.getMessage();
         return raiz.getClass().getSimpleName() + (mensaje != null ? ": " + mensaje : "");
     }
