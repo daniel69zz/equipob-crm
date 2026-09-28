@@ -1,10 +1,11 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Bitacora, EstadoEvento, FiltroBitacora, IngestaService } from './ingesta.service';
 
 const TAMANIO_PAGINA = 50;
+const DURACION_ALERTA_MS = 8_000;
 
 /** Estados en el orden en que se muestran, con su nombre visible. */
 const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
@@ -56,6 +57,13 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
 
     @if (error()) {
       <p class="error" role="status">{{ error() }}</p>
+    }
+
+    @if (alertaEventosInvalidos(); as alerta) {
+      <div class="alerta-invalidos" role="alert">
+        <span>{{ alerta }}</span>
+        <button type="button" class="cerrar-alerta" aria-label="Cerrar alerta" (click)="cerrarAlerta()">×</button>
+      </div>
     }
 
     @if (bitacora(); as datos) {
@@ -116,6 +124,13 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
       gap: 1rem; align-items: end; margin-bottom: 1rem;
     }
     .acciones { display: flex; gap: 0.5rem; }
+    .alerta-invalidos {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      margin-bottom: 1rem; padding: 0.8rem 1rem;
+      color: var(--color-error); background: #fdecea;
+      border: 1px solid var(--color-error); border-radius: var(--radio);
+    }
+    .cerrar-alerta { padding: 0.1rem 0.4rem; color: var(--color-error); background: transparent; font-size: 1.25rem; }
     .periodo { color: var(--color-texto-suave); }
     .resumen { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
     .resumen .tarjeta { display: flex; flex-direction: column; gap: 0.2rem; padding: 1rem; border-left-width: 4px; }
@@ -133,8 +148,9 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
     .paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
   `,
 })
-export class BitacoraIngestaComponent implements OnInit {
+export class BitacoraIngestaComponent implements OnInit, OnDestroy {
   private readonly ingesta = inject(IngestaService);
+  private temporizadorAlerta?: ReturnType<typeof setTimeout>;
 
   readonly estados = ESTADOS;
   filtro: FiltroBitacora = BitacoraIngestaComponent.filtroVacio();
@@ -142,6 +158,7 @@ export class BitacoraIngestaComponent implements OnInit {
   readonly bitacora = signal<Bitacora | null>(null);
   readonly cargando = signal(false);
   readonly error = signal<string | null>(null);
+  readonly alertaEventosInvalidos = signal<string | null>(null);
 
   readonly desdeRegistro = computed(() => (this.bitacora()?.pagina ?? 0) * TAMANIO_PAGINA + 1);
   readonly hastaRegistro = computed(
@@ -153,12 +170,18 @@ export class BitacoraIngestaComponent implements OnInit {
     this.buscar(0);
   }
 
+  ngOnDestroy(): void {
+    this.cancelarTemporizadorAlerta();
+  }
+
   buscar(pagina: number): void {
     this.cargando.set(true);
     this.error.set(null);
+    this.cerrarAlerta();
     this.ingesta.buscar(this.filtro, pagina, TAMANIO_PAGINA).subscribe({
       next: (resultado) => {
         this.bitacora.set(resultado);
+        this.mostrarAlertaDeEventosInvalidos(resultado);
         this.cargando.set(false);
       },
       error: (e: HttpErrorResponse) => {
@@ -175,6 +198,31 @@ export class BitacoraIngestaComponent implements OnInit {
 
   nombreEstado(estado: EstadoEvento): string {
     return ESTADOS.find((e) => e.codigo === estado)?.nombre.replace(/s$/, '') ?? estado;
+  }
+
+  cerrarAlerta(): void {
+    this.cancelarTemporizadorAlerta();
+    this.alertaEventosInvalidos.set(null);
+  }
+
+  private mostrarAlertaDeEventosInvalidos(resultado: Bitacora): void {
+    const cantidad = resultado.eventos.filter((evento) => evento.estado === 'FALLIDO').length;
+    if (cantidad === 0) {
+      return;
+    }
+    this.alertaEventosInvalidos.set(
+      cantidad === 1
+        ? 'Se detectó 1 evento inválido. Revisa la causa en la bitácora.'
+        : `Se detectaron ${cantidad} eventos inválidos. Revisa las causas en la bitácora.`,
+    );
+    this.temporizadorAlerta = setTimeout(() => this.alertaEventosInvalidos.set(null), DURACION_ALERTA_MS);
+  }
+
+  private cancelarTemporizadorAlerta(): void {
+    if (this.temporizadorAlerta !== undefined) {
+      clearTimeout(this.temporizadorAlerta);
+      this.temporizadorAlerta = undefined;
+    }
   }
 
   private static filtroVacio(): FiltroBitacora {
