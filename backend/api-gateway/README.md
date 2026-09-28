@@ -32,7 +32,15 @@ Punto de entrada único del CRM (**Spring Boot 3 + Spring Cloud Gateway MVC**).
 | PUT | `/api/admin/roles/{id}` | `USUARIOS_ADMINISTRAR` | Cambia el nombre y los permisos de un rol |
 | PATCH | `/api/admin/roles/{id}/desactivar` | `USUARIOS_ADMINISTRAR` | Desactiva un rol |
 | GET | `/api/admin/permisos` | `USUARIOS_ADMINISTRAR` | Lista los permisos disponibles |
-| GET | `/api/admin/auditoria` | `AUDITORIA_CONSULTAR` | Últimos 100 eventos de auditoría (`?operacion=` opcional) |
+
+## Auditoría (SCRUM-64)
+
+El Gateway registra cada consulta, modificación o intento denegado sobre datos de un cliente (`/api/{servicio}/clientes/...`). Alcance y campos en `docs/seguridad/alcance-auditoria.md`.
+
+| Método | Ruta | Permiso | Descripción |
+|---|---|---|---|
+| GET | `/api/admin/auditoria` | `AUDITORIA_CONSULTAR` | Eventos paginados, del más reciente al más antiguo. Filtros opcionales: `usuario`, `operacion`, `clienteId`, `desde`, `hasta` (fechas `AAAA-MM-DD`), `pagina`, `tamanio` (máx. 100) |
+| GET | `/api/admin/auditoria/operaciones` | `AUDITORIA_CONSULTAR` | Códigos de operación disponibles para filtrar |
 
 El permiso requerido por cada ruta hacia los microservicios está en `docs/seguridad/matriz-permisos.md`.
 
@@ -51,6 +59,7 @@ curl -X POST http://localhost:8080/api/auth/login \
 | `V1__roles_y_permisos.sql` | Esquema `seguridad`: roles, permisos y matriz inicial |
 | `V2__usuarios.sql` | Usuarios internos (contraseña con BCrypt) |
 | `V3__auditoria.sql` | Esquema `auditoria`: tabla `evento` de solo lectura |
+| `V4__proteccion_auditoria.sql` | Bloquea `TRUNCATE` en la auditoría e indexa por usuario y por cliente |
 
 ## Pruebas
 
