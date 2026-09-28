@@ -3,6 +3,7 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.Origen;
+import com.maxiconecta.crm.comportamiento.validacion.ValidadorEventos;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +17,14 @@ public class ProcesadorCompras {
     private final EventoRecibidoRepository eventos;
     private final CompraRepository compras;
     private final LectorEventos lector;
+    private final ValidadorEventos validador;
 
-    public ProcesadorCompras(EventoRecibidoRepository eventos, CompraRepository compras, LectorEventos lector) {
+    public ProcesadorCompras(EventoRecibidoRepository eventos, CompraRepository compras, LectorEventos lector,
+                             ValidadorEventos validador) {
         this.eventos = eventos;
         this.compras = compras;
         this.lector = lector;
+        this.validador = validador;
     }
 
     @Transactional
@@ -28,6 +32,7 @@ public class ProcesadorCompras {
         EventoRecibido recibido = eventos.findById(idEvento)
                 .orElseThrow(() -> new IllegalStateException("No existe el evento " + idEvento + " en la bitácora"));
         EventoCompraConfirmada evento = lector.leer(recibido.getContenido());
+        validador.validar(evento);
         Origen origen = origen(evento.origen());
         EventoCompraConfirmada.DatosCompra datos = evento.compra();
 
