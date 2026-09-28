@@ -3,6 +3,7 @@ import { autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.
 import { Permisos } from './core/auth/sesion';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
+import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
 import { RolesComponent } from './features/admin/roles.component';
 import { UsuariosComponent } from './features/admin/usuarios.component';
 import { InicioComponent } from './features/inicio/inicio.component';
@@ -17,6 +18,12 @@ export const routes: Routes = [
     canActivate: [autenticadoGuard],
     children: [
       { path: '', component: InicioComponent },
+      {
+        path: 'eventos',
+        component: BitacoraIngestaComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.EVENTOS_REPROCESAR },
+      },
       {
         path: 'admin/usuarios',
         component: UsuariosComponent,

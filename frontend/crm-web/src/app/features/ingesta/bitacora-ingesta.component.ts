@@ -1,0 +1,183 @@
+import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Bitacora, EstadoEvento, FiltroBitacora, IngestaService } from './ingesta.service';
+
+const TAMANIO_PAGINA = 50;
+
+/** Estados en el orden en que se muestran, con su nombre visible. */
+const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
+  { codigo: 'RECIBIDO', nombre: 'Recibidos' },
+  { codigo: 'PROCESADO', nombre: 'Procesados' },
+  { codigo: 'FALLIDO', nombre: 'Fallidos' },
+  { codigo: 'DESCARTADO', nombre: 'Descartados' },
+];
+
+@Component({
+  selector: 'app-bitacora-ingesta',
+  standalone: true,
+  imports: [FormsModule, DatePipe],
+  template: `
+    <h1>Bitácora de ingesta</h1>
+    <p class="subtitulo">Eventos de compra recibidos de Marketplace y Ventas, y el resultado de su procesamiento.</p>
+
+    <form class="tarjeta filtros" (ngSubmit)="buscar(0)">
+      <div>
+        <label for="desde">Desde</label>
+        <input id="desde" name="desde" type="date" [(ngModel)]="filtro.desde" />
+      </div>
+      <div>
+        <label for="hasta">Hasta</label>
+        <input id="hasta" name="hasta" type="date" [(ngModel)]="filtro.hasta" />
+      </div>
+      <div>
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado" [(ngModel)]="filtro.estado">
+          <option value="">Todos</option>
+          @for (estado of estados; track estado.codigo) {
+            <option [value]="estado.codigo">{{ estado.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label for="origen">Origen</label>
+        <select id="origen" name="origen" [(ngModel)]="filtro.origen">
+          <option value="">Todos</option>
+          <option value="MARKETPLACE">Marketplace</option>
+          <option value="VENTAS">Ventas</option>
+        </select>
+      </div>
+      <div class="acciones">
+        <button type="submit" [disabled]="cargando()">Buscar</button>
+        <button type="button" class="secundario" (click)="limpiar()">Limpiar</button>
+      </div>
+    </form>
+
+    @if (error()) {
+      <p class="error" role="status">{{ error() }}</p>
+    }
+
+    @if (bitacora(); as datos) {
+      <p class="periodo">Periodo: {{ datos.desde | date: 'dd/MM/yyyy' }} al {{ datos.hasta | date: 'dd/MM/yyyy' }}</p>
+      <section class="resumen">
+        @for (estado of estados; track estado.codigo) {
+          <article class="tarjeta" [class]="'estado-' + estado.codigo">
+            <span class="cantidad">{{ datos.resumen[estado.codigo] }}</span>
+            <span>{{ estado.nombre }}</span>
+          </article>
+        }
+      </section>
+
+      <div class="tarjeta">
+        <table>
+          <thead>
+            <tr>
+              <th>Recibido</th>
+              <th>Origen</th>
+              <th>Evento</th>
+              <th>Estado</th>
+              <th>Causa</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (evento of datos.eventos; track evento.id) {
+              <tr>
+                <td class="fecha">{{ evento.recibidoEn | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+                <td>{{ evento.origen ?? '—' }}</td>
+                <td class="id">{{ evento.idEventoOrigen ?? 'sin identificador' }}</td>
+                <td><span class="etiqueta" [class]="'estado-' + evento.estado">{{ nombreEstado(evento.estado) }}</span></td>
+                <td class="causa">{{ evento.causa }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5">No hay eventos para estos filtros.</td></tr>
+            }
+          </tbody>
+        </table>
+
+        @if (datos.total > 0) {
+          <div class="paginacion">
+            <span>{{ desdeRegistro() }}–{{ hastaRegistro() }} de {{ datos.total }}</span>
+            <button type="button" class="secundario" [disabled]="datos.pagina === 0 || cargando()" (click)="buscar(datos.pagina - 1)">
+              Anterior
+            </button>
+            <button type="button" class="secundario" [disabled]="esUltimaPagina() || cargando()" (click)="buscar(datos.pagina + 1)">
+              Siguiente
+            </button>
+          </div>
+        }
+      </div>
+    }
+  `,
+  styles: `
+    .subtitulo { color: var(--color-texto-suave); margin-top: 0; }
+    .filtros {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 1rem; align-items: end; margin-bottom: 1rem;
+    }
+    .acciones { display: flex; gap: 0.5rem; }
+    .periodo { color: var(--color-texto-suave); }
+    .resumen { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .resumen .tarjeta { display: flex; flex-direction: column; gap: 0.2rem; padding: 1rem; border-left-width: 4px; }
+    .cantidad { font-size: 1.6rem; font-weight: 700; }
+    .fecha { white-space: nowrap; }
+    .id { font-family: monospace; font-size: 0.85rem; }
+    .causa { color: var(--color-texto-suave); font-size: 0.9rem; }
+    .etiqueta { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef2f7; }
+    .estado-PROCESADO { border-left-color: #1a7f37; }
+    .estado-FALLIDO { border-left-color: var(--color-error); }
+    .estado-DESCARTADO { border-left-color: #9a6700; }
+    .etiqueta.estado-PROCESADO { color: #1a7f37; background: #e6f4ea; }
+    .etiqueta.estado-FALLIDO { color: var(--color-error); background: #fdecea; }
+    .etiqueta.estado-DESCARTADO { color: #9a6700; background: #fff4e0; }
+    .paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
+  `,
+})
+export class BitacoraIngestaComponent implements OnInit {
+  private readonly ingesta = inject(IngestaService);
+
+  readonly estados = ESTADOS;
+  filtro: FiltroBitacora = BitacoraIngestaComponent.filtroVacio();
+
+  readonly bitacora = signal<Bitacora | null>(null);
+  readonly cargando = signal(false);
+  readonly error = signal<string | null>(null);
+
+  readonly desdeRegistro = computed(() => (this.bitacora()?.pagina ?? 0) * TAMANIO_PAGINA + 1);
+  readonly hastaRegistro = computed(
+    () => (this.bitacora()?.pagina ?? 0) * TAMANIO_PAGINA + (this.bitacora()?.eventos.length ?? 0),
+  );
+  readonly esUltimaPagina = computed(() => this.hastaRegistro() >= (this.bitacora()?.total ?? 0));
+
+  ngOnInit(): void {
+    this.buscar(0);
+  }
+
+  buscar(pagina: number): void {
+    this.cargando.set(true);
+    this.error.set(null);
+    this.ingesta.buscar(this.filtro, pagina, TAMANIO_PAGINA).subscribe({
+      next: (resultado) => {
+        this.bitacora.set(resultado);
+        this.cargando.set(false);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.cargando.set(false);
+        this.error.set(e.error?.mensaje ?? 'No se pudo consultar la bitácora de ingesta.');
+      },
+    });
+  }
+
+  limpiar(): void {
+    this.filtro = BitacoraIngestaComponent.filtroVacio();
+    this.buscar(0);
+  }
+
+  nombreEstado(estado: EstadoEvento): string {
+    return ESTADOS.find((e) => e.codigo === estado)?.nombre.replace(/s$/, '') ?? estado;
+  }
+
+  private static filtroVacio(): FiltroBitacora {
+    return { desde: '', hasta: '', estado: '', origen: '' };
+  }
+}
