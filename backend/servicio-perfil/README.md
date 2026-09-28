@@ -23,6 +23,17 @@ Consume el evento **RIO-CRM-01** (`docs/contratos-eventos/RIO-CRM-01-datos-clien
 | GET | `/api/perfil/clientes/{clienteId}` | `CLIENTE_CONSULTAR` | Perfil con sus identificadores de origen y direcciones activas |
 | GET | `/api/perfil/clientes` | `CLIENTE_CONSULTAR` | Búsqueda por `origen` + `idClienteOrigen`, por `tipoDocumento` / `numeroDocumento` o por `estado`, paginada (`pagina`, `tamanio`, máx. 100) |
 
+## Actualización ante cambios (SCRUM-11)
+
+Una actualización (`CLIENTE_ACTUALIZADO`) cambia solo los campos que trae. Los datos se normalizan antes de compararse; si dos sistemas informan valores distintos, se aplica la regla de prioridad y queda la traza; los errores técnicos se reintentan. Mapeo y políticas en `docs/perfil/mapeo-datos-perfil.md`.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/perfil/clientes/{clienteId}/sincronizaciones` | `CLIENTE_CONSULTAR` | Últimas 100 notificaciones aplicadas al perfil, con estado, causa e intentos |
+| GET | `/api/perfil/clientes/{clienteId}/conflictos` | `CLIENTE_CONSULTAR` | Conflictos entre sistemas y la decisión tomada |
+
+Configuración (`application.yml`): `crm.perfil.conflictos.prioridad-identificacion` y `crm.perfil.reintentos.*`.
+
 ## Identificadores de origen (SCRUM-526)
 
 Un mismo cliente puede tener identificadores en Marketplace y en Ventas; todos apuntan a un solo perfil. Un identificador desconocido cuyo documento coincide con un perfil existente queda **pendiente de vinculación** en lugar de crear un duplicado. Detalle en `docs/perfil/identificadores-origen.md`.
