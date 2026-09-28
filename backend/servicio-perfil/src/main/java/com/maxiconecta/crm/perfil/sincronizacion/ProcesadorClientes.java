@@ -115,10 +115,12 @@ public class ProcesadorClientes {
         if (ultima == null || fechaCambio.isAfter(ultima)) {
             return;
         }
+        // La base devuelve la fecha en UTC: se muestra en la misma zona horaria que la del evento.
+        OffsetDateTime ultimaEnZonaDelEvento = ultima.withOffsetSameInstant(fechaCambio.getOffset());
         String motivo = fechaCambio.isEqual(ultima)
                 ? "El cambio del " + fechaCambio + " de " + vinculo.getId() + " ya fue aplicado"
                 : "Evento obsoleto: el cambio del " + fechaCambio + " de " + vinculo.getId()
-                + " es anterior al último aplicado (" + ultima + ")";
+                + " es anterior al último aplicado (" + ultimaEnZonaDelEvento + ")";
         throw new EventoDescartadoException(vinculo.getIdCliente(), motivo);
     }
 

@@ -177,7 +177,8 @@ class SincronizacionIntegracionTest {
 
         EventoCliente obsoleto = ultimo(esperar(3));
         assertThat(obsoleto.getEstado()).isEqualTo(EstadoEventoCliente.DESCARTADO);
-        assertThat(obsoleto.getCausa()).startsWith("Evento obsoleto");
+        assertThat(obsoleto.getCausa()).isEqualTo("Evento obsoleto: el cambio del 2026-09-22T11:30-04:00 de "
+                + "VENTAS/CLI-5521 es anterior al último aplicado (2026-09-25T16:40-04:00)");
         Cliente cliente = clientes.findAll().get(0);
         assertThat(cliente.getEmail()).isEqualTo("ana.m.perez@correo.com");
         assertThat(cambios.count()).isEqualTo(2);
