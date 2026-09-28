@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxiconecta.crm.perfil.cliente.CambioCampo;
 import com.maxiconecta.crm.perfil.cliente.CambioPerfil;
 import com.maxiconecta.crm.perfil.cliente.CambioPerfilRepository;
+import com.maxiconecta.crm.perfil.cliente.CampoOrigen;
+import com.maxiconecta.crm.perfil.cliente.CampoOrigenRepository;
+import com.maxiconecta.crm.perfil.cliente.ConflictoPerfilRepository;
 import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigen;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigenRepository;
@@ -22,6 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Aplica un evento de datos del cliente al perfil. Todo ocurre en una transacción: si algo
@@ -36,6 +43,9 @@ import java.util.List;
  * <p>
  * Cada creación o modificación queda en {@link CambioPerfil} con fecha, origen, responsable y campos.
  * <p>
+ * Si otro sistema había puesto un valor distinto en un campo, el conflicto se resuelve con la regla
+ * de prioridad ({@link ResolutorConflictos}) y queda la traza.
+ * <p>
  * Si un dato obligatorio llega vacío o mal formado, se guarda lo válido, el dato queda vacío y el
  * perfil se marca INCOMPLETO con el motivo; el evento queda INCOMPLETO en la bitácora.
  */
@@ -47,6 +57,9 @@ public class ProcesadorClientes {
     private final ClienteOrigenRepository origenes;
     private final CambioPerfilRepository cambiosPerfil;
     private final VinculacionPendienteRepository vinculaciones;
+    private final CampoOrigenRepository procedencias;
+    private final ConflictoPerfilRepository conflictos;
+    private final ResolutorConflictos resolutor;
     private final LectorEventosCliente lector;
     private final NormalizadorPerfil normalizador;
     private final ValidadorPerfil validador;
@@ -54,13 +67,18 @@ public class ProcesadorClientes {
 
     public ProcesadorClientes(EventoClienteRepository eventos, ClienteRepository clientes,
                               ClienteOrigenRepository origenes, CambioPerfilRepository cambiosPerfil,
-                              VinculacionPendienteRepository vinculaciones, LectorEventosCliente lector,
+                              VinculacionPendienteRepository vinculaciones, CampoOrigenRepository procedencias,
+                              ConflictoPerfilRepository conflictos, ResolutorConflictos resolutor,
+                              LectorEventosCliente lector,
                               NormalizadorPerfil normalizador, ValidadorPerfil validador, ObjectMapper objectMapper) {
         this.eventos = eventos;
         this.clientes = clientes;
         this.origenes = origenes;
         this.cambiosPerfil = cambiosPerfil;
         this.vinculaciones = vinculaciones;
+        this.procedencias = procedencias;
+        this.conflictos = conflictos;
+        this.resolutor = resolutor;
         this.lector = lector;
         this.normalizador = normalizador;
         this.validador = validador;
@@ -81,6 +99,8 @@ public class ProcesadorClientes {
         Cliente cliente;
         TipoCambio tipo;
         EventoClienteRecibido.DatosCliente propuesta;
+        Map<String, CampoOrigen> procedencia = Map.of();
+        ResolutorConflictos.Resolucion resolucion = null;
         if (vinculo == null) {
             ResultadoSincronizacion pendiente = pendienteDeVinculacion(clave, validador.validar(datos));
             if (pendiente != null) {
@@ -95,6 +115,10 @@ public class ProcesadorClientes {
             tipo = TipoCambio.ACTUALIZACION;
             // Una actualización solo cambia los campos que trae: el resto se conserva.
             propuesta = fusionar(cliente, datos);
+            procedencia = procedencias.findByIdCliente(cliente.getId()).stream()
+                    .collect(Collectors.toMap(CampoOrigen::getCampo, Function.identity()));
+            resolucion = resolutor.resolver(cliente, propuesta, evento.origen(), fechaCambio, procedencia, idEvento);
+            propuesta = resolucion.propuesta();
         }
         // Se valida el perfil resultante, no solo lo recibido.
         PerfilValidado perfil = validador.validar(propuesta);
@@ -124,12 +148,40 @@ public class ProcesadorClientes {
             cambiosPerfil.save(new CambioPerfil(cliente.getId(), tipo, evento.origen(),
                     evento.responsableDelCambio(), comoJson(cambios), idEvento));
         }
+        registrarProcedencia(cliente.getId(), cambios, procedencia, evento.origen(), fechaCambio);
+        String resumenConflictos = null;
+        if (resolucion != null && !resolucion.conflictos().isEmpty()) {
+            conflictos.saveAll(resolucion.conflictos());
+            resumenConflictos = resolucion.resumen();
+        }
+
         if (!perfil.completo()) {
             return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.INCOMPLETO,
-                    "Perfil incompleto: " + perfil.motivosComoTexto());
+                    unir("Perfil incompleto: " + perfil.motivosComoTexto(), resumenConflictos));
         }
         return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.PROCESADO,
-                cambios.isEmpty() ? "Sin cambios en el perfil" : null);
+                resumenConflictos != null ? resumenConflictos : cambios.isEmpty() ? "Sin cambios en el perfil" : null);
+    }
+
+    /** Cada campo que cambió queda como puesto por el sistema del evento, con la fecha del cambio. */
+    private void registrarProcedencia(Long idCliente, List<CambioCampo> cambios, Map<String, CampoOrigen> procedencia,
+                                      com.maxiconecta.crm.perfil.cliente.Origen origen, OffsetDateTime fechaCambio) {
+        Set<String> cambiados = cambios.stream().map(CambioCampo::campo).collect(Collectors.toSet());
+        for (String campo : ResolutorConflictos.CAMPOS) {
+            if (!cambiados.contains(campo)) {
+                continue;
+            }
+            CampoOrigen existente = procedencia.get(campo);
+            if (existente != null) {
+                existente.registrar(origen, fechaCambio);
+            } else {
+                procedencias.save(new CampoOrigen(idCliente, campo, origen, fechaCambio));
+            }
+        }
+    }
+
+    private static String unir(String primero, String segundo) {
+        return segundo == null ? primero : primero + " · " + segundo;
     }
 
     /**

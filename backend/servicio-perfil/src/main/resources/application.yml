@@ -39,3 +39,9 @@ management:
     web:
       exposure:
         include: health
+
+crm:
+  perfil:
+    conflictos:
+      # Si dos sistemas informan datos de identificación distintos, gana el primero de la lista.
+      prioridad-identificacion: VENTAS,MARKETPLACE
