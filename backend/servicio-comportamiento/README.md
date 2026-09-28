@@ -21,6 +21,17 @@ Si ni siquiera se puede escribir en la bitácora, el mensaje se reintenta 3 vece
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
 | GET | `/api/comportamiento/eventos` | `EVENTOS_REPROCESAR` | Bitácora de ingesta por periodo, con el resumen por estado. Filtros: `desde`, `hasta` (`AAAA-MM-DD`, por defecto los últimos 7 días), `estado`, `origen`, `transaccion` (identificador de la compra), `pagina`, `tamanio` (máx. 100) |
+| POST | `/api/comportamiento/eventos/{id}/reprocesar` | `EVENTOS_REPROCESAR` | Reprocesa un evento `FALLIDO` conservando la validación y la idempotencia del flujo normal |
+| GET | `/api/comportamiento/eventos/{id}/intentos` | `EVENTOS_REPROCESAR` | Historial de intentos manuales del evento, del más reciente al más antiguo |
+| POST | `/api/comportamiento/eventos/respaldo/reinyectar` | `EVENTOS_REPROCESAR` | Reinyecta un único mensaje de la cola de respaldo; responde `204` si está vacía |
+
+Cada intento manual se registra en `comportamiento.intento_reproceso`, incluyendo resultado,
+causa y el usuario recibido en `X-Usuario`. Solo puede haber un intento activo por evento. Un
+reproceso correcto cambia el evento original a `PROCESADO`; si vuelve a fallar permanece `FALLIDO`.
+
+La reinyección de respaldo publica directamente en la cola principal y espera la confirmación de
+RabbitMQ antes de retirar el mensaje de `crm.comportamiento.compras.respaldo`. Desde la cola
+principal vuelve a pasar por lectura, validación e idempotencia.
 
 ## Ejecutar en local
 
