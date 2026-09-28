@@ -42,6 +42,12 @@ evento (origen, idCliente)
 
 La coincidencia por documento **no vincula sola**: un error de tipeo en el documento uniría a dos personas distintas. Un administrador confirma la vinculación o decide que es otra persona.
 
+## Qué datos quedan cuando dos sistemas informan al mismo perfil
+
+- **Identificación y contacto** (nombre, documento, correo, teléfono): quedan los del evento más reciente de **cualquiera** de los identificadores vinculados. Cada evento trae la foto completa del cliente en su sistema.
+- **Direcciones**: se mantienen **por sistema**. Un evento de Marketplace solo agrega, cambia o desactiva direcciones de Marketplace; las de Ventas no se tocan.
+- El orden (descartar eventos obsoletos) es **por identificador**: cada uno guarda la fecha del último cambio aplicado.
+
 ## Vinculación pendiente
 
 | Acción del administrador | Resultado |
