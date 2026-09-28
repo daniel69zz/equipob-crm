@@ -58,6 +58,10 @@ public class VinculacionPendiente implements Persistable<ClienteOrigen.Clave> {
         this.motivo = motivo;
     }
 
+    public void sugerir(Long idCliente) {
+        this.idClienteSugerido = idCliente;
+    }
+
     public void resolver(EstadoVinculacion decision, String responsable) {
         this.estado = decision;
         this.resueltaPor = responsable;

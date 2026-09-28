@@ -74,6 +74,14 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
         return vinculo;
     }
 
+    /** Pasa el identificador a otro perfil, conservando la fecha del último cambio aplicado. */
+    public void reasignar(Long nuevoCliente, String motivo, String responsable) {
+        this.idCliente = nuevoCliente;
+        this.motivoVinculacion = motivo;
+        this.vinculadoPor = responsable;
+        this.fechaVinculacion = OffsetDateTime.now();
+    }
+
     public void registrarActualizacion(OffsetDateTime fechaCambio) {
         this.ultimaActualizacionOrigen = fechaCambio;
     }

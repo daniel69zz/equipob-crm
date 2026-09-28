@@ -7,4 +7,6 @@ import java.util.List;
 public interface VinculacionPendienteRepository extends JpaRepository<VinculacionPendiente, ClienteOrigen.Clave> {
 
     List<VinculacionPendiente> findByEstadoOrderByDetectadaEn(EstadoVinculacion estado);
+
+    List<VinculacionPendiente> findByIdClienteSugeridoAndEstado(Long idCliente, EstadoVinculacion estado);
 }

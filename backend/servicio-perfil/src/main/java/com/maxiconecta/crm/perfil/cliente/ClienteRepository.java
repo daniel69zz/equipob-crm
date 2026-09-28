@@ -10,4 +10,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>, JpaSpec
     /** Perfiles vigentes (no absorbidos) con ese documento, del más antiguo al más reciente. */
     List<Cliente> findByTipoDocumentoAndNumeroDocumentoAndIdClienteConsolidadoIsNullOrderById(String tipoDocumento,
                                                                                              String numeroDocumento);
+
+    /** Perfiles absorbidos antes por este perfil. */
+    List<Cliente> findByIdClienteConsolidado(Long idCliente);
 }
