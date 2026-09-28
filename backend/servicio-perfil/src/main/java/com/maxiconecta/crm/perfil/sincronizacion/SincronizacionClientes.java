@@ -3,6 +3,7 @@ package com.maxiconecta.crm.perfil.sincronizacion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.NestedExceptionUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -26,7 +27,7 @@ public class SincronizacionClientes {
     public void recibir(String contenido) {
         Long idEvento = bitacora.registrarRecepcion(contenido);
         try {
-            ResultadoSincronizacion resultado = procesador.aplicar(idEvento);
+            ResultadoSincronizacion resultado = aplicar(idEvento);
             bitacora.cerrar(idEvento, resultado.estado(), resultado.idCliente(), resultado.causa());
         } catch (EventoDescartadoException ex) {
             log.info("Evento de cliente {} descartado: {}", idEvento, ex.getMessage());
@@ -35,6 +36,28 @@ public class SincronizacionClientes {
             log.warn("Evento de cliente {} fallido: {}", idEvento, causa(ex));
             bitacora.cerrar(idEvento, EstadoEventoCliente.FALLIDO, null, causa(ex));
         }
+    }
+
+    /**
+     * Si dos altas del mismo cliente llegan a la vez, la segunda choca con el vínculo que acaba de
+     * crear la primera. Se reintenta una vez: ahora el cliente ya existe y el evento se concilia con él.
+     */
+    private ResultadoSincronizacion aplicar(Long idEvento) {
+        try {
+            return procesador.aplicar(idEvento);
+        } catch (DataIntegrityViolationException ex) {
+            if (!esVinculoRepetido(ex)) {
+                throw ex;
+            }
+            log.info("Evento de cliente {}: el cliente fue dado de alta al mismo tiempo por otro mensaje; se concilia",
+                    idEvento);
+            return procesador.aplicar(idEvento);
+        }
+    }
+
+    private static boolean esVinculoRepetido(DataIntegrityViolationException ex) {
+        String mensaje = NestedExceptionUtils.getMostSpecificCause(ex).getMessage();
+        return mensaje != null && mensaje.contains("pk_cliente_origen");
     }
 
     /**

@@ -65,16 +65,29 @@ public class Cliente {
     public Cliente() {
     }
 
-    public void identificar(String nombres, String apellidos, String tipoDocumento, String numeroDocumento) {
+    /** Aplica los datos de identificación y devuelve qué cambió. */
+    public List<CambioCampo> identificar(String nombres, String apellidos, String tipoDocumento,
+                                         String numeroDocumento) {
+        List<CambioCampo> cambios = new ArrayList<>();
+        CambioCampo.siCambio(cambios, "nombres", this.nombres, nombres);
+        CambioCampo.siCambio(cambios, "apellidos", this.apellidos, apellidos);
+        CambioCampo.siCambio(cambios, "tipoDocumento", this.tipoDocumento, tipoDocumento);
+        CambioCampo.siCambio(cambios, "numeroDocumento", this.numeroDocumento, numeroDocumento);
         this.nombres = nombres;
         this.apellidos = apellidos;
         this.tipoDocumento = tipoDocumento;
         this.numeroDocumento = numeroDocumento;
+        return cambios;
     }
 
-    public void actualizarContacto(String email, String telefono) {
+    /** Aplica los datos de contacto y devuelve qué cambió. */
+    public List<CambioCampo> actualizarContacto(String email, String telefono) {
+        List<CambioCampo> cambios = new ArrayList<>();
+        CambioCampo.siCambio(cambios, "email", this.email, email);
+        CambioCampo.siCambio(cambios, "telefono", this.telefono, telefono);
         this.email = email;
         this.telefono = telefono;
+        return cambios;
     }
 
     /**
