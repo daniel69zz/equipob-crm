@@ -34,6 +34,14 @@ Una actualización (`CLIENTE_ACTUALIZADO`) cambia solo los campos que trae. Los 
 
 Configuración (`application.yml`): `crm.perfil.conflictos.prioridad-identificacion` y `crm.perfil.reintentos.*`.
 
+## Histórico de cambios (SCRUM-22)
+
+Cada creación o cambio del perfil deja un registro de solo lectura con el campo, el valor anterior y el nuevo, la fecha, el origen (`VENTAS`, `MARKETPLACE` o `CRM`) y el responsable. Modelo en `docs/perfil/historico-cambios.md`.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/perfil/clientes/{clienteId}/historial-cambios` | `CLIENTE_CONSULTAR` | Cambios del más reciente al más antiguo. Filtros: `campo` (o prefijo), `origen`, `desde`, `hasta`, `pagina`, `tamanio` (máx. 100) |
+
 ## Identificadores de origen (SCRUM-526)
 
 Un mismo cliente puede tener identificadores en Marketplace y en Ventas; todos apuntan a un solo perfil. Un identificador desconocido cuyo documento coincide con un perfil existente queda **pendiente de vinculación** en lugar de crear un duplicado. Detalle en `docs/perfil/identificadores-origen.md`.
