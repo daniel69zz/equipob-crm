@@ -30,7 +30,12 @@ const MODULOS: Modulo[] = [
     permiso: Permisos.USUARIOS_ADMINISTRAR,
     ruta: '/admin/roles',
   },
-  { titulo: 'Auditoría', descripcion: 'Registro de accesos y cambios', permiso: Permisos.AUDITORIA_CONSULTAR },
+  {
+    titulo: 'Auditoría',
+    descripcion: 'Registro de accesos y cambios',
+    permiso: Permisos.AUDITORIA_CONSULTAR,
+    ruta: '/admin/auditoria',
+  },
 ];
 
 @Component({

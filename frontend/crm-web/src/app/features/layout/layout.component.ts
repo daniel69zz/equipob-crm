@@ -19,6 +19,9 @@ import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.direct
         <a *appSiTienePermiso="permisos.USUARIOS_ADMINISTRAR" routerLink="/admin/roles" routerLinkActive="activo">
           Roles y permisos
         </a>
+        <a *appSiTienePermiso="permisos.AUDITORIA_CONSULTAR" routerLink="/admin/auditoria" routerLinkActive="activo">
+          Auditoría
+        </a>
       </nav>
       <div class="usuario">
         <span>{{ auth.sesion()?.nombreCompleto }} · {{ nombreRol() }}</span>

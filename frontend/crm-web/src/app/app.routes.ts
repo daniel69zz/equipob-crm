@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.guards';
 import { Permisos } from './core/auth/sesion';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
+import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { RolesComponent } from './features/admin/roles.component';
 import { UsuariosComponent } from './features/admin/usuarios.component';
 import { InicioComponent } from './features/inicio/inicio.component';
@@ -27,6 +28,12 @@ export const routes: Routes = [
         component: RolesComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.USUARIOS_ADMINISTRAR },
+      },
+      {
+        path: 'admin/auditoria',
+        component: AuditoriaComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.AUDITORIA_CONSULTAR },
       },
       { path: 'acceso-denegado', component: AccesoDenegadoComponent },
     ],
