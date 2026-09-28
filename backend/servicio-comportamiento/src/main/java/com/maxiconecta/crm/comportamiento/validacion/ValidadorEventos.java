@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * Aplica todas las reglas de validación registradas. Ningún evento se almacena sin pasar por aquí.
- * Mientras SCRUM-21 no agregue reglas, la lista está vacía y todo evento legible pasa.
+ * Las reglas de SCRUM-131 se ejecutan antes de construir y guardar la compra.
  */
 @Component
 public class ValidadorEventos {

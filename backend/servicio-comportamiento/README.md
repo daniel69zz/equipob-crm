@@ -13,7 +13,7 @@ Historias del Sprint 1: recepción de eventos de compra, validación, idempotenc
 Consume el evento **RIO-CRM-02** (`docs/contratos-eventos/RIO-CRM-02-compra-confirmada.md`) de la cola `crm.comportamiento.compras`.
 
 1. Cada mensaje se anota en la **bitácora de ingesta** (`comportamiento.evento_recibido`) con su contenido original.
-2. Se lee, se aplican las reglas de validación (SCRUM-21) y se guarda la compra con sus ítems (`compra`, `compra_item`).
+2. Se lee, se aplican las reglas de validación (SCRUM-131) y se guarda la compra con sus ítems (`compra`, `compra_item`).
 3. El mensaje queda `PROCESADO`, `DESCARTADO` (la compra ya existía) o `FALLIDO` (con su causa, disponible para reproceso).
 
 Si ni siquiera se puede escribir en la bitácora, el mensaje se reintenta 3 veces y después pasa a la cola `crm.comportamiento.compras.respaldo`.

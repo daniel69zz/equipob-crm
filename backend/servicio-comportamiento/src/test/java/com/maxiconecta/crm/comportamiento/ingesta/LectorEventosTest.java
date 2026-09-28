@@ -43,16 +43,17 @@ class LectorEventosTest {
 
     @Test
     void ignoraLosCamposQueNoConoce() {
-        String conCampoNuevo = ejemplo("compra-ventas.json").replaceFirst("\\{", "{\"campoFuturo\": 1,");
+        String conCampoNuevo = ejemplo("compra-ventas.json")
+                .replaceFirst("\\{", "{\"campoFuturo\": 1,")
+                .replace("\"idCompra\":", "\"campoCompra\": true, \"idCompra\":")
+                .replace("{ \"categoria\":", "{ \"campoItem\": true, \"categoria\":");
 
         assertThat(lector.leer(conCampoNuevo).compra().idCompra()).isEqualTo("V-100234");
     }
 
     @Test
-    void rechazaUnEventoSinCliente() {
-        assertThatThrownBy(() -> lector.leer(ejemplo("compra-sin-cliente.json")))
-                .isInstanceOf(EventoIlegibleException.class)
-                .hasMessageContaining("compra.idCliente");
+    void leeUnEventoIncompletoParaQueLasReglasLoValiden() {
+        assertThat(lector.leer(ejemplo("compra-sin-cliente.json")).compra().idCliente()).isNull();
     }
 
     @Test
@@ -63,10 +64,64 @@ class LectorEventosTest {
     }
 
     @Test
-    void rechazaUnTipoDeEventoDistinto() {
+    void rechazaUnMensajeVacio() {
+        assertThatThrownBy(() -> lector.leer(""))
+                .isInstanceOf(EventoIlegibleException.class)
+                .hasMessageContaining("vacío");
+    }
+
+    @Test
+    void leeOtroTipoParaQueLasReglasLoValiden() {
         String otroTipo = ejemplo("compra-ventas.json").replace("COMPRA_CONFIRMADA", "ANULACION");
 
-        assertThatThrownBy(() -> lector.leer(otroTipo)).hasMessageContaining("Tipo de evento no esperado");
+        assertThat(lector.leer(otroTipo).tipoEvento()).isEqualTo("ANULACION");
+    }
+
+    @Test
+    void rechazaCantidadDecimalPorqueElContratoExigeUnEntero() {
+        String cantidadDecimal = ejemplo("compra-ventas.json").replace("\"cantidad\": 1", "\"cantidad\": 1.5");
+
+        assertThatThrownBy(() -> lector.leer(cantidadDecimal)).isInstanceOf(EventoIlegibleException.class);
+    }
+
+    @Test
+    void rechazaCantidadExpresadaComoTextoPorqueElContratoExigeUnEntero() {
+        String cantidadComoTexto = ejemplo("compra-ventas.json").replace("\"cantidad\": 1",
+                "\"cantidad\": \"1\"");
+
+        assertThatThrownBy(() -> lector.leer(cantidadComoTexto)).isInstanceOf(EventoIlegibleException.class);
+    }
+
+    @Test
+    void rechazaMontoExpresadoComoTextoPorqueElContratoExigeUnDecimal() {
+        String montoComoTexto = ejemplo("compra-ventas.json").replace("\"montoTotal\": 350.50",
+                "\"montoTotal\": \"350.50\"");
+
+        assertThatThrownBy(() -> lector.leer(montoComoTexto)).isInstanceOf(EventoIlegibleException.class);
+    }
+
+    @Test
+    void rechazaIdentificadorNumericoPorqueElContratoExigeTexto() {
+        String identificadorNumerico = ejemplo("compra-ventas.json")
+                .replace("\"idCompra\": \"V-100234\"", "\"idCompra\": 100234");
+
+        assertThatThrownBy(() -> lector.leer(identificadorNumerico)).isInstanceOf(EventoIlegibleException.class);
+    }
+
+    @Test
+    void rechazaFechaSinZona() {
+        String fechaSinZona = ejemplo("compra-ventas.json").replace("2026-09-27T15:30:05-04:00",
+                "2026-09-27T15:30:05");
+
+        assertThatThrownBy(() -> lector.leer(fechaSinZona)).isInstanceOf(EventoIlegibleException.class);
+    }
+
+    @Test
+    void rechazaFechaNumericaPorqueElContratoExigeIso8601ConZona() {
+        String fechaNumerica = ejemplo("compra-ventas.json")
+                .replace("\"fechaEmision\": \"2026-09-27T15:30:05-04:00\"", "\"fechaEmision\": 1790548205");
+
+        assertThatThrownBy(() -> lector.leer(fechaNumerica)).isInstanceOf(EventoIlegibleException.class);
     }
 
     @Test

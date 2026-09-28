@@ -3,9 +3,10 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.CoercionAction;
+import com.fasterxml.jackson.databind.cfg.CoercionInputShape;
+import com.fasterxml.jackson.databind.type.LogicalType;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * Convierte el contenido de un mensaje en un evento de compra confirmada.
@@ -16,7 +17,16 @@ public class LectorEventos {
     private final ObjectMapper objectMapper;
 
     public LectorEventos(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+        this.objectMapper = objectMapper.copy();
+        this.objectMapper.coercionConfigFor(LogicalType.Textual)
+                .setCoercion(CoercionInputShape.Integer, CoercionAction.Fail)
+                .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
+                .setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail);
+        this.objectMapper.coercionConfigFor(LogicalType.Integer)
+                .setCoercion(CoercionInputShape.String, CoercionAction.Fail)
+                .setCoercion(CoercionInputShape.Float, CoercionAction.Fail);
+        this.objectMapper.coercionConfigFor(LogicalType.Float)
+                .setCoercion(CoercionInputShape.String, CoercionAction.Fail);
     }
 
     /**
@@ -34,46 +44,34 @@ public class LectorEventos {
     }
 
     /**
-     * Lee el evento completo y comprueba que traiga los datos necesarios para registrar la compra.
+     * Lee el evento completo. Las reglas del contrato se aplican después mediante ValidadorEventos.
      */
     public EventoCompraConfirmada leer(String contenido) {
         EventoCompraConfirmada evento;
         try {
-            evento = objectMapper.readValue(contenido, EventoCompraConfirmada.class);
+            JsonNode raiz = objectMapper.readTree(contenido);
+            if (raiz == null || raiz.isNull() || raiz.isMissingNode()) {
+                throw new EventoIlegibleException("El mensaje está vacío");
+            }
+            validarFechaTextual(raiz, "fechaEmision", "fechaEmision");
+            if (raiz != null && raiz.path("compra").isObject()) {
+                validarFechaTextual(raiz.path("compra"), "fecha", "compra.fecha");
+            }
+            evento = objectMapper.treeToValue(raiz, EventoCompraConfirmada.class);
         } catch (JsonProcessingException ex) {
             throw new EventoIlegibleException("El mensaje no es un JSON válido de compra confirmada: "
                     + ex.getOriginalMessage(), ex);
         }
-        if (evento == null) {
-            throw new EventoIlegibleException("El mensaje está vacío");
-        }
-        if (!EventoCompraConfirmada.TIPO.equals(evento.tipoEvento())) {
-            throw new EventoIlegibleException("Tipo de evento no esperado: " + evento.tipoEvento());
-        }
-        exigir(evento.origen(), "origen");
-        exigir(evento.compra(), "compra");
-        EventoCompraConfirmada.DatosCompra compra = evento.compra();
-        exigir(compra.idCompra(), "compra.idCompra");
-        exigir(compra.idCliente(), "compra.idCliente");
-        exigir(compra.fecha(), "compra.fecha");
-        exigir(compra.montoTotal(), "compra.montoTotal");
-        if (compra.items() == null || compra.items().isEmpty()) {
-            throw new EventoIlegibleException("Falta el campo obligatorio 'compra.items'");
-        }
-        List<EventoCompraConfirmada.Item> items = compra.items();
-        for (int i = 0; i < items.size(); i++) {
-            EventoCompraConfirmada.Item item = items.get(i);
-            exigir(item, "compra.items[" + i + "]");
-            exigir(item.categoria(), "compra.items[" + i + "].categoria");
-            exigir(item.cantidad(), "compra.items[" + i + "].cantidad");
-            exigir(item.monto(), "compra.items[" + i + "].monto");
-        }
         return evento;
     }
 
-    private static void exigir(Object valor, String campo) {
-        if (valor == null || valor instanceof String texto && texto.isBlank()) {
-            throw new EventoIlegibleException("Falta el campo obligatorio '" + campo + "'");
+    private static void validarFechaTextual(JsonNode objeto, String campo, String ruta) {
+        if (objeto == null || !objeto.isObject()) {
+            return;
+        }
+        JsonNode valor = objeto.get(campo);
+        if (valor != null && !valor.isNull() && !valor.isTextual()) {
+            throw new EventoIlegibleException("El campo '" + ruta + "' debe ser una fecha y hora ISO-8601 con zona");
         }
     }
 

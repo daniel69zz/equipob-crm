@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.comportamiento.ingesta;
 
+import com.maxiconecta.crm.comportamiento.validacion.EventoInvalidoException;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -48,6 +49,17 @@ class IngestaComprasTest {
         ingesta.recibir("{}");
 
         verify(bitacora).marcarFallido(7L, "EventoIlegibleException: Falta el campo obligatorio 'origen'");
+    }
+
+    @Test
+    void unEventoInvalidoQuedaFallidoConLaCausaDeLaRegla() {
+        when(bitacora.registrarRecepcion("{}")).thenReturn(7L);
+        when(procesador.procesar(7L)).thenThrow(new EventoInvalidoException("El campo 'idEvento' debe tener formato UUID"));
+
+        ingesta.recibir("{}");
+
+        verify(bitacora).marcarFallido(7L,
+                "EventoInvalidoException: El campo 'idEvento' debe tener formato UUID");
     }
 
     @Test

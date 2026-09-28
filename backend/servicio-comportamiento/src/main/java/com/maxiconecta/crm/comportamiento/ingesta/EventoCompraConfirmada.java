@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.comportamiento.ingesta;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
@@ -11,13 +12,16 @@ import java.util.List;
  * para que el emisor pueda agregar campos sin romper al CRM.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record EventoCompraConfirmada(String idEvento, String tipoEvento, String origen, OffsetDateTime fechaEmision,
+public record EventoCompraConfirmada(String idEvento, String tipoEvento, String origen,
+                                     @JsonFormat(shape = JsonFormat.Shape.STRING) OffsetDateTime fechaEmision,
                                      DatosCompra compra) {
 
     public static final String TIPO = "COMPRA_CONFIRMADA";
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record DatosCompra(String idCompra, String idCliente, OffsetDateTime fecha, BigDecimal montoTotal,
+    public record DatosCompra(String idCompra, String idCliente,
+                              @JsonFormat(shape = JsonFormat.Shape.STRING) OffsetDateTime fecha,
+                              BigDecimal montoTotal,
                               List<Item> items) {
     }
 
