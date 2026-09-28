@@ -46,6 +46,7 @@ public class ProcesadorClientes {
 
         Cliente cliente = new Cliente();
         cliente.identificar(datos.nombres(), datos.apellidos(), datos.tipoDocumento(), datos.numeroDocumento());
+        cliente.actualizarContacto(datos.contacto().email(), datos.contacto().telefono());
         cliente.registrarActualizacion(evento.origen(), evento.responsableDelCambio());
         clientes.save(cliente);
         origenes.saveAndFlush(new ClienteOrigen(evento.origen(), datos.idCliente(), cliente.getId(),

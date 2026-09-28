@@ -30,6 +30,10 @@ public class Cliente {
 
     private String numeroDocumento;
 
+    private String email;
+
+    private String telefono;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoPerfil estado = EstadoPerfil.COMPLETO;
@@ -57,6 +61,11 @@ public class Cliente {
         this.numeroDocumento = numeroDocumento;
     }
 
+    public void actualizarContacto(String email, String telefono) {
+        this.email = email;
+        this.telefono = telefono;
+    }
+
     public void registrarActualizacion(Origen origen, String responsable) {
         this.actualizadoEn = OffsetDateTime.now();
         this.actualizadoPorOrigen = origen;
@@ -81,6 +90,14 @@ public class Cliente {
 
     public String getNumeroDocumento() {
         return numeroDocumento;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getTelefono() {
+        return telefono;
     }
 
     public EstadoPerfil getEstado() {
