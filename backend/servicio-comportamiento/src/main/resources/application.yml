@@ -1,0 +1,32 @@
+server:
+  port: ${PUERTO:8082}
+
+spring:
+  application:
+    name: servicio-comportamiento
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/crm_maxiconecta}
+    username: ${DB_USUARIO:crm}
+    password: ${DB_PASSWORD:crm}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+  flyway:
+    schemas: comportamiento
+    locations: classpath:db/migration
+
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PUERTO:5672}
+    username: ${RABBIT_USUARIO:guest}
+    password: ${RABBIT_PASSWORD:guest}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
