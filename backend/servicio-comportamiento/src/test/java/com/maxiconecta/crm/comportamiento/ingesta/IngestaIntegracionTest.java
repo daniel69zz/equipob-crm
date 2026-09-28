@@ -69,7 +69,7 @@ class IngestaIntegracionTest {
 
     @BeforeEach
     void limpiarBase() {
-        jdbc.execute("TRUNCATE comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
+        jdbc.execute("TRUNCATE comportamiento.evento_procesado, comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
     }
 
     // --- Criterio 1: el evento queda almacenado con cliente, fecha, monto, ítems y origen ---
