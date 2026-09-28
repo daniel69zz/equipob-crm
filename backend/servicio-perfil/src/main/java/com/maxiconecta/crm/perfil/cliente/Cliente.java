@@ -58,6 +58,8 @@ public class Cliente {
 
     private String actualizadoPor;
 
+    private Long idClienteConsolidado;
+
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     @OrderBy("id")
     private List<Direccion> direcciones = new ArrayList<>();
@@ -141,6 +143,15 @@ public class Cliente {
         return texto.length() > largoMaximo ? texto.substring(0, largoMaximo) : texto;
     }
 
+    /** El perfil fue absorbido por otro en una unificación. */
+    public void consolidarEn(Long idConservado) {
+        this.idClienteConsolidado = idConservado;
+    }
+
+    public boolean fueConsolidado() {
+        return idClienteConsolidado != null;
+    }
+
     public void registrarActualizacion(Origen origen, String responsable) {
         this.actualizadoEn = OffsetDateTime.now();
         this.actualizadoPorOrigen = origen;
@@ -173,6 +184,10 @@ public class Cliente {
 
     public String getTelefono() {
         return telefono;
+    }
+
+    public Long getIdClienteConsolidado() {
+        return idClienteConsolidado;
     }
 
     public List<Direccion> getDirecciones() {

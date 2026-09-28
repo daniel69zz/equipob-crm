@@ -27,6 +27,9 @@ import java.util.Objects;
 public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
 
     public static final String ALTA_AUTOMATICA = "ALTA_AUTOMATICA";
+    public static final String VINCULACION_MANUAL = "VINCULACION_MANUAL";
+    public static final String UNIFICACION = "UNIFICACION";
+    public static final String SINCRONIZACION_AUTOMATICA = "sincronizacion-automatica";
 
     @jakarta.persistence.Id
     @Enumerated(EnumType.STRING)
@@ -46,6 +49,9 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
 
     private OffsetDateTime ultimaActualizacionOrigen;
 
+    @Column(nullable = false)
+    private String vinculadoPor = SINCRONIZACION_AUTOMATICA;
+
     @Transient
     private boolean nuevo = true;
 
@@ -57,6 +63,15 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
         this.idClienteOrigen = idClienteOrigen;
         this.idCliente = idCliente;
         this.ultimaActualizacionOrigen = ultimaActualizacionOrigen;
+    }
+
+    /** Vínculo hecho por una persona, no por la llegada de un evento. */
+    public static ClienteOrigen vincular(Origen origen, String idClienteOrigen, Long idCliente, String motivo,
+                                         String vinculadoPor, OffsetDateTime ultimaActualizacionOrigen) {
+        ClienteOrigen vinculo = new ClienteOrigen(origen, idClienteOrigen, idCliente, ultimaActualizacionOrigen);
+        vinculo.motivoVinculacion = motivo;
+        vinculo.vinculadoPor = vinculadoPor;
+        return vinculo;
     }
 
     public void registrarActualizacion(OffsetDateTime fechaCambio) {
@@ -101,6 +116,10 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
 
     public OffsetDateTime getUltimaActualizacionOrigen() {
         return ultimaActualizacionOrigen;
+    }
+
+    public String getVinculadoPor() {
+        return vinculadoPor;
     }
 
     /** Llave primaria: canal e identificador del cliente en ese canal. */
