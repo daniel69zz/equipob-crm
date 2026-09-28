@@ -25,22 +25,33 @@ public class SincronizacionClientes {
     }
 
     public void recibir(String contenido) {
-        Long idEvento = bitacora.registrarRecepcion(contenido);
+        procesar(bitacora.registrarRecepcion(contenido));
+    }
+
+    /**
+     * Aplica al perfil un evento ya anotado en la bitácora. También se usa para aplicar los eventos
+     * que estaban pendientes de vinculación, una vez que el administrador decide.
+     */
+    public EstadoEventoCliente procesar(Long idEvento) {
         try {
             ResultadoSincronizacion resultado = aplicar(idEvento);
             bitacora.cerrar(idEvento, resultado.estado(), resultado.idCliente(), resultado.causa());
+            return resultado.estado();
         } catch (EventoDescartadoException ex) {
             log.info("Evento de cliente {} descartado: {}", idEvento, ex.getMessage());
             bitacora.cerrar(idEvento, EstadoEventoCliente.DESCARTADO, ex.getIdCliente(), ex.getMessage());
+            return EstadoEventoCliente.DESCARTADO;
         } catch (RuntimeException ex) {
             log.warn("Evento de cliente {} fallido: {}", idEvento, causa(ex));
             bitacora.cerrar(idEvento, EstadoEventoCliente.FALLIDO, null, causa(ex));
+            return EstadoEventoCliente.FALLIDO;
         }
     }
 
     /**
-     * Si dos altas del mismo cliente llegan a la vez, la segunda choca con el vínculo que acaba de
-     * crear la primera. Se reintenta una vez: ahora el cliente ya existe y el evento se concilia con él.
+     * Si dos mensajes del mismo identificador llegan a la vez, el segundo choca con el vínculo (o la
+     * vinculación pendiente) que acaba de crear el primero. Se reintenta una vez: ahora el vínculo
+     * ya existe y el evento se concilia con él.
      */
     private ResultadoSincronizacion aplicar(Long idEvento) {
         try {
@@ -57,7 +68,7 @@ public class SincronizacionClientes {
 
     private static boolean esVinculoRepetido(DataIntegrityViolationException ex) {
         String mensaje = NestedExceptionUtils.getMostSpecificCause(ex).getMessage();
-        return mensaje != null && mensaje.contains("pk_cliente_origen");
+        return mensaje != null && (mensaje.contains("pk_cliente_origen") || mensaje.contains("pk_vinculacion_pendiente"));
     }
 
     /**

@@ -136,6 +136,14 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
             this.idClienteOrigen = idClienteOrigen;
         }
 
+        public Origen origen() {
+            return origen;
+        }
+
+        public String idClienteOrigen() {
+            return idClienteOrigen;
+        }
+
         @Override
         public boolean equals(Object otro) {
             return otro instanceof Clave clave && origen == clave.origen
