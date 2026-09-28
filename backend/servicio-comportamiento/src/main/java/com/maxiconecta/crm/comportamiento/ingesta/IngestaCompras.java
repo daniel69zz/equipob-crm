@@ -26,14 +26,26 @@ public class IngestaCompras {
 
     public void recibir(String contenido) {
         Long idEvento = bitacora.registrarRecepcion(contenido);
+        procesarRegistrado(idEvento);
+    }
+
+    /**
+     * Procesa un evento que ya existe en la bitácora. Lo usan tanto la recepción normal como
+     * el reproceso administrativo para mantener un único tratamiento de resultados y errores.
+     */
+    public ResultadoProcesamiento procesarRegistrado(Long idEvento) {
         try {
             procesador.procesar(idEvento);
+            return new ResultadoProcesamiento(EstadoEvento.PROCESADO, null);
         } catch (CompraDuplicadaException ex) {
             log.info("Evento {} descartado por duplicado: {}", idEvento, ex.getMessage());
             bitacora.marcarDescartado(idEvento, ex.getMessage());
+            return new ResultadoProcesamiento(EstadoEvento.DESCARTADO, ex.getMessage());
         } catch (RuntimeException ex) {
             log.warn("Evento {} fallido: {}", idEvento, causa(ex));
-            bitacora.marcarFallido(idEvento, causa(ex));
+            String causa = causa(ex);
+            bitacora.marcarFallido(idEvento, causa);
+            return new ResultadoProcesamiento(EstadoEvento.FALLIDO, causa);
         }
     }
 
@@ -47,5 +59,8 @@ public class IngestaCompras {
                 : NestedExceptionUtils.getMostSpecificCause(error);
         String mensaje = raiz.getMessage();
         return raiz.getClass().getSimpleName() + (mensaje != null ? ": " + mensaje : "");
+    }
+
+    public record ResultadoProcesamiento(EstadoEvento estado, String causa) {
     }
 }

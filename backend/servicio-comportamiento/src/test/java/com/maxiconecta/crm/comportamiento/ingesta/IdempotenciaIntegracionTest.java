@@ -77,8 +77,8 @@ class IdempotenciaIntegracionTest {
 
     @BeforeEach
     void limpiarBase() {
-        jdbc.execute("TRUNCATE comportamiento.evento_procesado, comportamiento.compra_item, comportamiento.compra, "
-                + "comportamiento.evento_recibido");
+        jdbc.execute("TRUNCATE comportamiento.intento_reproceso, comportamiento.evento_procesado, "
+                + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
     }
 
     // --- Criterio 1: un evento ya procesado se descarta sin alterar el historial ---
