@@ -51,6 +51,7 @@ curl -X POST http://localhost:8080/api/auth/login \
 | `V1__roles_y_permisos.sql` | Esquema `seguridad`: roles, permisos y matriz inicial |
 | `V2__usuarios.sql` | Usuarios internos (contraseña con BCrypt) |
 | `V3__auditoria.sql` | Esquema `auditoria`: tabla `evento` de solo lectura |
+| `V4__proteccion_auditoria.sql` | Bloquea `TRUNCATE` en la auditoría e indexa por usuario y por cliente |
 
 ## Pruebas
 
