@@ -1,8 +1,12 @@
 package com.maxiconecta.crm.gateway.auditoria;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -25,6 +29,13 @@ public class AuditoriaService {
 
     public static final String ENTIDAD_CLIENTE = "CLIENTE";
 
+    /** Operaciones que se pueden encontrar en la auditoría, para filtrar la consulta. */
+    public static final List<String> OPERACIONES = List.of(
+            CLIENTE_CONSULTADO, CLIENTE_MODIFICADO, ACCESO_DENEGADO,
+            ROL_CREADO, ROL_ACTUALIZADO, ROL_DESACTIVADO, USUARIO_CREADO, ROL_ASIGNADO, USUARIO_DESACTIVADO);
+
+    public static final int TAMANIO_MAXIMO_PAGINA = 100;
+
     private final EventoAuditoriaRepository repository;
 
     public AuditoriaService(EventoAuditoriaRepository repository) {
@@ -37,10 +48,14 @@ public class AuditoriaService {
                 entidadId != null ? entidadId.toString() : null, detalle));
     }
 
+    /**
+     * Eventos que cumplen el filtro, del más reciente al más antiguo.
+     */
     @Transactional(readOnly = true)
-    public List<EventoAuditoria> ultimos(String operacion) {
-        return operacion == null || operacion.isBlank()
-                ? repository.findTop100ByOrderByOcurridoEnDesc()
-                : repository.findTop100ByOperacionOrderByOcurridoEnDesc(operacion);
+    public Page<EventoAuditoria> buscar(FiltroAuditoria filtro, int pagina, int tamanio) {
+        PageRequest solicitud = PageRequest.of(Math.max(pagina, 0),
+                Math.min(Math.max(tamanio, 1), TAMANIO_MAXIMO_PAGINA),
+                Sort.by(Sort.Order.desc("ocurridoEn"), Sort.Order.desc("id")));
+        return repository.findAll(filtro.comoEspecificacion(ZoneId.systemDefault()), solicitud);
     }
 }

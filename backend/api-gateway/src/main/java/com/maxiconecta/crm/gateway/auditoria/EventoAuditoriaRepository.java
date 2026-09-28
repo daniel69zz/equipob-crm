@@ -1,12 +1,8 @@
 package com.maxiconecta.crm.gateway.auditoria;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
-
-public interface EventoAuditoriaRepository extends JpaRepository<EventoAuditoria, Long> {
-
-    List<EventoAuditoria> findTop100ByOrderByOcurridoEnDesc();
-
-    List<EventoAuditoria> findTop100ByOperacionOrderByOcurridoEnDesc(String operacion);
+public interface EventoAuditoriaRepository
+        extends JpaRepository<EventoAuditoria, Long>, JpaSpecificationExecutor<EventoAuditoria> {
 }
