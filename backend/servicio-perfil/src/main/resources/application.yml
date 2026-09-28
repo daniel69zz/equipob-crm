@@ -45,3 +45,8 @@ crm:
     conflictos:
       # Si dos sistemas informan datos de identificación distintos, gana el primero de la lista.
       prioridad-identificacion: VENTAS,MARKETPLACE
+    reintentos:
+      # Errores técnicos transitorios al aplicar un evento: intentos en total y espera creciente.
+      maximo: 3
+      espera-inicial: 500ms
+      multiplicador: 2
