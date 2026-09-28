@@ -22,7 +22,7 @@ public class BitacoraIngesta {
     public Long registrarRecepcion(String contenido) {
         LectorEventos.Cabecera cabecera = lector.cabecera(contenido);
         return repository.save(new EventoRecibido(contenido, cabecera.idEvento(), cabecera.tipoEvento(),
-                cabecera.origen())).getId();
+                cabecera.origen(), cabecera.idTransaccion())).getId();
     }
 
     @Transactional

@@ -77,7 +77,7 @@ class ProcesadorComprasTest {
     }
 
     private static EventoRecibido recibido() {
-        return new EventoRecibido("contenido original", null, null, null);
+        return new EventoRecibido("contenido original", null, null, null, null);
     }
 
     private static EventoCompraConfirmada evento(String idEvento) {

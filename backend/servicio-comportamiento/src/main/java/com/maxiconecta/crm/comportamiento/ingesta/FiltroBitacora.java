@@ -13,7 +13,8 @@ import java.util.List;
  * Periodo y filtros de la bitácora de ingesta. Sin fechas, el periodo son los últimos 7 días.
  * Las fechas son días completos en la zona horaria del servidor.
  */
-public record FiltroBitacora(LocalDate desde, LocalDate hasta, EstadoEvento estado, String origen) {
+public record FiltroBitacora(LocalDate desde, LocalDate hasta, EstadoEvento estado, String origen,
+                             String transaccion) {
 
     static final int DIAS_POR_DEFECTO = 7;
 
@@ -29,10 +30,11 @@ public record FiltroBitacora(LocalDate desde, LocalDate hasta, EstadoEvento esta
             throw new ReglaNegocioException("La fecha 'desde' no puede ser posterior a 'hasta'");
         }
         origen = origen == null || origen.isBlank() ? null : origen.trim().toUpperCase();
+        transaccion = transaccion == null || transaccion.isBlank() ? null : transaccion.trim();
     }
 
     FiltroBitacora conEstado(EstadoEvento otroEstado) {
-        return new FiltroBitacora(desde, hasta, otroEstado, origen);
+        return new FiltroBitacora(desde, hasta, otroEstado, origen, transaccion);
     }
 
     Specification<EventoRecibido> comoEspecificacion(ZoneId zona) {
@@ -47,6 +49,9 @@ public record FiltroBitacora(LocalDate desde, LocalDate hasta, EstadoEvento esta
             }
             if (origen != null) {
                 condiciones.add(criterios.equal(evento.get("origen"), origen));
+            }
+            if (transaccion != null) {
+                condiciones.add(criterios.equal(evento.get("idTransaccion"), transaccion));
             }
             return criterios.and(condiciones.toArray(Predicate[]::new));
         };

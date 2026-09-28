@@ -30,6 +30,8 @@ public class EventoRecibido {
 
     private String origen;
 
+    private String idTransaccion;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoEvento estado = EstadoEvento.RECIBIDO;
@@ -47,11 +49,13 @@ public class EventoRecibido {
     protected EventoRecibido() {
     }
 
-    public EventoRecibido(String contenido, String idEventoOrigen, String tipoEvento, String origen) {
+    public EventoRecibido(String contenido, String idEventoOrigen, String tipoEvento, String origen,
+                          String idTransaccion) {
         this.contenido = contenido;
         this.idEventoOrigen = idEventoOrigen;
         this.tipoEvento = tipoEvento;
         this.origen = origen;
+        this.idTransaccion = idTransaccion;
     }
 
     public void marcarProcesado() {
@@ -88,6 +92,10 @@ public class EventoRecibido {
 
     public String getOrigen() {
         return origen;
+    }
+
+    public String getIdTransaccion() {
+        return idTransaccion;
     }
 
     public EstadoEvento getEstado() {
