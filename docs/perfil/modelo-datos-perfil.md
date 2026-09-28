@@ -25,7 +25,7 @@ evento_cliente                       (bitácora de sincronización)
 | `actualizado_por_origen` | varchar(15) | Sistema del último cambio (`MARKETPLACE`, `VENTAS`) |
 | `actualizado_por` | varchar(100) | Responsable del último cambio |
 
-Un perfil es **completo** cuando tiene nombres, apellidos, tipo y número de documento válidos y al menos un medio de contacto válido (correo o teléfono). La detección y el seguimiento de los incompletos es de SCRUM-12.
+Un perfil es **completo** cuando tiene nombres, apellidos, tipo y número de documento válidos, al menos un medio de contacto válido (correo o teléfono) y todas las direcciones informadas tienen código, calle y ciudad. Una dirección inválida no se guarda. La detección y el seguimiento de los incompletos es de SCRUM-12.
 
 ## `cliente_origen` — identificadores de origen (RF-62)
 

@@ -123,6 +123,24 @@ public class Cliente {
         return cambios;
     }
 
+    /**
+     * Marca el perfil como completo o incompleto según los motivos de la validación y devuelve el cambio.
+     */
+    public List<CambioCampo> marcarEstado(List<String> motivos) {
+        EstadoPerfil nuevoEstado = motivos.isEmpty() ? EstadoPerfil.COMPLETO : EstadoPerfil.INCOMPLETO;
+        String nuevosMotivos = motivos.isEmpty() ? null : recortar(String.join("; ", motivos), 1000);
+        List<CambioCampo> cambios = new ArrayList<>();
+        CambioCampo.siCambio(cambios, "estado", this.id == null ? null : this.estado, nuevoEstado);
+        CambioCampo.siCambio(cambios, "motivosIncompleto", this.motivosIncompleto, nuevosMotivos);
+        this.estado = nuevoEstado;
+        this.motivosIncompleto = nuevosMotivos;
+        return cambios;
+    }
+
+    private static String recortar(String texto, int largoMaximo) {
+        return texto.length() > largoMaximo ? texto.substring(0, largoMaximo) : texto;
+    }
+
     public void registrarActualizacion(Origen origen, String responsable) {
         this.actualizadoEn = OffsetDateTime.now();
         this.actualizadoPorOrigen = origen;

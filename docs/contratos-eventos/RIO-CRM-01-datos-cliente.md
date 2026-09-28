@@ -43,6 +43,8 @@ Cada evento trae la **foto completa** del cliente en el sistema de origen, no so
 \* Obligatorio para que el perfil quede **completo**. Si falta o está mal formado, el perfil se crea igual y queda **incompleto** (ver "Qué hace el CRM al recibirlo").
 \** Se necesita al menos uno de los dos medios de contacto.
 
+Las direcciones son opcionales, pero cada dirección informada debe traer `idDireccion`, `calle` y `ciudad`: si no, esa dirección no se guarda y el perfil queda incompleto.
+
 El evento **no transporta el consentimiento** de tratamiento de datos: el CRM lo registra aparte (SCRUM-14).
 
 ## Ejemplo

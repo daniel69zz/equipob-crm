@@ -9,9 +9,9 @@ import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigen;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigenRepository;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
-import com.maxiconecta.crm.perfil.cliente.Direccion;
 import com.maxiconecta.crm.perfil.cliente.TipoCambio;
-import com.maxiconecta.crm.perfil.cliente.TipoDireccion;
+import com.maxiconecta.crm.perfil.validacion.PerfilValidado;
+import com.maxiconecta.crm.perfil.validacion.ValidadorPerfil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +29,9 @@ import java.util.List;
  * de origen: uno igual o más antiguo que el último aplicado se descarta.
  * <p>
  * Cada creación o modificación queda en {@link CambioPerfil} con fecha, origen, responsable y campos.
+ * <p>
+ * Si un dato obligatorio llega vacío o mal formado, se guarda lo válido, el dato queda vacío y el
+ * perfil se marca INCOMPLETO con el motivo; el evento queda INCOMPLETO en la bitácora.
  */
 @Service
 public class ProcesadorClientes {
@@ -38,16 +41,18 @@ public class ProcesadorClientes {
     private final ClienteOrigenRepository origenes;
     private final CambioPerfilRepository cambiosPerfil;
     private final LectorEventosCliente lector;
+    private final ValidadorPerfil validador;
     private final ObjectMapper objectMapper;
 
     public ProcesadorClientes(EventoClienteRepository eventos, ClienteRepository clientes,
                               ClienteOrigenRepository origenes, CambioPerfilRepository cambiosPerfil,
-                              LectorEventosCliente lector, ObjectMapper objectMapper) {
+                              LectorEventosCliente lector, ValidadorPerfil validador, ObjectMapper objectMapper) {
         this.eventos = eventos;
         this.clientes = clientes;
         this.origenes = origenes;
         this.cambiosPerfil = cambiosPerfil;
         this.lector = lector;
+        this.validador = validador;
         this.objectMapper = objectMapper;
     }
 
@@ -73,11 +78,13 @@ public class ProcesadorClientes {
             tipo = TipoCambio.ACTUALIZACION;
         }
 
+        PerfilValidado perfil = validador.validar(datos);
         List<CambioCampo> cambios = new ArrayList<>();
-        cambios.addAll(cliente.identificar(datos.nombres(), datos.apellidos(), datos.tipoDocumento(),
-                datos.numeroDocumento()));
-        cambios.addAll(cliente.actualizarContacto(datos.contacto().email(), datos.contacto().telefono()));
-        cambios.addAll(cliente.sincronizarDirecciones(evento.origen(), direcciones(datos)));
+        cambios.addAll(cliente.identificar(perfil.nombres(), perfil.apellidos(), perfil.tipoDocumento(),
+                perfil.numeroDocumento()));
+        cambios.addAll(cliente.actualizarContacto(perfil.email(), perfil.telefono()));
+        cambios.addAll(cliente.sincronizarDirecciones(evento.origen(), perfil.direcciones()));
+        cambios.addAll(cliente.marcarEstado(perfil.motivos()));
 
         if (vinculo == null) {
             cliente.registrarActualizacion(evento.origen(), evento.responsableDelCambio());
@@ -91,13 +98,16 @@ public class ProcesadorClientes {
             }
         }
 
-        if (cambios.isEmpty()) {
-            return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.PROCESADO,
-                    "Sin cambios en el perfil");
+        if (!cambios.isEmpty()) {
+            cambiosPerfil.save(new CambioPerfil(cliente.getId(), tipo, evento.origen(),
+                    evento.responsableDelCambio(), comoJson(cambios), idEvento));
         }
-        cambiosPerfil.save(new CambioPerfil(cliente.getId(), tipo, evento.origen(), evento.responsableDelCambio(),
-                comoJson(cambios), idEvento));
-        return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.PROCESADO, null);
+        if (!perfil.completo()) {
+            return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.INCOMPLETO,
+                    "Perfil incompleto: " + perfil.motivosComoTexto());
+        }
+        return new ResultadoSincronizacion(cliente.getId(), EstadoEventoCliente.PROCESADO,
+                cambios.isEmpty() ? "Sin cambios en el perfil" : null);
     }
 
     private static void descartarSiNoEsPosterior(ClienteOrigen vinculo, OffsetDateTime fechaCambio) {
@@ -110,19 +120,6 @@ public class ProcesadorClientes {
                 : "Evento obsoleto: el cambio del " + fechaCambio + " de " + vinculo.getId()
                 + " es anterior al último aplicado (" + ultima + ")";
         throw new EventoDescartadoException(vinculo.getIdCliente(), motivo);
-    }
-
-    /** Direcciones con los datos mínimos para guardarse: código, calle y ciudad. */
-    private static List<Direccion.DatosDireccion> direcciones(EventoClienteRecibido.DatosCliente datos) {
-        return datos.direcciones().stream()
-                .filter(d -> presente(d.idDireccion()) && presente(d.calle()) && presente(d.ciudad()))
-                .map(d -> new Direccion.DatosDireccion(d.idDireccion(), TipoDireccion.de(d.tipo()), d.calle(),
-                        d.numero(), d.zona(), d.ciudad(), d.referencia(), d.principal()))
-                .toList();
-    }
-
-    private static boolean presente(String valor) {
-        return valor != null && !valor.isBlank();
     }
 
     private String comoJson(List<CambioCampo> cambios) {
