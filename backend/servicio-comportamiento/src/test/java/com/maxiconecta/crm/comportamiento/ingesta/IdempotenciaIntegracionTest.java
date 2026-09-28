@@ -104,7 +104,8 @@ class IdempotenciaIntegracionTest {
         esperar(1);
         String reenvio = ejemplo("compra-ventas.json")
                 .replace("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c", UUID.randomUUID().toString())
-                .replace("350.50", "999.99");
+                .replace("350.50", "999.99")
+                .replace("300.00", "949.49");
         publicar(reenvio);
 
         assertThat(esperar(2)).extracting(EventoRecibido::getEstado)

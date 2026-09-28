@@ -57,3 +57,14 @@ Después de `cliente-ventas-alta.json`:
 | El administrador vincula: `POST /api/perfil/clientes/{idAna}/identificadores` con `{"origen": "MARKETPLACE", "idCliente": "mp-user-9001"}` | El evento pendiente se aplica al perfil de Ana, que queda con los dos identificadores |
 | Publicar `cliente-marketplace-ana.json --ahora` y `cliente-ventas-alta.json --ahora` | Los dos se aplican al **mismo** perfil |
 
+### Actualizaciones parciales y conflictos (SCRUM-11)
+
+Después de vincular a Ana en Marketplace (sección anterior):
+
+| Archivo | Resultado esperado |
+|---|---|
+| `cliente-ventas-cambio-correo.json` | `PROCESADO`: solo cambia el correo (normalizado a minúsculas); nombre, documento, teléfono y direcciones se conservan |
+| `cliente-marketplace-ana-cambios.json` | `PROCESADO` con 2 conflictos: el nombre `Anita` se **conserva** como `Ana María` (Ventas tiene prioridad en identificación) y el teléfono `+59171122333` se **aplica** (es el cambio de contacto más reciente) |
+
+Los conflictos se consultan en `GET /api/perfil/clientes/{id}/conflictos`.
+

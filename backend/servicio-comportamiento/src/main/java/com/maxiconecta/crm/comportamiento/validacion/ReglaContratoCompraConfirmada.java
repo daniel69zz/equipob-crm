@@ -46,6 +46,7 @@ public class ReglaContratoCompraConfirmada implements ReglaValidacionEvento {
         exigirTexto(compra.idCliente(), "compra.idCliente", LARGO_MAXIMO_ID);
         exigir(compra.fecha(), "compra.fecha");
         validarDecimal(compra.montoTotal(), "compra.montoTotal");
+        exigirPositivo(compra.montoTotal(), "compra.montoTotal");
 
         List<EventoCompraConfirmada.Item> items = exigir(compra.items(), "compra.items");
         if (items.isEmpty()) {
@@ -57,7 +58,24 @@ public class ReglaContratoCompraConfirmada implements ReglaValidacionEvento {
             EventoCompraConfirmada.Item item = exigir(items.get(i), ruta);
             exigirTexto(item.categoria(), ruta + ".categoria", LARGO_MAXIMO_CATEGORIA);
             exigir(item.cantidad(), ruta + ".cantidad");
+            if (item.cantidad() <= 0) {
+                rechazar("El campo '" + ruta + ".cantidad' debe ser mayor que cero");
+            }
             validarDecimal(item.monto(), ruta + ".monto");
+            exigirPositivo(item.monto(), ruta + ".monto");
+        }
+
+        BigDecimal sumaItems = items.stream().map(EventoCompraConfirmada.Item::monto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (sumaItems.compareTo(compra.montoTotal()) != 0) {
+            rechazar("La suma de 'compra.items[].monto' (" + sumaItems.toPlainString()
+                    + ") no coincide con 'compra.montoTotal' (" + compra.montoTotal().toPlainString() + ")");
+        }
+    }
+
+    private static void exigirPositivo(BigDecimal valor, String campo) {
+        if (valor.signum() <= 0) {
+            rechazar("El campo '" + campo + "' debe ser mayor que cero");
         }
     }
 

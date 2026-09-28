@@ -75,7 +75,7 @@ class ValidadorPerfilTest {
                                                             String numeroDocumento, String email, String telefono,
                                                             List<EventoClienteRecibido.DatosDireccion> direcciones) {
         return new EventoClienteRecibido.DatosCliente("CLI-1", null, nombres, apellidos, tipoDocumento, numeroDocumento,
-                new EventoClienteRecibido.Contacto(email, telefono), direcciones);
+                new EventoClienteRecibido.Contacto(email, telefono), direcciones, EventoClienteRecibido.Campos.TODOS);
     }
 
     private static EventoClienteRecibido.DatosDireccion direccion(String id, String calle, String ciudad) {

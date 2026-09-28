@@ -26,7 +26,7 @@ public class BitacoraSincronizacion {
     }
 
     @Transactional
-    public void cerrar(Long idEvento, EstadoEventoCliente estado, Long idCliente, String causa) {
-        repository.findById(idEvento).ifPresent(evento -> evento.cerrar(estado, idCliente, causa));
+    public void cerrar(Long idEvento, EstadoEventoCliente estado, Long idCliente, String causa, int intentos) {
+        repository.findById(idEvento).ifPresent(evento -> evento.cerrar(estado, idCliente, causa, intentos));
     }
 }

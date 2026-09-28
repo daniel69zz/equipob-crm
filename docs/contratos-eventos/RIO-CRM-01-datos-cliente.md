@@ -11,7 +11,7 @@ Evento que Marketplace y Ventas publica cuando registra un cliente o cambia sus 
 | **Routing keys** | `cliente.registrado`, `cliente.actualizado` |
 | **Cola del CRM** | `crm.perfil.clientes` (durable, enlazada con `cliente.*`) |
 
-Cada evento trae la **foto completa** del cliente en el sistema de origen, no solo lo que cambió: un campo ausente o vacío significa que el cliente no tiene ese dato.
+`CLIENTE_REGISTRADO` trae la **foto completa** del cliente: un campo ausente o vacío significa que el cliente no tiene ese dato. `CLIENTE_ACTUALIZADO` trae **solo los campos que cambiaron**: los ausentes se conservan. Detalle, normalización y conflictos entre sistemas en `docs/perfil/mapeo-datos-perfil.md`.
 
 ## Campos
 
@@ -88,7 +88,9 @@ Más ejemplos en `herramientas/simulador-eventos/eventos/`.
 |---|---|---|
 | Cliente nuevo (el par `origen` + `idCliente` no está vinculado a ningún perfil) | Se **crea** el perfil y se vincula el identificador de origen | `PROCESADO` |
 | Identificador nuevo cuyo documento coincide con un perfil existente | No se crea otro perfil: espera que un administrador lo vincule o confirme que es otra persona (ver `docs/perfil/identificadores-origen.md`) | `PENDIENTE` |
-| Cliente ya vinculado | Se **actualiza** el mismo perfil; nunca se crea otro | `PROCESADO` |
+| Cliente ya vinculado | Se **actualiza** el mismo perfil (en una actualización, solo los campos que trae); nunca se crea otro | `PROCESADO` |
+| Otro sistema ya había puesto un valor distinto en ese campo | Se aplica la regla de prioridad y queda la traza del conflicto | `PROCESADO`, con la cantidad de conflictos |
+| Error técnico (base de datos) | Se reintenta hasta 3 veces | El resultado final, con los intentos |
 | `CLIENTE_ACTUALIZADO` de un cliente que el CRM aún no conoce (el alta se perdió o llegó después) | Se crea el perfil | `PROCESADO` |
 | Dato obligatorio vacío o mal formado | Se guarda lo válido, el dato inválido queda vacío y el perfil queda **incompleto** con el motivo | `INCOMPLETO` con el motivo |
 | Evento más antiguo que el último aplicado para ese cliente, o el mismo evento reentregado | Sin cambios | `DESCARTADO` con el motivo |

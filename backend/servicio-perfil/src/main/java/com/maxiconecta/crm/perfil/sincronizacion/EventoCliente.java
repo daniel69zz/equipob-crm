@@ -49,6 +49,9 @@ public class EventoCliente {
 
     private OffsetDateTime procesadoEn;
 
+    @Column(nullable = false)
+    private int intentos = 1;
+
     protected EventoCliente() {
     }
 
@@ -61,8 +64,9 @@ public class EventoCliente {
         this.idClienteOrigen = idClienteOrigen;
     }
 
-    public void cerrar(EstadoEventoCliente nuevoEstado, Long cliente, String nuevaCausa) {
+    public void cerrar(EstadoEventoCliente nuevoEstado, Long cliente, String nuevaCausa, int intentosRealizados) {
         this.estado = nuevoEstado;
+        this.intentos = intentosRealizados;
         if (cliente != null) {
             this.idCliente = cliente;
         }
@@ -110,6 +114,10 @@ public class EventoCliente {
 
     public OffsetDateTime getRecibidoEn() {
         return recibidoEn;
+    }
+
+    public int getIntentos() {
+        return intentos;
     }
 
     public OffsetDateTime getProcesadoEn() {
