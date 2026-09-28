@@ -63,13 +63,13 @@ La zona y la ciudad se guardan como texto: el catálogo de zonas y ciudades del 
 | `id` | bigint, PK | |
 | `id_cliente` | FK → `cliente` | |
 | `fecha` | timestamptz | Momento del cambio |
-| `tipo` | varchar(15) | `CREACION` o `ACTUALIZACION` |
+| `tipo` | varchar(15) | `CREACION`, `ACTUALIZACION`, `VINCULACION` o `UNIFICACION` |
 | `origen` | varchar(15) | Sistema que originó el cambio (`MARKETPLACE`, `VENTAS` o `CRM` para las acciones de un administrador) |
 | `responsable` | varchar(100) | Usuario del sistema de origen, o `sincronizacion-automatica` |
 | `cambios` | text (JSON) | Lista de `{campo, anterior, nuevo}` |
 | `id_evento` | FK → `evento_cliente` | Evento que produjo el cambio |
 
-Es de **solo inserción**: un trigger rechaza `UPDATE`, `DELETE` y `TRUNCATE`. La consulta del histórico es de SCRUM-22.
+Es de **solo inserción**: un trigger rechaza `UPDATE`, `DELETE` y `TRUNCATE`. El detalle de cada campo está en `cambio_perfil_detalle`; el modelo completo y la consulta del histórico, en `historico-cambios.md`.
 
 ## `evento_cliente` — bitácora de sincronización
 
