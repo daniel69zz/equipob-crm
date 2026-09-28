@@ -9,7 +9,11 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static com.maxiconecta.crm.perfil.sincronizacion.EventoClienteRecibido.Campos;
 
 /**
  * Convierte el contenido de un mensaje en un evento de datos del cliente.
@@ -17,6 +21,10 @@ import java.util.List;
  * Solo exige lo necesario para saber a qué cliente y a qué sistema corresponde (tipo, origen,
  * idCliente y fechas). Los datos del perfil se leen tal como vienen; si faltan o están mal
  * formados, lo decide la validación del perfil y el perfil queda incompleto.
+ * <p>
+ * Un alta (CLIENTE_REGISTRADO) es la foto completa del cliente. Una actualización
+ * (CLIENTE_ACTUALIZADO) informa solo los campos presentes en el mensaje; un campo presente con
+ * null o vacío significa que el sistema de origen borró ese dato.
  */
 @Component
 public class LectorEventosCliente {
@@ -84,9 +92,30 @@ public class LectorEventosCliente {
                 idCliente.trim(), fecha(cliente, "fechaActualizacion", "cliente.fechaActualizacion"),
                 escalar(cliente, "nombres"), escalar(cliente, "apellidos"),
                 escalar(cliente, "tipoDocumento"), escalar(cliente, "numeroDocumento"),
-                contacto(cliente), direcciones(cliente));
+                contacto(cliente), direcciones(cliente),
+                tipo == TipoEventoCliente.CLIENTE_REGISTRADO ? Campos.TODOS : camposInformados(cliente));
         return new EventoClienteRecibido(escalar(raiz, "idEvento"), tipo, origen, fechaEmision,
                 recortar(escalar(raiz, "responsable"), 100), datos);
+    }
+
+    /** Campos presentes en una actualización. Un contacto null borra correo y teléfono. */
+    private static Set<String> camposInformados(JsonNode cliente) {
+        Set<String> campos = new HashSet<>();
+        for (String campo : List.of(Campos.NOMBRES, Campos.APELLIDOS, Campos.TIPO_DOCUMENTO, Campos.NUMERO_DOCUMENTO,
+                Campos.DIRECCIONES)) {
+            if (cliente.has(campo)) {
+                campos.add(campo);
+            }
+        }
+        JsonNode contacto = cliente.get("contacto");
+        if (contacto != null) {
+            for (String campo : List.of(Campos.EMAIL, Campos.TELEFONO)) {
+                if (contacto.isNull() || contacto.has(campo)) {
+                    campos.add(campo);
+                }
+            }
+        }
+        return Set.copyOf(campos);
     }
 
     private EventoClienteRecibido.Contacto contacto(JsonNode cliente) {

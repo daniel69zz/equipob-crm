@@ -28,7 +28,7 @@ public class NormalizadorPerfil {
                 nombrePropio(datos.nombres()), nombrePropio(datos.apellidos()),
                 mayusculas(datos.tipoDocumento()), documento(datos.numeroDocumento()),
                 new EventoClienteRecibido.Contacto(email(contacto.email()), telefono(contacto.telefono())),
-                datos.direcciones() == null ? null : datos.direcciones().stream().map(this::direccion).toList());
+                datos.direcciones().stream().map(this::direccion).toList(), datos.camposInformados());
     }
 
     private EventoClienteRecibido.DatosDireccion direccion(EventoClienteRecibido.DatosDireccion d) {
