@@ -60,12 +60,6 @@ public class CambioPerfil {
     protected CambioPerfil() {
     }
 
-    /** Operación sin detalle por campo; el histórico nuevo usa el constructor con la lista de campos. */
-    public CambioPerfil(Long idCliente, TipoCambio tipo, Origen origen, String responsable, String cambios,
-                        Long idEvento) {
-        this(idCliente, tipo, origen, responsable, List.of(), cambios, idEvento);
-    }
-
     /**
      * @param cambiosComoJson resumen en JSON de {@code campos}, que se guardan además uno por fila
      */
