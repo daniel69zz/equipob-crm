@@ -1,0 +1,13 @@
+{
+  "idEvento": "3c4d5e6f-7a8b-4c9d-8e0f-2a3b4c5d6e7f",
+  "tipoEvento": "CLIENTE_REGISTRADO",
+  "origen": "VENTAS",
+  "fechaEmision": "2026-09-23T12:30:00-04:00",
+  "cliente": {
+    "nombres": "Sin",
+    "apellidos": "Identificador",
+    "tipoDocumento": "CI",
+    "numeroDocumento": "1234567",
+    "contacto": { "email": "sin.id@correo.com" }
+  }
+}

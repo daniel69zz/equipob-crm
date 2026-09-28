@@ -1,0 +1,18 @@
+{
+  "idEvento": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+  "tipoEvento": "CLIENTE_REGISTRADO",
+  "origen": "VENTAS",
+  "fechaEmision": "2026-09-23T12:00:00-04:00",
+  "cliente": {
+    "idCliente": "CLI-6100",
+    "fechaActualizacion": "2026-09-23T11:59:30-04:00",
+    "nombres": "Luisa",
+    "apellidos": "Fernández",
+    "tipoDocumento": "CI",
+    "numeroDocumento": "",
+    "contacto": { "email": "luisa.fernandez@", "telefono": "+591 76543210" },
+    "direcciones": [
+      { "idDireccion": "D-9", "calle": "Calle Sucre", "numero": "340" }
+    ]
+  }
+}

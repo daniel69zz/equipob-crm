@@ -1,0 +1,28 @@
+{
+  "idEvento": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "tipoEvento": "CLIENTE_REGISTRADO",
+  "origen": "VENTAS",
+  "fechaEmision": "2026-09-20T10:15:02-04:00",
+  "responsable": "vendedor.jperez",
+  "cliente": {
+    "idCliente": "CLI-5521",
+    "fechaActualizacion": "2026-09-20T10:15:00-04:00",
+    "nombres": "Ana María",
+    "apellidos": "Pérez Rojas",
+    "tipoDocumento": "CI",
+    "numeroDocumento": "4455667",
+    "contacto": { "email": "ana.perez@correo.com", "telefono": "+591 70012345" },
+    "direcciones": [
+      {
+        "idDireccion": "D-1",
+        "tipo": "ENTREGA",
+        "calle": "Av. 6 de Agosto",
+        "numero": "2150",
+        "zona": "Sopocachi",
+        "ciudad": "La Paz",
+        "referencia": "Edificio Illimani, piso 3",
+        "principal": true
+      }
+    ]
+  }
+}
