@@ -62,7 +62,7 @@ Más ejemplos, de los dos canales y de casos de error, en `herramientas/simulado
 | Situación | Resultado en la bitácora de ingesta |
 |---|---|
 | Evento correcto | `PROCESADO`: la compra y sus ítems quedan guardados |
-| La compra (`origen` + `idCompra`) ya estaba registrada | `DESCARTADO`: no se duplica; queda la causa |
+| La compra (`origen` + `idCompra`) ya estaba registrada | `DESCARTADO`: no se duplica; queda la causa (ver `docs/ingesta/idempotencia-eventos-venta.md`) |
 | JSON ilegible, campo obligatorio faltante o error al guardar | `FALLIDO`: queda la causa y el mensaje original, disponible para reproceso |
 
 Cada mensaje recibido queda en la bitácora con su contenido original, aunque no se haya podido leer.
