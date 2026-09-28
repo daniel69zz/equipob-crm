@@ -46,3 +46,14 @@ Publicarlos en este orden para ver la creación, la actualización y el descarte
 | `cliente-marketplace-alta.json` | Marketplace | `PROCESADO`: se crea el perfil de Carlos Quispe |
 | `cliente-incompleto.json` | Ventas | `INCOMPLETO`: sin número de documento, correo mal formado y una dirección sin ciudad |
 | `cliente-sin-id.json` | Ventas | `FALLIDO`: falta `cliente.idCliente` |
+
+### Un mismo cliente en Marketplace y en Ventas (SCRUM-526)
+
+Después de `cliente-ventas-alta.json`:
+
+| Paso | Resultado esperado |
+|---|---|
+| Publicar `cliente-marketplace-ana.json` (otro identificador, mismo CI 4455667) | `PENDIENTE`: no se crea otro perfil; aparece en `GET /api/perfil/vinculaciones` con el perfil de Ana como sugerido |
+| El administrador vincula: `POST /api/perfil/clientes/{idAna}/identificadores` con `{"origen": "MARKETPLACE", "idCliente": "mp-user-9001"}` | El evento pendiente se aplica al perfil de Ana, que queda con los dos identificadores |
+| Publicar `cliente-marketplace-ana.json --ahora` y `cliente-ventas-alta.json --ahora` | Los dos se aplican al **mismo** perfil |
+
