@@ -3,6 +3,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.directive';
+import { Permisos } from '../../core/auth/sesion';
 import { ClientesService, ResumenCliente } from './clientes.service';
 
 const NOMBRES_DE_ESTADO: Record<string, string> = {
@@ -14,7 +16,7 @@ const NOMBRES_DE_ESTADO: Record<string, string> = {
 @Component({
   selector: 'app-buscar-clientes',
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, SiTienePermisoDirective],
   template: `
     <h1>Clientes</h1>
     <p class="subtitulo">Clientes registrados a partir de Marketplace y Ventas. Busque por documento o por su identificador en el módulo.</p>
@@ -76,6 +78,7 @@ const NOMBRES_DE_ESTADO: Record<string, string> = {
                 <td><span class="etiqueta" [class]="'perfil-' + cliente.estado">{{ nombreEstado(cliente.estado) }}</span></td>
                 <td class="fecha">{{ cliente.actualizadoEn | date: 'dd/MM/yyyy HH:mm' }}</td>
                 <td class="vistas">
+                  <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', cliente.id, 'ficha-integral']">Ficha</a>
                   <a [routerLink]="['/clientes', cliente.id, 'historial']">Cambios</a>
                   <a [routerLink]="['/clientes', cliente.id, 'compras']">Compras</a>
                   <a [routerLink]="['/clientes', cliente.id, 'consentimiento']">Consentimiento</a>
@@ -112,6 +115,7 @@ const NOMBRES_DE_ESTADO: Record<string, string> = {
 })
 export class BuscarClientesComponent implements OnInit {
   private readonly servicio = inject(ClientesService);
+  readonly permisos = Permisos;
 
   filtro = { tipoDocumento: '', numeroDocumento: '', idClienteOrigen: '' };
 

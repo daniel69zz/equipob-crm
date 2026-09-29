@@ -101,6 +101,29 @@ class TrazabilidadAuditoriaTest {
     }
 
     @Test
+    void unaConsultaDeLaFichaIntegralQuedaRegistradaConElClienteDeLaRuta() throws Exception {
+        List<String> permisosConFichaIntegral = List.of("CLIENTE_CONSULTAR", "INDICADORES_CONSULTAR",
+                "PUNTOS_CONSULTAR", "INTERACCIONES_CONSULTAR", "INTERACCIONES_REGISTRAR", "FICHA_INTEGRAL_CONSULTAR");
+
+        mvc.perform(get("/api/perfil/clientes/42/ficha-integral")
+                .header("Authorization", bearer("ana", "AGENTE_ATENCION", permisosConFichaIntegral)));
+
+        verify(auditoriaService).registrar(eq("ana"), eq(AuditoriaService.CLIENTE_CONSULTADO),
+                eq(AuditoriaService.ENTIDAD_CLIENTE), eq("42"),
+                argThat(detalle -> detalle.startsWith("GET /api/perfil/clientes/42/ficha-integral · HTTP ")));
+    }
+
+    @Test
+    void unIntentoDeConsultarLaFichaIntegralSinElPermisoQuedaRegistradoComoAccesoDenegado() throws Exception {
+        mvc.perform(get("/api/perfil/clientes/42/ficha-integral")
+                        .header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+
+        verify(auditoriaService).registrar(eq("luis"), eq(AuditoriaService.ACCESO_DENEGADO),
+                eq(AuditoriaService.ENTIDAD_CLIENTE), eq("42"), argThat(detalle -> detalle.contains("HTTP 403")));
+    }
+
+    @Test
     void lasConsultasEnOtrosMicroserviciosTambienSeRegistran() throws Exception {
         mvc.perform(get("/api/fidelizacion/clientes/42/puntos")
                 .header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)));

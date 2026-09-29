@@ -1,15 +1,18 @@
 import { Component, input } from '@angular/core';
+import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.directive';
+import { Permisos } from '../../core/auth/sesion';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 /** Navegación entre las vistas de un mismo cliente, con el regreso a la lista. */
 @Component({
   selector: 'app-pestanias-cliente',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, SiTienePermisoDirective],
   template: `
     <nav class="navegacion" aria-label="Vistas del cliente">
       <a class="volver" routerLink="/clientes">← Clientes</a>
       <div class="pestanias" role="tablist">
+        <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', id(), 'ficha-integral']" routerLinkActive="activa" role="tab">Ficha integral</a>
         <a [routerLink]="['/clientes', id(), 'historial']" routerLinkActive="activa" role="tab">Historial de cambios</a>
         <a [routerLink]="['/clientes', id(), 'compras']" routerLinkActive="activa" role="tab">Compras e indicadores</a>
         <a [routerLink]="['/clientes', id(), 'consentimiento']" routerLinkActive="activa" role="tab">Consentimiento</a>
@@ -37,4 +40,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 export class PestaniasClienteComponent {
   /** Identificador del cliente en el CRM. */
   readonly id = input.required<string | number>();
+
+  readonly permisos = Permisos;
 }

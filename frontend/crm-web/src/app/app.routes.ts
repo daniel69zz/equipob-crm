@@ -6,6 +6,7 @@ import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
 import { ClientesInactivosComponent } from './features/clientes/clientes-inactivos.component';
 import { ConsentimientoComponent } from './features/clientes/consentimiento.component';
+import { FichaIntegralComponent } from './features/clientes/ficha-integral.component';
 import { HistorialCambiosComponent } from './features/clientes/historial-cambios.component';
 import { HistorialComprasComponent } from './features/clientes/historial-compras.component';
 import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
@@ -29,6 +30,12 @@ export const routes: Routes = [
         component: BuscarClientesComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.CLIENTE_CONSULTAR },
+      },
+      {
+        path: 'clientes/:id/ficha-integral',
+        component: FichaIntegralComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.FICHA_INTEGRAL_CONSULTAR },
       },
       {
         path: 'clientes/:id/historial',
