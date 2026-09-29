@@ -36,9 +36,9 @@ public class HistorialComprasController {
         List<Identificador> pares = (identificadores == null ? List.<String>of() : identificadores).stream()
                 .map(Identificador::parsear)
                 .toList();
-        Page<Compra> resultado = consulta.buscar(pares, pagina, tamanio);
-        return new HistorialCompras(resultado.getContent().stream().map(CompraResponse::de).toList(),
-                resultado.getNumber(), resultado.getSize(), resultado.getTotalElements());
+        Page<CompraResponse> resultado = consulta.buscar(pares, pagina, tamanio, CompraResponse::de);
+        return new HistorialCompras(resultado.getContent(), resultado.getNumber(), resultado.getSize(),
+                resultado.getTotalElements());
     }
 
     public record HistorialCompras(List<CompraResponse> content, int pagina, int tamanio, long total) {
