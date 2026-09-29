@@ -62,6 +62,17 @@ persiste y se incrementa atómicamente al registrar una compra confirmada.
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia` y `frecuencia`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes. Usa el parámetro repetible `identificador` |
 
+## Clientes inactivos (SCRUM-31)
+
+Diseño y criterio en `docs/compra/clientes-inactivos.md`. Un cliente es inactivo cuando su última
+compra vigente tiene más de `comportamiento.inactividad.umbral-dias` días (por defecto 90). Se
+recalcula con una tarea programada (`comportamiento.inactividad.cron`, por defecto una vez al día)
+y se corrige de inmediato cuando el cliente vuelve a comprar.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes?estado=inactivo` | `INDICADORES_CONSULTAR` | Clientes sin compras vigentes desde hace más del umbral configurado, del que lleva más tiempo sin comprar al que lleva menos. Devuelve el identificador del cliente (`idClienteOrigen`), la última compra y los días transcurridos. `pagina`, `tamanio` (por defecto 20, máx. 100) |
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ. Con Docker:

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
+import com.maxiconecta.crm.comportamiento.inactividad.DetectorClientesInactivos;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorEventos;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ class ProcesadorComprasIdempotenciaTest {
     private final LectorEventos lector = new LectorEventos(new ObjectMapper().registerModule(new JavaTimeModule()));
     private final FrecuenciaCompraRepository frecuencias = mock(FrecuenciaCompraRepository.class);
     private final ProcesadorCompras procesador = new ProcesadorCompras(eventos, compras, procesados, lector,
-            validadorSinReglas(), mock(ClientePerfiles.class), frecuencias);
+            validadorSinReglas(), mock(ClientePerfiles.class), frecuencias, mock(DetectorClientesInactivos.class));
 
     @BeforeEach
     void eventoEnLaBitacora() {

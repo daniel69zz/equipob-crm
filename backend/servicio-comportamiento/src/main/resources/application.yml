@@ -39,6 +39,13 @@ spring:
           initial-interval: 2s
           multiplier: 2
 
+comportamiento:
+  inactividad:
+    # Días sin ninguna compra vigente para considerar inactivo a un cliente (SCRUM-295).
+    umbral-dias: ${INACTIVIDAD_UMBRAL_DIAS:90}
+    # Cuándo corre la identificación automática (SCRUM-297); por defecto, una vez al día de madrugada.
+    cron: ${INACTIVIDAD_CRON:0 0 3 * * *}
+
 management:
   endpoints:
     web:
