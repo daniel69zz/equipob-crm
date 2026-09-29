@@ -2,6 +2,7 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
+import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.validacion.EventoInvalidoException;
 import com.maxiconecta.crm.comportamiento.validacion.ReglaContratoCompraConfirmada;
@@ -34,7 +35,7 @@ class ProcesadorComprasTest {
     private final EventoProcesadoRepository procesados = mock(EventoProcesadoRepository.class);
     private final LectorEventos lector = mock(LectorEventos.class);
     private final ProcesadorCompras procesador = new ProcesadorCompras(eventos, compras, procesados, lector,
-            validadorReal());
+            validadorReal(), mock(ClientePerfiles.class));
 
     @Test
     void unEventoValidoContinuaHastaGuardarLaCompra() {

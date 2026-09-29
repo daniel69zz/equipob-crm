@@ -4,6 +4,8 @@ import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
+import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
@@ -45,6 +47,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers(disabledWithoutDocker = true)
 class IdempotenciaIntegracionTest {
+
+    @MockBean
+    private ClientePerfiles perfiles;
 
     @Container
     @ServiceConnection
