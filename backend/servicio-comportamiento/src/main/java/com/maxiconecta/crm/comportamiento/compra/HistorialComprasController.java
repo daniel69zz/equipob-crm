@@ -44,12 +44,12 @@ public class HistorialComprasController {
     public record HistorialCompras(List<CompraResponse> content, int pagina, int tamanio, long total) {
     }
 
-    public record CompraResponse(OffsetDateTime fecha, Origen origen, BigDecimal montoTotal, String estado,
-                                 List<ItemResponse> items) {
+    public record CompraResponse(OffsetDateTime fecha, String referencia, Origen origen, BigDecimal montoTotal,
+                                 String estado, List<ItemResponse> items) {
 
         static CompraResponse de(Compra compra) {
-            return new CompraResponse(compra.getFecha(), compra.getOrigen(), compra.getMontoTotal(),
-                    compra.getEstado(), compra.getItems().stream().map(ItemResponse::de).toList());
+            return new CompraResponse(compra.getFecha(), compra.getIdCompraOrigen(), compra.getOrigen(),
+                    compra.getMontoTotal(), compra.getEstado(), compra.getItems().stream().map(ItemResponse::de).toList());
         }
     }
 

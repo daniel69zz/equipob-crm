@@ -43,7 +43,8 @@ Si ni siquiera se puede escribir en la bitácora, el mensaje pasa a `crm.comport
 
 ## Historial de compras (SCRUM-16)
 
-Ver diseño en `docs/compra/historial-compras.md`.
+Ver diseño en `docs/compra/historial-compras.md` y el formato de la respuesta en
+`docs/compra/formato-historial-compras.md`.
 
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
