@@ -70,9 +70,11 @@ class HistorialComprasIntegracionTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(2))
                 .andExpect(jsonPath("$.content[0].origen").value("MARKETPLACE"))
+                .andExpect(jsonPath("$.content[0].referencia").value("MP-88120"))
                 .andExpect(jsonPath("$.content[0].montoTotal").value(129.90))
                 .andExpect(jsonPath("$.content[0].items.length()").value(2))
                 .andExpect(jsonPath("$.content[1].origen").value("VENTAS"))
+                .andExpect(jsonPath("$.content[1].referencia").value("V-100234"))
                 .andExpect(jsonPath("$.content[1].estado").value("CONFIRMADA"));
     }
 
