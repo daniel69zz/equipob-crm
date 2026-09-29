@@ -19,13 +19,13 @@ evento_cliente                       (bitácora de sincronización)
 | `numero_documento` | varchar(20) | Número de documento |
 | `email` | varchar(150) | Contacto |
 | `telefono` | varchar(30) | Contacto |
-| `estado` | varchar(12) | `COMPLETO` o `INCOMPLETO` |
-| `motivos_incompleto` | varchar(1000) | Qué falta o está mal formado, por ejemplo `numeroDocumento: vacío; email: formato inválido` |
+| `estado` | varchar(14) | `COMPLETO`, `INCOMPLETO` o `INCONSISTENTE` (ver `docs/perfil/catalogo-reglas-validacion.md`) |
+| `motivos_incidencia` | varchar(1000) | Qué falta, está mal formado o es incoherente, por ejemplo `numeroDocumento: vacío; email: formato inválido` |
 | `creado_en`, `actualizado_en` | timestamptz | Alta y último cambio |
 | `actualizado_por_origen` | varchar(15) | Sistema del último cambio (`MARKETPLACE`, `VENTAS`) |
 | `actualizado_por` | varchar(100) | Responsable del último cambio |
 
-Un perfil es **completo** cuando tiene nombres, apellidos, tipo y número de documento válidos, al menos un medio de contacto válido (correo o teléfono) y todas las direcciones informadas tienen código, calle y ciudad. Una dirección inválida no se guarda. La detección y el seguimiento de los incompletos es de SCRUM-12.
+Un perfil es **completo** cuando tiene nombres, apellidos, tipo y número de documento válidos, al menos un medio de contacto válido (correo o teléfono) y todas las direcciones informadas tienen código, calle y ciudad. Una dirección inválida no se guarda. La detección y el seguimiento de los perfiles incompletos o inconsistentes es de SCRUM-12.
 
 ## `cliente_origen` — identificadores de origen (RF-62)
 

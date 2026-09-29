@@ -238,7 +238,7 @@ class SincronizacionIntegracionTest {
         transaccion.executeWithoutResult(t -> {
             Cliente cliente = clientes.findById(evento.getIdCliente()).orElseThrow();
             assertThat(cliente.getEstado()).isEqualTo(EstadoPerfil.INCOMPLETO);
-            assertThat(cliente.getMotivosIncompleto()).contains("numeroDocumento: vacío");
+            assertThat(cliente.getMotivosIncidencia()).contains("numeroDocumento: vacío");
             assertThat(cliente.getNombres()).isEqualTo("Luisa");
             assertThat(cliente.getTelefono()).isEqualTo("+591 76543210");
             assertThat(cliente.getEmail()).isNull();
@@ -261,7 +261,7 @@ class SincronizacionIntegracionTest {
         assertThat(correccion.getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
         Cliente cliente = clientes.findById(correccion.getIdCliente()).orElseThrow();
         assertThat(cliente.getEstado()).isEqualTo(EstadoPerfil.COMPLETO);
-        assertThat(cliente.getMotivosIncompleto()).isNull();
+        assertThat(cliente.getMotivosIncidencia()).isNull();
         assertThat(camposCambiados(ultimoCambio(cliente.getId()))).contains("estado", "numeroDocumento", "email");
     }
 
