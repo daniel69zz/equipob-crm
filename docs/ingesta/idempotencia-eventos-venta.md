@@ -6,11 +6,11 @@ Cómo evita el CRM procesar dos veces un mismo evento de venta. RabbitMQ entrega
 
 | Parte | Campo del evento | Por qué |
 |---|---|---|
-| Tipo de evento | `tipoEvento` | Una compra y su anulación (RIO-CRM-05) comparten el identificador de la transacción, pero son hechos distintos |
+| Tipo de evento | `tipoEvento` | Una compra y su anulación (RIO-CRM-05) son hechos distintos, aunque se refieran a la misma compra |
 | Canal | `origen` | Marketplace y Ventas numeran sus transacciones por separado: `V-100` de Ventas y `V-100` de Marketplace son compras distintas |
-| Transacción | `compra.idCompra` | Identifica la compra en el sistema de origen |
+| Transacción | `compra.idCompra` en una compra; `anulacion.idAnulacion` en una anulación o devolución | Identifica la transacción en el sistema de origen. Una anulación usa su propio identificador, no el de la compra, porque una compra puede tener varias devoluciones parciales |
 
-**Clave = `tipoEvento` + `origen` + `idCompra`.**
+**Clave = `tipoEvento` + `origen` + identificador de la transacción** (`COMPRA_CONFIRMADA` + `VENTAS` + `V-100234`, o `COMPRA_ANULADA` + `VENTAS` + `V-100234-D1`).
 
 No se usa `idEvento` como clave: identifica el **mensaje**, no la compra. Un reenvío desde el sistema de origen puede llegar con un `idEvento` nuevo para la misma compra, y debe descartarse igual. Una reentrega de RabbitMQ trae el mismo `idEvento` y la misma compra, así que también queda cubierta por la clave.
 
@@ -24,14 +24,14 @@ Tabla `comportamiento.evento_procesado`, con la clave como llave primaria:
 | `id_evento_recibido` | Mensaje de la bitácora que la procesó |
 | `procesado_en` | Fecha y hora del procesamiento |
 
-La fila se inserta **en la misma transacción** que la compra y sus ítems: o se guardan las dos cosas, o ninguna.
+La fila se inserta **en la misma transacción** que la compra (o la anulación) y sus ítems: o se guardan las dos cosas, o ninguna.
 
 ## Criterio de descarte
 
 1. El mensaje se anota en la bitácora (siempre, incluso si es un duplicado).
 2. Se lee y se valida (reglas de SCRUM-21). Un evento inválido queda `FALLIDO` y **no** ocupa la clave.
 3. Si la clave ya está en `evento_procesado`, el mensaje queda **`DESCARTADO`** y no se toca el historial.
-4. Si no está, se guardan la compra y la clave. Si en ese instante otro mensaje con la misma clave se adelantó (dos copias procesándose a la vez), la llave primaria lo impide y el mensaje también queda `DESCARTADO`.
+4. Si no está, se guardan la compra (o la anulación) y la clave. Si en ese instante otro mensaje con la misma clave se adelantó (dos copias procesándose a la vez), la llave primaria lo impide y el mensaje también queda `DESCARTADO`.
 
 Solo cuentan como procesadas las transacciones que terminaron bien. Si el primer envío quedó `FALLIDO`, un reenvío posterior **sí** se procesa: es justamente la forma de recuperarse del error.
 

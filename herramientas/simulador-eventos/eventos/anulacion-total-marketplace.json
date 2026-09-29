@@ -1,0 +1,15 @@
+{
+  "idEvento": "b4e1c9d2-7a3f-4e6b-8c5d-1f2e3a4b5c6d",
+  "tipoEvento": "COMPRA_ANULADA",
+  "origen": "MARKETPLACE",
+  "fechaEmision": "2026-09-28T18:40:00-04:00",
+  "anulacion": {
+    "idAnulacion": "MP-88120-A1",
+    "idCompra": "MP-88120",
+    "idCliente": "mp-user-3307",
+    "tipo": "TOTAL",
+    "fecha": "2026-09-28T18:38:12-04:00",
+    "montoRevertido": 129.90,
+    "motivo": "Pedido cancelado antes del envío"
+  }
+}
