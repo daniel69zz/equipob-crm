@@ -23,6 +23,35 @@ Consume el evento **RIO-CRM-01** (`docs/contratos-eventos/RIO-CRM-01-datos-clien
 | GET | `/api/perfil/clientes/{clienteId}` | `CLIENTE_CONSULTAR` | Perfil con sus identificadores de origen y direcciones activas |
 | GET | `/api/perfil/clientes` | `CLIENTE_CONSULTAR` | Búsqueda por `origen` + `idClienteOrigen`, por `tipoDocumento` / `numeroDocumento` o por `estado`, paginada (`pagina`, `tamanio`, máx. 100) |
 
+## Actualización ante cambios (SCRUM-11)
+
+Una actualización (`CLIENTE_ACTUALIZADO`) cambia solo los campos que trae. Los datos se normalizan antes de compararse; si dos sistemas informan valores distintos, se aplica la regla de prioridad y queda la traza; los errores técnicos se reintentan. Mapeo y políticas en `docs/perfil/mapeo-datos-perfil.md`.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/perfil/clientes/{clienteId}/sincronizaciones` | `CLIENTE_CONSULTAR` | Últimas 100 notificaciones aplicadas al perfil, con estado, causa e intentos |
+| GET | `/api/perfil/clientes/{clienteId}/conflictos` | `CLIENTE_CONSULTAR` | Conflictos entre sistemas y la decisión tomada |
+
+Configuración (`application.yml`): `crm.perfil.conflictos.prioridad-identificacion` y `crm.perfil.reintentos.*`.
+
+## Histórico de cambios (SCRUM-22)
+
+Cada creación o cambio del perfil deja un registro de solo lectura con el campo, el valor anterior y el nuevo, la fecha, el origen (`VENTAS`, `MARKETPLACE` o `CRM`) y el responsable. Modelo en `docs/perfil/historico-cambios.md`.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/perfil/clientes/{clienteId}/historial-cambios` | `CLIENTE_CONSULTAR` | Cambios del más reciente al más antiguo. Filtros: `campo` (o prefijo), `origen`, `desde`, `hasta`, `pagina`, `tamanio` (máx. 100) |
+
+## Identificadores de origen (SCRUM-526)
+
+Un mismo cliente puede tener identificadores en Marketplace y en Ventas; todos apuntan a un solo perfil. Un identificador desconocido cuyo documento coincide con un perfil existente queda **pendiente de vinculación** en lugar de crear un duplicado. Detalle en `docs/perfil/identificadores-origen.md`.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/perfil/vinculaciones` | `CLIENTE_CONSULTAR` | Vinculaciones pendientes (`?estado=PENDIENTE`, `VINCULADO`, `NUEVO_PERFIL`) |
+| POST | `/api/perfil/clientes/{clienteId}/identificadores` | `CLIENTE_EDITAR` | Vincula `{"origen", "idCliente"}` al perfil y aplica sus eventos pendientes |
+| POST | `/api/perfil/vinculaciones/nuevo-perfil` | `CLIENTE_EDITAR` | Declara que `{"origen", "idCliente"}` es otra persona: sus eventos pendientes crean un perfil nuevo |
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ (ver los comandos de Docker en `backend/servicio-comportamiento/README.md`). Con las variables de `.env.example`:

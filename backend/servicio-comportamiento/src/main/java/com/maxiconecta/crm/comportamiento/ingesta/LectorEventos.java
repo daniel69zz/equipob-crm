@@ -8,6 +8,9 @@ import com.fasterxml.jackson.databind.cfg.CoercionInputShape;
 import com.fasterxml.jackson.databind.type.LogicalType;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
+
 /**
  * Convierte el contenido de un mensaje en un evento de compra confirmada.
  */
@@ -71,8 +74,17 @@ public class LectorEventos {
             return;
         }
         JsonNode valor = objeto.get(campo);
-        if (valor != null && !valor.isNull() && !valor.isTextual()) {
+        if (valor == null || valor.isNull()) {
+            return;
+        }
+        if (!valor.isTextual()) {
             throw new EventoIlegibleException("El campo '" + ruta + "' debe ser una fecha y hora ISO-8601 con zona");
+        }
+        try {
+            OffsetDateTime.parse(valor.asText());
+        } catch (DateTimeParseException ex) {
+            throw new EventoIlegibleException("El campo '" + ruta + "' debe ser una fecha y hora ISO-8601 con zona"
+                    + " (llegó \"" + valor.asText() + "\")");
         }
     }
 

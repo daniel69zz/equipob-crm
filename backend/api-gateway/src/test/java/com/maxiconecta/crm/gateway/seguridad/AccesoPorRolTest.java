@@ -157,10 +157,10 @@ class AccesoPorRolTest {
 
     @Test
     void soloElAdministradorPuedeReprocesarEventos() throws Exception {
-        mvc.perform(post("/api/comportamiento/eventos/reproceso")
+        mvc.perform(post("/api/comportamiento/eventos/7/reprocesar")
                         .header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
                 .andExpect(status().isForbidden());
-        mvc.perform(post("/api/comportamiento/eventos/reproceso").header("Authorization", bearerAdministrador()))
+        mvc.perform(post("/api/comportamiento/eventos/7/reprocesar").header("Authorization", bearerAdministrador()))
                 .andExpect(pasaElControlDeAcceso());
     }
 
