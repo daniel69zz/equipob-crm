@@ -9,11 +9,11 @@ import java.time.OffsetDateTime;
  * Fila del resultado de una búsqueda de perfiles.
  */
 public record ResumenPerfil(Long id, String nombres, String apellidos, String tipoDocumento, String numeroDocumento,
-                            EstadoPerfil estado, OffsetDateTime actualizadoEn) {
+                            EstadoPerfil estado, String motivosIncidencia, OffsetDateTime actualizadoEn) {
 
     static ResumenPerfil de(Cliente cliente) {
         return new ResumenPerfil(cliente.getId(), cliente.getNombres(), cliente.getApellidos(),
                 cliente.getTipoDocumento(), cliente.getNumeroDocumento(), cliente.getEstado(),
-                cliente.getActualizadoEn());
+                cliente.getMotivosIncidencia(), cliente.getActualizadoEn());
     }
 }
