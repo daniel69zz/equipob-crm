@@ -27,6 +27,7 @@ public class ConfiguracionRabbit {
     public static final String COLA_COMPRAS_RESPALDO = "crm.comportamiento.compras.respaldo";
     public static final String RUTA_COMPRA_ANULADA = "compra.anulada";
     public static final String COLA_ANULACIONES = "crm.comportamiento.anulaciones";
+    public static final String COLA_ANULACIONES_RESPALDO = "crm.comportamiento.anulaciones.respaldo";
 
     @Bean
     public TopicExchange exchangeVentas() {
@@ -63,7 +64,20 @@ public class ConfiguracionRabbit {
 
     @Bean
     public Queue colaAnulaciones() {
-        return QueueBuilder.durable(COLA_ANULACIONES).build();
+        return QueueBuilder.durable(COLA_ANULACIONES)
+                .deadLetterExchange(EXCHANGE_RESPALDO)
+                .deadLetterRoutingKey(COLA_ANULACIONES_RESPALDO)
+                .build();
+    }
+
+    @Bean
+    public Queue colaAnulacionesRespaldo() {
+        return QueueBuilder.durable(COLA_ANULACIONES_RESPALDO).build();
+    }
+
+    @Bean
+    public Binding enlaceAnulacionesRespaldo(Queue colaAnulacionesRespaldo, DirectExchange exchangeRespaldo) {
+        return BindingBuilder.bind(colaAnulacionesRespaldo).to(exchangeRespaldo).with(COLA_ANULACIONES_RESPALDO);
     }
 
     @Bean
