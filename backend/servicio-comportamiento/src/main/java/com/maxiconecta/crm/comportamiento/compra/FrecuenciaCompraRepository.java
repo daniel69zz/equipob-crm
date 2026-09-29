@@ -21,6 +21,19 @@ public interface FrecuenciaCompraRepository extends JpaRepository<FrecuenciaComp
             """, nativeQuery = true)
     void incrementar(@Param("idClienteOrigen") String idClienteOrigen);
 
+    /**
+     * Descuenta una compra que quedó anulada por completo (SCRUM-523), dentro de la transacción de
+     * la anulación. Nunca baja de cero, aunque el contador estuviera desactualizado.
+     */
+    @Modifying(flushAutomatically = true)
+    @Query(value = """
+            UPDATE comportamiento.frecuencia_compra
+            SET cantidad = GREATEST(cantidad - 1, 0),
+                actualizada_en = now()
+            WHERE id_cliente_origen = :idClienteOrigen
+            """, nativeQuery = true)
+    void decrementar(@Param("idClienteOrigen") String idClienteOrigen);
+
     @Query("SELECT COALESCE(SUM(f.cantidad), 0) FROM FrecuenciaCompra f "
             + "WHERE f.idClienteOrigen IN :identificadores")
     long sumar(@Param("identificadores") Collection<String> identificadores);
