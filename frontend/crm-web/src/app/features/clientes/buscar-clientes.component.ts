@@ -65,7 +65,10 @@ import { ClientesService, ResumenCliente } from './clientes.service';
                 <td>{{ cliente.nombres }} {{ cliente.apellidos }}</td>
                 <td>{{ cliente.tipoDocumento }} {{ cliente.numeroDocumento }}</td>
                 <td>{{ cliente.estado === 'COMPLETO' ? 'Completo' : 'Incompleto' }}</td>
-                <td><a [routerLink]="['/clientes', cliente.id, 'historial']">Historial de cambios</a></td>
+                <td>
+                  <a [routerLink]="['/clientes', cliente.id, 'historial']">Historial de cambios</a> ·
+                  <a [routerLink]="['/clientes', cliente.id, 'consentimiento']">Consentimiento</a>
+                </td>
               </tr>
             } @empty {
               <tr><td colspan="4">No se encontraron clientes.</td></tr>
