@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Colas de RabbitMQ del servicio. Los nombres siguen el contrato
- * docs/contratos-eventos/RIO-CRM-02-compra-confirmada.md.
+ * Colas de RabbitMQ del servicio. Los nombres siguen los contratos
+ * docs/contratos-eventos/RIO-CRM-02-compra-confirmada.md y RIO-CRM-05-anulacion-compra.md.
  * <p>
  * Los errores de procesamiento se resuelven en la bitácora (estado FALLIDO). Solo si ni siquiera
  * se puede escribir en la bitácora (por ejemplo, la base no responde), el mensaje se reintenta y,
@@ -25,6 +25,9 @@ public class ConfiguracionRabbit {
     public static final String COLA_COMPRAS = "crm.comportamiento.compras";
     public static final String EXCHANGE_RESPALDO = "crm.comportamiento.respaldo";
     public static final String COLA_COMPRAS_RESPALDO = "crm.comportamiento.compras.respaldo";
+    public static final String RUTA_COMPRA_ANULADA = "compra.anulada";
+    public static final String COLA_ANULACIONES = "crm.comportamiento.anulaciones";
+    public static final String COLA_ANULACIONES_RESPALDO = "crm.comportamiento.anulaciones.respaldo";
 
     @Bean
     public TopicExchange exchangeVentas() {
@@ -57,5 +60,28 @@ public class ConfiguracionRabbit {
     @Bean
     public Binding enlaceCompras(Queue colaCompras, TopicExchange exchangeVentas) {
         return BindingBuilder.bind(colaCompras).to(exchangeVentas).with(RUTA_COMPRA_CONFIRMADA);
+    }
+
+    @Bean
+    public Queue colaAnulaciones() {
+        return QueueBuilder.durable(COLA_ANULACIONES)
+                .deadLetterExchange(EXCHANGE_RESPALDO)
+                .deadLetterRoutingKey(COLA_ANULACIONES_RESPALDO)
+                .build();
+    }
+
+    @Bean
+    public Queue colaAnulacionesRespaldo() {
+        return QueueBuilder.durable(COLA_ANULACIONES_RESPALDO).build();
+    }
+
+    @Bean
+    public Binding enlaceAnulacionesRespaldo(Queue colaAnulacionesRespaldo, DirectExchange exchangeRespaldo) {
+        return BindingBuilder.bind(colaAnulacionesRespaldo).to(exchangeRespaldo).with(COLA_ANULACIONES_RESPALDO);
+    }
+
+    @Bean
+    public Binding enlaceAnulaciones(Queue colaAnulaciones, TopicExchange exchangeVentas) {
+        return BindingBuilder.bind(colaAnulaciones).to(exchangeVentas).with(RUTA_COMPRA_ANULADA);
     }
 }

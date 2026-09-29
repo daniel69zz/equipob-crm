@@ -12,7 +12,8 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 
 /**
- * Convierte el contenido de un mensaje en un evento de compra confirmada.
+ * Convierte el contenido de un mensaje en un evento de compra confirmada (RIO-CRM-02) o de
+ * anulación de compra (RIO-CRM-05).
  */
 @Component
 public class LectorEventos {
@@ -41,7 +42,7 @@ public class LectorEventos {
             return raiz == null || !raiz.isObject()
                     ? Cabecera.VACIA
                     : new Cabecera(texto(raiz, "idEvento", 64), texto(raiz, "tipoEvento", 40), texto(raiz, "origen", 15),
-                    texto(raiz.path("compra"), "idCompra", 64));
+                    idTransaccion(raiz));
         } catch (JsonProcessingException ex) {
             return Cabecera.VACIA;
         }
@@ -51,22 +52,41 @@ public class LectorEventos {
      * Lee el evento completo. Las reglas del contrato se aplican después mediante ValidadorEventos.
      */
     public EventoCompraConfirmada leer(String contenido) {
-        EventoCompraConfirmada evento;
+        return leer(contenido, EventoCompraConfirmada.class, "compra", "compra confirmada");
+    }
+
+    /**
+     * Lee un evento de anulación o devolución. Las reglas del contrato se aplican después mediante
+     * ValidadorAnulaciones.
+     */
+    public EventoAnulacionCompra leerAnulacion(String contenido) {
+        return leer(contenido, EventoAnulacionCompra.class, "anulacion", "anulación de compra");
+    }
+
+    /**
+     * @param detalle objeto del evento que trae la fecha de la transacción ({@code compra} o {@code anulacion})
+     */
+    private <T> T leer(String contenido, Class<T> tipo, String detalle, String descripcion) {
         try {
             JsonNode raiz = objectMapper.readTree(contenido);
             if (raiz == null || raiz.isNull() || raiz.isMissingNode()) {
                 throw new EventoIlegibleException("El mensaje está vacío");
             }
             validarFechaTextual(raiz, "fechaEmision", "fechaEmision");
-            if (raiz != null && raiz.path("compra").isObject()) {
-                validarFechaTextual(raiz.path("compra"), "fecha", "compra.fecha");
+            if (raiz.path(detalle).isObject()) {
+                validarFechaTextual(raiz.path(detalle), "fecha", detalle + ".fecha");
             }
-            evento = objectMapper.treeToValue(raiz, EventoCompraConfirmada.class);
+            return objectMapper.treeToValue(raiz, tipo);
         } catch (JsonProcessingException ex) {
-            throw new EventoIlegibleException("El mensaje no es un JSON válido de compra confirmada: "
+            throw new EventoIlegibleException("El mensaje no es un JSON válido de " + descripcion + ": "
                     + ex.getOriginalMessage(), ex);
         }
-        return evento;
+    }
+
+    /** La compra en RIO-CRM-02; la anulación o devolución en RIO-CRM-05. */
+    private static String idTransaccion(JsonNode raiz) {
+        String idCompra = texto(raiz.path("compra"), "idCompra", 64);
+        return idCompra != null ? idCompra : texto(raiz.path("anulacion"), "idAnulacion", 64);
     }
 
     private static void validarFechaTextual(JsonNode objeto, String campo, String ruta) {

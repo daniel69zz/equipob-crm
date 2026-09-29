@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.comportamiento.ingesta;
 
+import com.maxiconecta.crm.comportamiento.comun.ReglaNegocioException;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -76,13 +77,26 @@ public class BitacoraController {
         return reprocesador.intentos(id).stream().map(IntentoResponse::de).toList();
     }
 
+    /**
+     * Reinyecta un mensaje de la cola de respaldo indicada: {@code compras} (por defecto) o
+     * {@code anulaciones}.
+     */
     @PostMapping("/respaldo/reinyectar")
     public ResponseEntity<ReinyeccionResponse> reinyectarRespaldo(
+            @RequestParam(defaultValue = "compras") String cola,
             @RequestHeader(name = "X-Usuario", required = false) String usuario) {
-        return reinyector.reinyectarUno(usuario)
+        return reinyector.reinyectarUno(colaRespaldo(cola), usuario)
                 .map(resultado -> ResponseEntity.ok(new ReinyeccionResponse(true, resultado.idMensaje(),
                         resultado.bytes())))
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    private static ReinyectorMensajesRespaldo.ColaRespaldo colaRespaldo(String cola) {
+        try {
+            return ReinyectorMensajesRespaldo.ColaRespaldo.valueOf(cola.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ReglaNegocioException("Cola de respaldo desconocida: " + cola + " (se espera compras o anulaciones)");
+        }
     }
 
     public record IntentoResponse(Long id, Long idEvento, int numero, OffsetDateTime intentadoEn,

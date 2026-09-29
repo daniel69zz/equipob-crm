@@ -1,0 +1,18 @@
+{
+  "idEvento": "d1e2f3a4-b5c6-4d7e-9f8a-0b1c2d3e4f5a",
+  "tipoEvento": "COMPRA_ANULADA",
+  "origen": "VENTAS",
+  "fechaEmision": "2026-09-28T12:10:00-04:00",
+  "anulacion": {
+    "idAnulacion": "V-100234-D9",
+    "idCompra": "V-100234",
+    "idCliente": "CLI-5521",
+    "tipo": "PARCIAL",
+    "fecha": "2026-09-28T12:08:00-04:00",
+    "montoRevertido": 80.00,
+    "motivo": "Devolución de accesorios",
+    "items": [
+      { "categoria": "Accesorios", "cantidad": 1, "monto": 25.25 }
+    ]
+  }
+}

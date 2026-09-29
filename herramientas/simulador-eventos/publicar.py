@@ -26,6 +26,7 @@ import uuid
 EXCHANGE = "ventas.eventos"
 RUTA_POR_TIPO = {
     "COMPRA_CONFIRMADA": "compra.confirmada",
+    "COMPRA_ANULADA": "compra.anulada",
     "CLIENTE_REGISTRADO": "cliente.registrado",
     "CLIENTE_ACTUALIZADO": "cliente.actualizado",
 }
@@ -44,6 +45,8 @@ def contenido_a_publicar(ruta_archivo, nuevo, ahora):
     if nuevo:
         if isinstance(evento.get("compra"), dict) and evento["compra"].get("idCompra"):
             evento["compra"]["idCompra"] = f"{evento['compra']['idCompra']}-{uuid.uuid4().hex[:6]}"
+        if isinstance(evento.get("anulacion"), dict) and evento["anulacion"].get("idAnulacion"):
+            evento["anulacion"]["idAnulacion"] = f"{evento['anulacion']['idAnulacion']}-{uuid.uuid4().hex[:6]}"
         if isinstance(evento.get("cliente"), dict) and evento["cliente"].get("idCliente"):
             evento["cliente"]["idCliente"] = f"{evento['cliente']['idCliente']}-{uuid.uuid4().hex[:6]}"
     if ahora:

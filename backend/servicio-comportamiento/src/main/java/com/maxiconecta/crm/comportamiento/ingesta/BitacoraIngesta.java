@@ -25,6 +25,12 @@ public class BitacoraIngesta {
                 cabecera.origen(), cabecera.idTransaccion())).getId();
     }
 
+    /** Tipo de evento que declaraba el mensaje al recibirlo, o null si no se pudo leer. */
+    @Transactional(readOnly = true)
+    public String tipoEvento(Long idEvento) {
+        return repository.findById(idEvento).map(EventoRecibido::getTipoEvento).orElse(null);
+    }
+
     @Transactional
     public void marcarFallido(Long idEvento, String causa) {
         repository.findById(idEvento).ifPresent(evento -> evento.marcarFallido(causa));
