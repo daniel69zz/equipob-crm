@@ -1,6 +1,11 @@
 server:
   port: ${PUERTO:8082}
 
+crm:
+  perfil:
+    url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
+    tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
+
 spring:
   application:
     name: servicio-comportamiento

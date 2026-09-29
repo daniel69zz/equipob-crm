@@ -1,6 +1,7 @@
 package com.maxiconecta.crm.comportamiento.ingesta;
 
 import com.maxiconecta.crm.comportamiento.compra.Compra;
+import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorEventos;
@@ -28,14 +29,17 @@ public class ProcesadorCompras {
     private final EventoProcesadoRepository procesados;
     private final LectorEventos lector;
     private final ValidadorEventos validador;
+    private final ClientePerfiles perfiles;
 
     public ProcesadorCompras(EventoRecibidoRepository eventos, CompraRepository compras,
-                             EventoProcesadoRepository procesados, LectorEventos lector, ValidadorEventos validador) {
+                             EventoProcesadoRepository procesados, LectorEventos lector, ValidadorEventos validador,
+                             ClientePerfiles perfiles) {
         this.eventos = eventos;
         this.compras = compras;
         this.procesados = procesados;
         this.lector = lector;
         this.validador = validador;
+        this.perfiles = perfiles;
     }
 
     @Transactional
@@ -58,6 +62,7 @@ public class ProcesadorCompras {
         Compra compra = new Compra(origen, datos.idCompra(), datos.idCliente(), datos.fecha(), datos.montoTotal(),
                 recibido.getId());
         datos.items().forEach(item -> compra.agregarItem(item.categoria(), item.cantidad(), item.monto()));
+        perfiles.buscar(origen, datos.idCliente()).ifPresent(compra::vincularCliente);
         Compra guardada = compras.save(compra);
         recibido.marcarProcesado();
         return guardada;
