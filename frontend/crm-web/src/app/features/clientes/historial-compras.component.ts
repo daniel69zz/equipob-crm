@@ -30,6 +30,7 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
   template: `
     <p><a routerLink="/clientes">← Clientes</a></p>
     <h1>Historial de compras</h1>
+    <p><a [routerLink]="['/clientes', id(), 'categorias']">Categorías más consumidas →</a></p>
     @if (perfil(); as p) {
       <p class="subtitulo">
         {{ p.nombres }} {{ p.apellidos }} · {{ p.tipoDocumento }} {{ p.numeroDocumento }} · cliente {{ p.id }}

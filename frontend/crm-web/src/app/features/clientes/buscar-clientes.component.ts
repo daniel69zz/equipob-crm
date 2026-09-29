@@ -68,6 +68,7 @@ import { ClientesService, ResumenCliente } from './clientes.service';
                 <td>
                   <a [routerLink]="['/clientes', cliente.id, 'historial']">Historial de cambios</a> ·
                   <a [routerLink]="['/clientes', cliente.id, 'compras']">Historial de compras</a> ·
+                  <a [routerLink]="['/clientes', cliente.id, 'categorias']">Categorías</a> ·
                   <a [routerLink]="['/clientes', cliente.id, 'consentimiento']">Consentimiento</a>
                 </td>
               </tr>

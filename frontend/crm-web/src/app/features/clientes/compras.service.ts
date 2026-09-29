@@ -37,13 +37,34 @@ export interface IndicadoresCliente {
   ticketPromedio: TicketPromedio;
 }
 
+/** Consumo vigente del cliente en una categoría (docs/compra/categorias-mas-consumidas.md). */
+export interface CategoriaConsumida {
+  categoria: string;
+  compras: number;
+  unidades: number;
+  monto: number;
+  /** Verdadero para el grupo «Sin categoría»: compras cuya categoría hay que corregir. */
+  sinCategoria: boolean;
+}
+
+export interface CategoriasConsumidas {
+  categorias: CategoriaConsumida[];
+}
+
 /**
  * Historial de compras (SCRUM-16, GET /api/comportamiento/clientes/{clienteId}/compras) e
- * indicadores (SCRUM-17, .../indicadores) de un cliente.
+ * indicadores (SCRUM-17, .../indicadores) y categorías más consumidas (SCRUM-18, .../categorias) de un cliente.
  */
 @Injectable({ providedIn: 'root' })
 export class ComprasService {
   private readonly http = inject(HttpClient);
+
+  /** Categorías más consumidas (SCRUM-18), de mayor a menor consumo. */
+  categorias(idCliente: number, identificadores: IdentificadorOrigen[]): Observable<CategoriasConsumidas> {
+    return this.http.get<CategoriasConsumidas>(`/api/comportamiento/clientes/${idCliente}/categorias`, {
+      params: parametrosDeIdentificadores(new HttpParams(), identificadores),
+    });
+  }
 
   indicadores(idCliente: number, identificadores: IdentificadorOrigen[]): Observable<IndicadoresCliente> {
     return this.http.get<IndicadoresCliente>(`/api/comportamiento/clientes/${idCliente}/indicadores`, {
