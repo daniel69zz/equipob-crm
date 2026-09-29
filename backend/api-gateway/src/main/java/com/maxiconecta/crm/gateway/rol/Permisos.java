@@ -8,6 +8,7 @@ public final class Permisos {
 
     public static final String CLIENTE_CONSULTAR = "CLIENTE_CONSULTAR";
     public static final String CLIENTE_EDITAR = "CLIENTE_EDITAR";
+    public static final String FICHA_INTEGRAL_CONSULTAR = "FICHA_INTEGRAL_CONSULTAR";
     public static final String INDICADORES_CONSULTAR = "INDICADORES_CONSULTAR";
     public static final String EVENTOS_REPROCESAR = "EVENTOS_REPROCESAR";
     public static final String SEGMENTOS_CONSULTAR = "SEGMENTOS_CONSULTAR";

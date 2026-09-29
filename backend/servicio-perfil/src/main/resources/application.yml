@@ -47,3 +47,13 @@ crm:
       maximo: 3
       espera-inicial: 500ms
       multiplicador: 2
+  # Servicios consultados para consolidar la ficha integral del cliente (SCRUM-10).
+  comportamiento:
+    url: ${SERVICIO_COMPORTAMIENTO_URL:http://localhost:8082}
+    tiempo-espera: ${COMPORTAMIENTO_TIEMPO_ESPERA:2s}
+  segmentacion:
+    url: ${SERVICIO_SEGMENTACION_URL:http://localhost:8083}
+    tiempo-espera: ${SEGMENTACION_TIEMPO_ESPERA:2s}
+  fidelizacion:
+    url: ${SERVICIO_FIDELIZACION_URL:http://localhost:8084}
+    tiempo-espera: ${FIDELIZACION_TIEMPO_ESPERA:2s}

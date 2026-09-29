@@ -27,6 +27,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.AUDITORIA_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.CLIENTE_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.CLIENTE_EDITAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.EVENTOS_REPROCESAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.FICHA_INTEGRAL_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.FIDELIZACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INDICADORES_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_CONSULTAR;
@@ -73,6 +74,10 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/comportamiento/eventos/**").hasAuthority(EVENTOS_REPROCESAR)
 
+                        // Ficha integral (SCRUM-10): permiso propio, mas restrictivo que el perfil basico
+                        // (CLIENTE_CONSULTAR), asi que su regla va antes.
+                        .requestMatchers(HttpMethod.GET, "/api/perfil/clientes/*/ficha-integral")
+                            .hasAuthority(FICHA_INTEGRAL_CONSULTAR)
                         .requestMatchers(HttpMethod.GET, "/api/perfil/**").hasAuthority(CLIENTE_CONSULTAR)
                         .requestMatchers("/api/perfil/**").hasAuthority(CLIENTE_EDITAR)
 
