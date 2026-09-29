@@ -3,7 +3,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ClientesService, IdentificadorOrigen, PerfilCliente } from './clientes.service';
-import { Compra, ComprasService, PaginaCompras, RecenciaCompra, TicketPromedio } from './compras.service';
+import {
+  Compra,
+  ComprasService,
+  PaginaCompras,
+  RecenciaCompra,
+  TicketPromedio,
+  ValorAcumulado,
+} from './compras.service';
 
 const TAMANIO_PAGINA = 20;
 
@@ -49,6 +56,21 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
               {{ ticket.compras }} {{ ticket.compras === 1 ? 'compra' : 'compras' }} ·
               {{ ticket.montoAcumulado | number: '1.2-2' }} acumulado
             </small>
+          }
+        } @else if (errorIndicadores()) {
+          <small class="error" role="status">{{ errorIndicadores() }}</small>
+        } @else {
+          <small>Calculando…</small>
+        }
+      </div>
+      <div class="indicador">
+        <span class="nombre-indicador">Valor acumulado</span>
+        @if (valorAcumulado(); as valor) {
+          <strong>{{ valor.valor | number: '1.2-2' }}</strong>
+          @if (valor.sinDatos) {
+            <small>El cliente no tiene compras vigentes.</small>
+          } @else {
+            <small>{{ valor.compras }} {{ valor.compras === 1 ? 'compra' : 'compras' }}</small>
           }
         } @else if (errorIndicadores()) {
           <small class="error" role="status">{{ errorIndicadores() }}</small>
@@ -162,6 +184,7 @@ export class HistorialComprasComponent implements OnInit {
   readonly cargando = signal(false);
   readonly error = signal<string | null>(null);
   readonly ticketPromedio = signal<TicketPromedio | null>(null);
+  readonly valorAcumulado = signal<ValorAcumulado | null>(null);
   readonly recencia = signal<RecenciaCompra | null>(null);
   readonly frecuencia = signal<number | null>(null);
   readonly errorIndicadores = signal<string | null>(null);
@@ -206,6 +229,7 @@ export class HistorialComprasComponent implements OnInit {
     this.compras.indicadores(this.idCliente(), this.identificadores).subscribe({
       next: (indicadores) => {
         this.ticketPromedio.set(indicadores.ticketPromedio);
+        this.valorAcumulado.set(indicadores.valorAcumulado);
         this.recencia.set(indicadores.recencia);
         this.frecuencia.set(indicadores.frecuencia);
       },

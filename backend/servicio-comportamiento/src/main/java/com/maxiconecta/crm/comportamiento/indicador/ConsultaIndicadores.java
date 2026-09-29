@@ -34,6 +34,10 @@ public class ConsultaIndicadores {
         return RecenciaCompra.calcular(agregado.ultimaCompraVigente(identificadores), reloj.instant());
     }
 
+    public ValorAcumulado valorAcumulado(List<Identificador> identificadores) {
+        return ValorAcumulado.de(agregado.resumir(identificadores));
+    }
+
     public long frecuencia(List<Identificador> identificadores) {
         if (identificadores.isEmpty()) {
             return 0;

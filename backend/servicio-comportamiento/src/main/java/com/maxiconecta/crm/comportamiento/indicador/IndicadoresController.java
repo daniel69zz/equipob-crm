@@ -28,10 +28,12 @@ public class IndicadoresController {
     public IndicadoresCliente indicadores(@PathVariable String clienteId,
                                           @RequestParam(name = "identificador", required = false) List<String> identificadores) {
         List<Identificador> ids = Identificador.parsearTodos(identificadores);
-        return new IndicadoresCliente(consulta.ticketPromedio(ids), consulta.recencia(ids), consulta.frecuencia(ids));
+        return new IndicadoresCliente(consulta.ticketPromedio(ids), consulta.recencia(ids), consulta.frecuencia(ids),
+                consulta.valorAcumulado(ids));
     }
 
     /** Cada indicador es un campo propio, para que los nuevos se sumen sin cambiar los existentes. */
-    public record IndicadoresCliente(TicketPromedio ticketPromedio, RecenciaCompra recencia, long frecuencia) {
+    public record IndicadoresCliente(TicketPromedio ticketPromedio, RecenciaCompra recencia, long frecuencia,
+                                     ValorAcumulado valorAcumulado) {
     }
 }

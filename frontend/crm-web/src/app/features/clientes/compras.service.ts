@@ -39,10 +39,18 @@ export interface RecenciaCompra {
   sinDatos: boolean;
 }
 
+/** Sin compras vigentes `valor` es 0 (una suma sí está definida) y `sinDatos` verdadero (docs/compra/valor-acumulado.md). */
+export interface ValorAcumulado {
+  valor: number;
+  compras: number;
+  sinDatos: boolean;
+}
+
 export interface IndicadoresCliente {
   ticketPromedio: TicketPromedio;
   recencia: RecenciaCompra;
   frecuencia: number;
+  valorAcumulado: ValorAcumulado;
 }
 
 /**
