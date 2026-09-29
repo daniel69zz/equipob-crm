@@ -33,10 +33,8 @@ public class HistorialComprasController {
                                    @RequestParam(name = "identificador", required = false) List<String> identificadores,
                                    @RequestParam(defaultValue = "0") int pagina,
                                    @RequestParam(defaultValue = "20") int tamanio) {
-        List<Identificador> pares = (identificadores == null ? List.<String>of() : identificadores).stream()
-                .map(Identificador::parsear)
-                .toList();
-        Page<CompraResponse> resultado = consulta.buscar(pares, pagina, tamanio, CompraResponse::de);
+        Page<CompraResponse> resultado = consulta.buscar(Identificador.parsearTodos(identificadores), pagina, tamanio,
+                CompraResponse::de);
         return new HistorialCompras(resultado.getContent(), resultado.getNumber(), resultado.getSize(),
                 resultado.getTotalElements());
     }
