@@ -1,85 +1,67 @@
 package com.maxiconecta.crm.perfil.validacion;
 
-import com.maxiconecta.crm.perfil.cliente.CambioCampo;
 import com.maxiconecta.crm.perfil.cliente.Cliente;
+import com.maxiconecta.crm.perfil.cliente.CambioCampo;
 import com.maxiconecta.crm.perfil.cliente.Direccion;
+import com.maxiconecta.crm.perfil.cliente.Origen;
+import com.maxiconecta.crm.perfil.sincronizacion.EventoClienteRecibido;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.Set;
 
-/**
- * Motor de detección de perfiles incompletos o inconsistentes (SCRUM-12). Vuelve a evaluar un
- * perfil ya guardado contra el catálogo de reglas (docs/perfil/catalogo-reglas-validacion.md),
- * sin esperar un nuevo evento de sincronización, y lo etiqueta con la regla incumplida.
- */
+/** Evalúa los datos guardados sin modificarlos, según el catálogo de SCRUM-168. */
 @Component
 public class DetectorPerfil {
 
-    private static final Pattern NUMERO_CI = Pattern.compile("^\\d{5,8}(-[A-Za-z0-9]{1,3})?$");
-    private static final Pattern NUMERO_NIT = Pattern.compile("^\\d{6,13}$");
+    private final ValidadorPerfil validador;
 
-    /** Etiqueta el perfil según las reglas incumplidas y devuelve los cambios aplicados. */
+    public DetectorPerfil(ValidadorPerfil validador) {
+        this.validador = validador;
+    }
+
     public List<CambioCampo> detectar(Cliente cliente) {
-        List<String> motivosIncompleto = completitud(cliente);
-        if (!motivosIncompleto.isEmpty()) {
-            return cliente.marcarEstado(motivosIncompleto);
-        }
-        List<String> motivosInconsistencia = coherencia(cliente);
-        if (!motivosInconsistencia.isEmpty()) {
-            return cliente.marcarInconsistente(motivosInconsistencia);
-        }
-        return cliente.marcarEstado(List.of());
+        Evaluacion evaluacion = evaluar(cliente);
+        return cliente.marcarEstado(evaluacion.incompleto(), evaluacion.inconsistencias());
     }
 
-    private static List<String> completitud(Cliente cliente) {
-        List<String> motivos = new ArrayList<>();
-        requerido(cliente.getNombres(), "nombres", motivos);
-        requerido(cliente.getApellidos(), "apellidos", motivos);
-        requerido(cliente.getTipoDocumento(), "tipoDocumento", motivos);
-        requerido(cliente.getNumeroDocumento(), "numeroDocumento", motivos);
-        if (cliente.getEmail() == null && cliente.getTelefono() == null) {
-            motivos.add("contacto: se necesita al menos un correo o un teléfono válido");
-        }
-        return motivos;
-    }
-
-    private static void requerido(String valor, String campo, List<String> motivos) {
-        if (valor == null || valor.isBlank()) {
-            motivos.add(campo + ": vacío");
-        }
-    }
-
-    private static List<String> coherencia(Cliente cliente) {
-        List<String> motivos = new ArrayList<>();
-        formatoDocumento(cliente, motivos);
-        direccionPrincipal(cliente, motivos);
-        return motivos;
-    }
-
-    /** El formato del número no corresponde al tipo de documento declarado. */
-    private static void formatoDocumento(Cliente cliente, List<String> motivos) {
-        String tipo = cliente.getTipoDocumento();
-        String numero = cliente.getNumeroDocumento();
-        if (tipo == null || numero == null) {
-            return;
-        }
-        Pattern esperado = switch (tipo) {
-            case "CI" -> NUMERO_CI;
-            case "NIT" -> NUMERO_NIT;
-            default -> null;
-        };
-        if (esperado != null && !esperado.matcher(numero).matches()) {
-            motivos.add("numeroDocumento: no coincide con el formato de " + tipo);
-        }
-    }
-
-    /** Hay direcciones activas pero ninguna está marcada como principal. */
-    private static void direccionPrincipal(Cliente cliente, List<String> motivos) {
+    public Evaluacion evaluar(Cliente cliente) {
         List<Direccion> activas = cliente.getDireccionesActivas();
-        if (!activas.isEmpty() && activas.stream().noneMatch(Direccion::isPrincipal)) {
-            motivos.add("direcciones: ninguna dirección principal");
+        PerfilValidado datos = validador.validar(datos(cliente, List.of()));
+        Set<String> incompleto = new LinkedHashSet<>(datos.motivos());
+        // Los identificadores de dirección son únicos dentro de cada sistema de origen.
+        for (Origen origen : Origen.values()) {
+            List<EventoClienteRecibido.DatosDireccion> direcciones = activas.stream()
+                    .filter(d -> d.getOrigen() == origen)
+                    .map(d -> new EventoClienteRecibido.DatosDireccion(d.getIdDireccionOrigen(), d.getTipo().name(),
+                            d.getCalle(), d.getNumero(), d.getZona(), d.getCiudad(), d.getReferencia(), d.isPrincipal()))
+                    .toList();
+            validador.validar(datos(cliente, direcciones)).motivos().stream()
+                    .filter(m -> m.startsWith("direcciones["))
+                    .map(m -> origen + ": " + m)
+                    .forEach(incompleto::add);
         }
+        List<String> inconsistencias = new ArrayList<>();
+        if ("NIT".equals(datos.tipoDocumento()) && datos.numeroDocumento() != null
+                && !datos.numeroDocumento().matches("[0-9]+")) {
+            inconsistencias.add("numeroDocumento: no coincide con el formato de NIT");
+        }
+        if (!activas.isEmpty() && activas.stream().noneMatch(Direccion::isPrincipal)) {
+            inconsistencias.add("direcciones: ninguna dirección principal");
+        }
+        return new Evaluacion(List.copyOf(incompleto), List.copyOf(inconsistencias));
+    }
+
+    private static EventoClienteRecibido.DatosCliente datos(Cliente cliente,
+                                                            List<EventoClienteRecibido.DatosDireccion> direcciones) {
+        return new EventoClienteRecibido.DatosCliente(null, null, cliente.getNombres(), cliente.getApellidos(),
+                cliente.getTipoDocumento(), cliente.getNumeroDocumento(),
+                new EventoClienteRecibido.Contacto(cliente.getEmail(), cliente.getTelefono()),
+                direcciones, EventoClienteRecibido.Campos.TODOS);
+    }
+
+    public record Evaluacion(List<String> incompleto, List<String> inconsistencias) {
     }
 }

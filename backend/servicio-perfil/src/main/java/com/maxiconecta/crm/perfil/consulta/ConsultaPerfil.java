@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Consulta del perfil del cliente. Es la base de la ficha integral (SCRUM-10).
@@ -79,8 +80,10 @@ public class ConsultaPerfil {
                 condiciones.add(criterios.equal(cliente.get("estado"), filtro.estado()));
             }
             if (filtro.motivo() != null) {
-                condiciones.add(criterios.like(criterios.lower(cliente.get("motivosIncidencia")),
-                        "%" + filtro.motivo().toLowerCase() + "%"));
+                String patron = "%" + filtro.motivo().toLowerCase(Locale.ROOT) + "%";
+                condiciones.add(criterios.or(
+                        criterios.like(criterios.lower(cliente.get("motivosIncompleto")), patron),
+                        criterios.like(criterios.lower(cliente.get("motivosInconsistencia")), patron)));
             }
             if (filtro.desde() != null) {
                 condiciones.add(criterios.greaterThanOrEqualTo(cliente.get("actualizadoEn"),

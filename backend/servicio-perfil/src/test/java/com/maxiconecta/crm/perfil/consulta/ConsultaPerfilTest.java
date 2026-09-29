@@ -2,6 +2,7 @@ package com.maxiconecta.crm.perfil.consulta;
 
 import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
+import com.maxiconecta.crm.perfil.cliente.EstadoPerfil;
 import com.maxiconecta.crm.perfil.comun.ReglaNegocioException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,8 +44,9 @@ class ConsultaPerfilTest {
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
-                + "TRUNCATE perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil_detalle, perfil.cambio_perfil, "
-                + "perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, perfil.cliente, perfil.evento_cliente "
+                + "TRUNCATE perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil_detalle, "
+                + "perfil.cambio_perfil, perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, "
+                + "perfil.cliente, perfil.evento_cliente "
                 + "RESTART IDENTITY; SET session_replication_role = DEFAULT");
     }
 
@@ -58,6 +60,31 @@ class ConsultaPerfilTest {
                 .getContent();
 
         assertThat(resultado).extracting(ResumenPerfil::id).containsExactly(conApellidos.getId());
+    }
+
+    @Test
+    void filtraInconsistenciasConOSinMotivosDeCompletitud() {
+        Cliente inconsistente = guardarConMotivo("apellidos: vacío");
+        inconsistente.marcarInconsistente(List.of("numeroDocumento: no coincide con el formato de NIT"));
+        clientes.save(inconsistente);
+        Cliente mixto = guardarConMotivo("apellidos: vacío");
+        mixto.marcarEstado(List.of("apellidos: vacío"),
+                List.of("numeroDocumento: no coincide con el formato de NIT"));
+        clientes.save(mixto);
+        guardarConMotivo("apellidos: vacío");
+
+        List<ResumenPerfil> resultado = consulta.buscar(new ConsultaPerfil.FiltroPerfiles(
+                null, null, null, null, null, "FORMATO DE NIT", null, null), 0, 50).getContent();
+
+        assertThat(resultado).extracting(ResumenPerfil::id)
+                .containsExactlyInAnyOrder(inconsistente.getId(), mixto.getId());
+        assertThat(resultado).filteredOn(p -> p.id().equals(mixto.getId())).singleElement().satisfies(p -> {
+            assertThat(p.estado()).isEqualTo(EstadoPerfil.INCOMPLETO);
+            assertThat(p.motivosIncidencia()).contains("apellidos: vacío", "formato de NIT");
+        });
+        assertThat(consulta.buscar(new ConsultaPerfil.FiltroPerfiles(null, null, null, null,
+                EstadoPerfil.INCONSISTENTE, "FORMATO DE NIT", null, null), 0, 50).getContent())
+                .extracting(ResumenPerfil::id).containsExactly(inconsistente.getId());
     }
 
     @Test

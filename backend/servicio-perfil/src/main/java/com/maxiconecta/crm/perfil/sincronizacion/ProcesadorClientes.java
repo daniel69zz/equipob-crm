@@ -16,6 +16,7 @@ import com.maxiconecta.crm.perfil.cliente.VinculacionPendienteRepository;
 import com.maxiconecta.crm.perfil.validacion.NormalizadorPerfil;
 import com.maxiconecta.crm.perfil.validacion.PerfilValidado;
 import com.maxiconecta.crm.perfil.validacion.ValidadorPerfil;
+import com.maxiconecta.crm.perfil.validacion.DetectorPerfil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Aplica un evento de datos del cliente al perfil. Todo ocurre en una transacción: si algo
@@ -60,13 +62,15 @@ public class ProcesadorClientes {
     private final LectorEventosCliente lector;
     private final NormalizadorPerfil normalizador;
     private final ValidadorPerfil validador;
+    private final DetectorPerfil detector;
 
     public ProcesadorClientes(EventoClienteRepository eventos, ClienteRepository clientes,
                               ClienteOrigenRepository origenes, HistorialCambios historial,
                               VinculacionPendienteRepository vinculaciones, CampoOrigenRepository procedencias,
                               ConflictoPerfilRepository conflictos, ResolutorConflictos resolutor,
                               LectorEventosCliente lector,
-                              NormalizadorPerfil normalizador, ValidadorPerfil validador) {
+                              NormalizadorPerfil normalizador, ValidadorPerfil validador,
+                              DetectorPerfil detector) {
         this.eventos = eventos;
         this.clientes = clientes;
         this.origenes = origenes;
@@ -78,6 +82,7 @@ public class ProcesadorClientes {
         this.lector = lector;
         this.normalizador = normalizador;
         this.validador = validador;
+        this.detector = detector;
     }
 
     @Transactional
@@ -125,7 +130,10 @@ public class ProcesadorClientes {
         if (propuesta.informa(EventoClienteRecibido.Campos.DIRECCIONES)) {
             cambios.addAll(cliente.sincronizarDirecciones(evento.origen(), perfil.direcciones()));
         }
-        cambios.addAll(cliente.marcarEstado(perfil.motivos()));
+        DetectorPerfil.Evaluacion evaluacion = detector.evaluar(cliente);
+        List<String> motivos = Stream.concat(perfil.motivos().stream(), evaluacion.incompleto().stream())
+                .distinct().toList();
+        cambios.addAll(cliente.marcarEstado(motivos, evaluacion.inconsistencias()));
 
         if (vinculo == null) {
             cliente.registrarActualizacion(evento.origen(), evento.responsableDelCambio());
@@ -247,7 +255,7 @@ public class ProcesadorClientes {
     }
 
     private Cliente buscarCliente(Long idCliente, ClienteOrigen vinculo) {
-        return clientes.findById(idCliente).orElseThrow(() -> new IllegalStateException(
+        return clientes.buscarParaValidar(idCliente).orElseThrow(() -> new IllegalStateException(
                 "El identificador " + vinculo.getId() + " apunta a un perfil inexistente: " + idCliente));
     }
 

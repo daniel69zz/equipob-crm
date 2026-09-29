@@ -31,7 +31,8 @@ class ClienteEstadoTest {
 
         assertThat(cliente.getEstado()).isEqualTo(EstadoPerfil.INCOMPLETO);
         assertThat(cliente.getMotivosIncidencia()).isEqualTo("numeroDocumento: vacío");
-        assertThat(cambios).extracting(CambioCampo::campo).containsExactly("estado", "motivosIncidencia");
+        assertThat(cambios).extracting(CambioCampo::campo)
+                .containsExactly("estado", "motivosIncompleto", "motivosIncidencia");
     }
 
     @Test
@@ -43,7 +44,8 @@ class ClienteEstadoTest {
 
         assertThat(cliente.getEstado()).isEqualTo(EstadoPerfil.INCONSISTENTE);
         assertThat(cliente.getMotivosIncidencia()).isEqualTo("direcciones: ninguna dirección principal");
-        assertThat(cambios).extracting(CambioCampo::campo).containsExactly("estado", "motivosIncidencia");
+        assertThat(cambios).extracting(CambioCampo::campo)
+                .containsExactly("estado", "motivosInconsistencia", "motivosIncidencia");
     }
 
     @Test

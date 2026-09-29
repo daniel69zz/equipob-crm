@@ -52,6 +52,20 @@ Un mismo cliente puede tener identificadores en Marketplace y en Ventas; todos a
 | POST | `/api/perfil/clientes/{clienteId}/identificadores` | `CLIENTE_EDITAR` | Vincula `{"origen", "idCliente"}` al perfil y aplica sus eventos pendientes |
 | POST | `/api/perfil/vinculaciones/nuevo-perfil` | `CLIENTE_EDITAR` | Declara que `{"origen", "idCliente"}` es otra persona: sus eventos pendientes crean un perfil nuevo |
 
+## Detección de incidencias (SCRUM-165 y SCRUM-166)
+
+El motor aplica `docs/perfil/catalogo-reglas-validacion.md` al perfil guardado, incluidas las direcciones activas de todos sus sistemas de origen. Se ejecuta al sincronizar y también mediante `POST /api/perfil/clientes/{clienteId}/validacion`, sin necesitar otro evento. Esta operación exige `CLIENTE_EDITAR` en el Gateway y devuelve `idCliente`, `estado`, `motivosIncompleto` y `motivosInconsistencia` (listas de motivos).
+
+La migración V5 agrega `INCONSISTENTE` y el tipo de auditoría `DETECCION`; V6 separa `motivos_incompleto` y `motivos_inconsistencia`, conservando los motivos existentes. Un perfil válido conserva el estado existente `COMPLETO`. Si hay ambos tipos de incidencia, prevalece `INCOMPLETO` y se guardan los dos grupos de motivos. El motor no borra ni corrige los datos detectados. Al reevaluar datos corregidos, reemplaza los motivos anteriores y vuelve a `COMPLETO` cuando corresponde.
+
+`GET /api/perfil/clientes/{clienteId}` expone ambos grupos como texto y la búsqueda existente acepta `estado=INCONSISTENTE`. La reevaluación devuelve 404 para un cliente inexistente y 409 para un perfil absorbido por otro; en ese caso se debe evaluar el perfil consolidado. La evaluación y la sincronización bloquean el perfil durante su transacción para evitar sobrescribir una detección con datos anteriores.
+
+La única restricción adicional de formato por tipo de documento definida en el catálogo es que `NIT` sea numérico. No se agregan restricciones de otros tipos ni detección de duplicados. La evaluación independiente usa los datos actualmente guardados; los motivos de datos descartados al recibir eventos siguen disponibles en la bitácora de sincronización. La QA de la historia completa corresponde a SCRUM-555.
+
+La vista **Revisión de perfiles** (`/perfiles/revision`, SCRUM-169) muestra los perfiles incompletos e inconsistentes con sus motivos. Requiere `CLIENTE_CONSULTAR` y permite filtrar por documento, motivo y fechas (SCRUM-167). `GET /api/perfil/clientes` acepta `motivo`, `desde` y `hasta`; el motivo busca en ambos grupos de incidencias, sin distinguir mayúsculas, y las fechas abarcan días completos de última actualización en la zona horaria del servidor.
+
+La auditoría de detecciones (SCRUM-170) registra los cambios de estado y motivos con origen `CRM`, tipo `DETECCION`, responsable `deteccion-automatica` y sin evento asociado. Usa el histórico existente y su detalle por campo dentro de la misma transacción. Una reevaluación sin cambios no genera registros ni modifica la fecha del último cambio. La consulta conserva ambos grupos de motivos y expone además `motivosIncidencia` como resumen combinado.
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ (ver los comandos de Docker en `backend/servicio-comportamiento/README.md`). Con las variables de `.env.example`:

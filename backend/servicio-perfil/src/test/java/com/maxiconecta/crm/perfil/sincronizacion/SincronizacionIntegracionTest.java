@@ -238,7 +238,7 @@ class SincronizacionIntegracionTest {
         transaccion.executeWithoutResult(t -> {
             Cliente cliente = clientes.findById(evento.getIdCliente()).orElseThrow();
             assertThat(cliente.getEstado()).isEqualTo(EstadoPerfil.INCOMPLETO);
-            assertThat(cliente.getMotivosIncidencia()).contains("numeroDocumento: vacío");
+            assertThat(cliente.getMotivosIncompleto()).contains("numeroDocumento: vacío");
             assertThat(cliente.getNombres()).isEqualTo("Luisa");
             assertThat(cliente.getTelefono()).isEqualTo("+59176543210");
             assertThat(cliente.getEmail()).isNull();
@@ -255,13 +255,14 @@ class SincronizacionIntegracionTest {
                 .replace("\"numeroDocumento\": \"\"", "\"numeroDocumento\": \"6677889\"")
                 .replace("luisa.fernandez@\"", "luisa.fernandez@correo.com\"")
                 .replace("\"calle\": \"Calle Sucre\", \"numero\": \"340\"",
-                        "\"calle\": \"Calle Sucre\", \"numero\": \"340\", \"ciudad\": \"Sucre\""));
+                        "\"calle\": \"Calle Sucre\", \"numero\": \"340\", \"ciudad\": \"Sucre\", \"principal\": true"));
 
         EventoCliente correccion = ultimo(esperar(2));
         assertThat(correccion.getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
         Cliente cliente = clientes.findById(correccion.getIdCliente()).orElseThrow();
         assertThat(cliente.getEstado()).isEqualTo(EstadoPerfil.COMPLETO);
-        assertThat(cliente.getMotivosIncidencia()).isNull();
+        assertThat(cliente.getMotivosIncompleto()).isNull();
+        assertThat(cliente.getMotivosInconsistencia()).isNull();
         assertThat(camposCambiados(ultimoCambio(cliente.getId()))).contains("estado", "numeroDocumento", "email");
     }
 

@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class DetectorPerfilTest {
 
-    private final DetectorPerfil detector = new DetectorPerfil();
+    private final DetectorPerfil detector = new DetectorPerfil(new ValidadorPerfil());
 
     @Test
     void unPerfilCompletoYCoherenteQuedaValido() {
