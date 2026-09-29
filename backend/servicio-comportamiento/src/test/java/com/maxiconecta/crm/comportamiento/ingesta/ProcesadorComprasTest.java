@@ -4,6 +4,7 @@ import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.Origen;
+import com.maxiconecta.crm.comportamiento.inactividad.DetectorClientesInactivos;
 import com.maxiconecta.crm.comportamiento.validacion.EventoInvalidoException;
 import com.maxiconecta.crm.comportamiento.validacion.ReglaContratoCompraConfirmada;
 import com.maxiconecta.crm.comportamiento.validacion.ReglaValidacionEvento;
@@ -34,8 +35,9 @@ class ProcesadorComprasTest {
     private final CompraRepository compras = mock(CompraRepository.class);
     private final EventoProcesadoRepository procesados = mock(EventoProcesadoRepository.class);
     private final LectorEventos lector = mock(LectorEventos.class);
+    private final DetectorClientesInactivos inactividad = mock(DetectorClientesInactivos.class);
     private final ProcesadorCompras procesador = new ProcesadorCompras(eventos, compras, procesados, lector,
-            validadorReal(), mock(ClientePerfiles.class));
+            validadorReal(), mock(ClientePerfiles.class), inactividad);
 
     @Test
     void unEventoValidoContinuaHastaGuardarLaCompra() {
@@ -52,6 +54,7 @@ class ProcesadorComprasTest {
         assertThat(guardada.getItems()).hasSize(1);
         assertThat(recibido.getEstado()).isEqualTo(EstadoEvento.PROCESADO);
         verify(compras).save(any(Compra.class));
+        verify(inactividad).reactivar(Origen.VENTAS, "CLI-5521");
     }
 
     @Test
@@ -67,6 +70,7 @@ class ProcesadorComprasTest {
 
         verify(procesados, never()).buscar(any());
         verify(compras, never()).save(any());
+        verify(inactividad, never()).reactivar(any(), any());
         assertThat(recibido.getEstado()).isEqualTo(EstadoEvento.RECIBIDO);
     }
 
