@@ -21,11 +21,17 @@ export interface PaginaClientes {
   total: number;
 }
 
+export interface IdentificadorOrigen {
+  origen: OrigenCambio;
+  idCliente: string;
+}
+
 export interface PerfilCliente extends ResumenCliente {
   email: string | null;
   telefono: string | null;
   motivosIncompleto: string | null;
   idClienteConsolidado: number | null;
+  identificadoresOrigen: IdentificadorOrigen[];
 }
 
 export interface CampoCambiado {
