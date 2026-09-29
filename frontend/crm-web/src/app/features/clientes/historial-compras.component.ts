@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ClientesService, IdentificadorOrigen, PerfilCliente } from './clientes.service';
-import { Compra, ComprasService, PaginaCompras, TicketPromedio } from './compras.service';
+import { Compra, ComprasService, PaginaCompras, RecenciaCompra, TicketPromedio } from './compras.service';
 
 const TAMANIO_PAGINA = 20;
 
@@ -50,6 +50,33 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
               {{ ticket.montoAcumulado | number: '1.2-2' }} acumulado
             </small>
           }
+        } @else if (errorIndicadores()) {
+          <small class="error" role="status">{{ errorIndicadores() }}</small>
+        } @else {
+          <small>Calculando…</small>
+        }
+      </div>
+      <div class="indicador">
+        <span class="nombre-indicador">Recencia</span>
+        @if (recencia(); as dato) {
+          @if (dato.sinDatos) {
+            <strong class="sin-datos">Sin datos</strong>
+            <small>El cliente no tiene compras vigentes.</small>
+          } @else {
+            <strong>{{ describirDuracion(dato.tiempoTranscurrido) }}</strong>
+            <small>Última compra: {{ dato.ultimaCompra | date: 'dd/MM/yyyy HH:mm' }}</small>
+          }
+        } @else if (errorIndicadores()) {
+          <small class="error" role="status">{{ errorIndicadores() }}</small>
+        } @else {
+          <small>Calculando…</small>
+        }
+      </div>
+      <div class="indicador">
+        <span class="nombre-indicador">Frecuencia</span>
+        @if (frecuencia() !== null) {
+          <strong>{{ frecuencia() }}</strong>
+          <small>{{ frecuencia() === 1 ? 'compra vigente' : 'compras vigentes' }}</small>
         } @else if (errorIndicadores()) {
           <small class="error" role="status">{{ errorIndicadores() }}</small>
         } @else {
@@ -135,6 +162,8 @@ export class HistorialComprasComponent implements OnInit {
   readonly cargando = signal(false);
   readonly error = signal<string | null>(null);
   readonly ticketPromedio = signal<TicketPromedio | null>(null);
+  readonly recencia = signal<RecenciaCompra | null>(null);
+  readonly frecuencia = signal<number | null>(null);
   readonly errorIndicadores = signal<string | null>(null);
 
   readonly desdeRegistro = computed(() => (this.historial()?.pagina ?? 0) * TAMANIO_PAGINA + 1);
@@ -175,10 +204,36 @@ export class HistorialComprasComponent implements OnInit {
   private cargarIndicadores(): void {
     this.errorIndicadores.set(null);
     this.compras.indicadores(this.idCliente(), this.identificadores).subscribe({
-      next: (indicadores) => this.ticketPromedio.set(indicadores.ticketPromedio),
+      next: (indicadores) => {
+        this.ticketPromedio.set(indicadores.ticketPromedio);
+        this.recencia.set(indicadores.recencia);
+        this.frecuencia.set(indicadores.frecuencia);
+      },
       error: (e: HttpErrorResponse) =>
-        this.errorIndicadores.set(e.error?.mensaje ?? 'No se pudo calcular el ticket promedio.'),
+        this.errorIndicadores.set(e.error?.mensaje ?? 'No se pudieron calcular los indicadores.'),
     });
+  }
+
+  describirDuracion(duracion: string | null): string {
+    if (!duracion) {
+      return 'Sin datos';
+    }
+    const partes = /^(-)?PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)(?:\.\d+)?S)?$/.exec(duracion);
+    if (!partes) {
+      return duracion;
+    }
+    const horasTotales = Number(partes[2] ?? 0);
+    const dias = Math.floor(horasTotales / 24);
+    const horas = horasTotales % 24;
+    const minutos = Number(partes[3] ?? 0);
+    const segundos = Number(partes[4] ?? 0);
+    const unidades = [
+      dias > 0 ? `${dias} ${dias === 1 ? 'día' : 'días'}` : '',
+      horas > 0 ? `${horas} h` : '',
+      minutos > 0 ? `${minutos} min` : '',
+      dias === 0 && horas === 0 && minutos === 0 ? `${segundos} s` : '',
+    ].filter(Boolean);
+    return `${partes[1] ? 'Dentro de' : 'Hace'} ${unidades.join(' ')}`;
   }
 
 

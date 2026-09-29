@@ -32,13 +32,22 @@ export interface TicketPromedio {
   sinDatos: boolean;
 }
 
+/** SCRUM-19 · Duración exacta ISO-8601 desde la última compra vigente. */
+export interface RecenciaCompra {
+  ultimaCompra: string | null;
+  tiempoTranscurrido: string | null;
+  sinDatos: boolean;
+}
+
 export interface IndicadoresCliente {
   ticketPromedio: TicketPromedio;
+  recencia: RecenciaCompra;
+  frecuencia: number;
 }
 
 /**
  * Historial de compras (SCRUM-16, GET /api/comportamiento/clientes/{clienteId}/compras) e
- * indicadores (SCRUM-17, .../indicadores) de un cliente.
+ * indicadores (SCRUM-17, SCRUM-19 y SCRUM-37, .../indicadores) de un cliente.
  */
 @Injectable({ providedIn: 'root' })
 export class ComprasService {
