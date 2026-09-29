@@ -58,6 +58,7 @@ class HistorialComprasIntegracionTest {
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("TRUNCATE comportamiento.intento_reproceso, comportamiento.evento_procesado, "
+                + "comportamiento.anulacion_item, comportamiento.anulacion, "
                 + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
     }
 

@@ -25,7 +25,7 @@ Si ni siquiera se puede escribir en la bitácora, el mensaje se reintenta 3 vece
 | GET | `/api/comportamiento/eventos` | `EVENTOS_REPROCESAR` | Bitácora de ingesta por periodo, con el resumen por estado. Filtros: `desde`, `hasta` (`AAAA-MM-DD`, por defecto los últimos 7 días), `estado`, `origen`, `transaccion` (identificador de la compra), `pagina`, `tamanio` (máx. 100) |
 | POST | `/api/comportamiento/eventos/{id}/reprocesar` | `EVENTOS_REPROCESAR` | Reprocesa un evento `FALLIDO` conservando la validación y la idempotencia del flujo normal |
 | GET | `/api/comportamiento/eventos/{id}/intentos` | `EVENTOS_REPROCESAR` | Historial de intentos manuales del evento, del más reciente al más antiguo |
-| POST | `/api/comportamiento/eventos/respaldo/reinyectar` | `EVENTOS_REPROCESAR` | Reinyecta un único mensaje de la cola de respaldo; responde `204` si está vacía |
+| POST | `/api/comportamiento/eventos/respaldo/reinyectar` | `EVENTOS_REPROCESAR` | Reinyecta un único mensaje de la cola de respaldo; responde `204` si está vacía. `cola=compras` (por defecto) o `cola=anulaciones` |
 
 Cada intento manual se registra en `comportamiento.intento_reproceso`, incluyendo resultado,
 causa y el usuario recibido en `X-Usuario`. Solo puede haber un intento activo por evento. Un
@@ -34,6 +34,14 @@ reproceso correcto cambia el evento original a `PROCESADO`; si vuelve a fallar p
 La reinyección de respaldo publica directamente en la cola principal y espera la confirmación de
 RabbitMQ antes de retirar el mensaje de `crm.comportamiento.compras.respaldo`. Desde la cola
 principal vuelve a pasar por lectura, validación e idempotencia.
+
+## Anulaciones y devoluciones (SCRUM-522)
+
+Consume el evento **RIO-CRM-05** (`docs/contratos-eventos/RIO-CRM-05-anulacion-compra.md`) de la cola `crm.comportamiento.anulaciones`, con el mismo flujo que las compras: bitácora, validación (mismas reglas que RIO-CRM-02), idempotencia por `origen` + `idAnulacion`, y reproceso de los `FALLIDO`.
+
+La anulación se guarda en `anulacion` (y sus ítems devueltos en `anulacion_item`) y se descuenta de la compra original: `compra.monto_revertido` acumula lo revertido y `compra.estado` pasa a `DEVOLUCION_PARCIAL` o `ANULADA`. Una anulación que no cuadra con la compra (no existe, otro cliente, revierte de más) queda `FALLIDO` con la causa; si llegó antes que su compra, se reprocesa cuando la compra ya esté registrada.
+
+Si ni siquiera se puede escribir en la bitácora, el mensaje pasa a `crm.comportamiento.anulaciones.respaldo` y se reinyecta con `POST /api/comportamiento/eventos/respaldo/reinyectar?cola=anulaciones`.
 
 ## Ejecutar en local
 

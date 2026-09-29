@@ -19,12 +19,16 @@ import java.util.List;
 
 /**
  * Compra confirmada de un cliente, registrada a partir de un evento de Marketplace y Ventas.
+ * Conserva su monto total; las anulaciones y devoluciones (RIO-CRM-05) se acumulan en
+ * {@code montoRevertido}, y lo que sigue vigente es la diferencia.
  */
 @Entity
 @Table(schema = "comportamiento", name = "compra")
 public class Compra {
 
     public static final String CONFIRMADA = "CONFIRMADA";
+    public static final String DEVOLUCION_PARCIAL = "DEVOLUCION_PARCIAL";
+    public static final String ANULADA = "ANULADA";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -54,6 +58,9 @@ public class Compra {
 
     @Column(nullable = false)
     private String estado = CONFIRMADA;
+
+    @Column(nullable = false)
+    private BigDecimal montoRevertido = BigDecimal.ZERO;
 
     @Column(name = "id_evento", nullable = false)
     private Long idEvento;
@@ -98,6 +105,28 @@ public class Compra {
         return estadoVinculacion;
     }
 
+    /**
+     * Descuenta de la compra el monto de una anulación o devolución ya validada. Si no queda nada
+     * vigente, la compra pasa a ANULADA; si queda una parte, a DEVOLUCION_PARCIAL.
+     */
+    public void revertir(BigDecimal monto) {
+        if (monto.signum() <= 0 || monto.compareTo(getMontoVigente()) > 0) {
+            throw new IllegalArgumentException("No se puede revertir " + monto.toPlainString()
+                    + " de una compra con " + getMontoVigente().toPlainString() + " vigente");
+        }
+        montoRevertido = montoRevertido.add(monto);
+        estado = getMontoVigente().signum() == 0 ? ANULADA : DEVOLUCION_PARCIAL;
+    }
+
+    public boolean estaAnulada() {
+        return ANULADA.equals(estado);
+    }
+
+    /** Lo que sigue vigente de la compra después de sus anulaciones y devoluciones. */
+    public BigDecimal getMontoVigente() {
+        return montoTotal.subtract(montoRevertido);
+    }
+
     public Long getId() {
         return id;
     }
@@ -124,6 +153,10 @@ public class Compra {
 
     public String getEstado() {
         return estado;
+    }
+
+    public BigDecimal getMontoRevertido() {
+        return montoRevertido;
     }
 
     public Long getIdEvento() {

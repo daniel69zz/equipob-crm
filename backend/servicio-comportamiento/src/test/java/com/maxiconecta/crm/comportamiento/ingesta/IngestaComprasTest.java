@@ -19,7 +19,7 @@ class IngestaComprasTest {
 
     private final BitacoraIngesta bitacora = mock(BitacoraIngesta.class);
     private final ProcesadorCompras procesador = mock(ProcesadorCompras.class);
-    private final IngestaCompras ingesta = new IngestaCompras(bitacora, procesador);
+    private final IngestaCompras ingesta = new IngestaCompras(bitacora, procesador, mock(ProcesadorAnulaciones.class));
 
     @Test
     void primeroAnotaElMensajeYLuegoLoProcesa() {
