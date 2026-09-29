@@ -19,9 +19,9 @@ Cada creación o modificación del perfil genera **exactamente una** fila, aunqu
 | `id_cliente` | Perfil afectado |
 | `fecha` | Momento en que el CRM guardó el cambio |
 | `tipo` | `CREACION`, `ACTUALIZACION`, `VINCULACION` o `UNIFICACION` (ver abajo) |
-| `origen` | `VENTAS`, `MARKETPLACE` o `CRM` |
-| `responsable` | Usuario del sistema de origen (`vendedor.jperez`), usuario del CRM (`admin`) o `sincronizacion-automatica` |
-| `id_evento` | Mensaje de la bitácora de sincronización que produjo el cambio; vacío en las acciones hechas en el CRM |
+| `origen` | `VENTAS`, `MARKETPLACE`, `CRM` o `SISTEMA` |
+| `responsable` | Usuario del sistema de origen (`vendedor.jperez`), usuario del CRM (`admin`), `sincronizacion-automatica` o `deteccion-automatica` |
+| `id_evento` | Mensaje de la bitácora de sincronización que produjo el cambio; vacío en las acciones hechas en el CRM y en detecciones |
 | `cambios` | Resumen en JSON de los campos modificados (el detalle consultable está en `cambio_perfil_detalle`) |
 
 ### `perfil.cambio_perfil_detalle` — una fila por campo
@@ -30,7 +30,7 @@ Cada creación o modificación del perfil genera **exactamente una** fila, aunqu
 |---|---|
 | `id_cambio` | Operación a la que pertenece |
 | `orden` | Orden del campo dentro de la operación |
-| `campo` | `nombres`, `apellidos`, `tipoDocumento`, `numeroDocumento`, `email`, `telefono`, `estado`, `motivosIncompleto`, `direcciones[<id>].<dato>`, `identificadoresOrigen` o `idClienteConsolidado` |
+| `campo` | `nombres`, `apellidos`, `tipoDocumento`, `numeroDocumento`, `email`, `telefono`, `estado`, `motivosIncompleto`, `motivosInconsistencia`, `motivosIncidencia` (resumen de ambos grupos), `direcciones[<id>].<dato>`, `identificadoresOrigen` o `idClienteConsolidado` |
 | `valor_anterior` | Valor antes del cambio (vacío si el campo no tenía valor) |
 | `valor_nuevo` | Valor después del cambio (vacío si el dato se borró) |
 
@@ -40,6 +40,7 @@ Cada creación o modificación del perfil genera **exactamente una** fila, aunqu
 |---|---|---|---|
 | `VENTAS` / `MARKETPLACE` | `CREACION` | Un alta crea el perfil | El usuario que informa el sistema, o `sincronizacion-automatica` |
 | `VENTAS` / `MARKETPLACE` | `ACTUALIZACION` | Una notificación modifica el perfil | Igual |
+| `SISTEMA` | `ACTUALIZACION` | Una detección modifica el estado o los motivos del perfil (SCRUM-170) | `deteccion-automatica` |
 | `CRM` | `VINCULACION` | Un administrador vincula un identificador de origen al perfil | El usuario del CRM |
 | `CRM` | `UNIFICACION` | Un administrador unifica dos perfiles duplicados | El usuario del CRM |
 
@@ -58,7 +59,7 @@ Las dos tablas son de **solo inserción**: triggers de la base rechazan `UPDATE`
 | Filtro | Parámetro | Ejemplo |
 |---|---|---|
 | Campo modificado | `campo` | `email` (también un prefijo: `direcciones`) |
-| Origen | `origen` | `VENTAS`, `MARKETPLACE`, `CRM` |
+| Origen | `origen` | `VENTAS`, `MARKETPLACE`, `CRM`, `SISTEMA` |
 | Desde / hasta (fechas incluidas) | `desde`, `hasta` | `2026-09-01`, `2026-09-30` |
 | Página y tamaño | `pagina`, `tamanio` | `0`, `50` (máximo 100) |
 

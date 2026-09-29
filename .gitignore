@@ -2,10 +2,7 @@
 # CRM MaxiConecta — .gitignore
 # ===========================================================
 
-# --- Claude Code / asistentes de IA ---
-.claude/
-CLAUDE.md
-CLAUDE.local.md
+# --- Configuración local ---
 .mcp.json
 
 # --- Sistema operativo ---

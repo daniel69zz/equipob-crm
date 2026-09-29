@@ -16,7 +16,7 @@ import com.maxiconecta.crm.perfil.cliente.VinculacionPendienteRepository;
 import com.maxiconecta.crm.perfil.validacion.NormalizadorPerfil;
 import com.maxiconecta.crm.perfil.validacion.PerfilValidado;
 import com.maxiconecta.crm.perfil.validacion.ValidadorPerfil;
-import com.maxiconecta.crm.perfil.validacion.DetectorIncidenciasPerfil;
+import com.maxiconecta.crm.perfil.validacion.DetectorPerfil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,7 +62,7 @@ public class ProcesadorClientes {
     private final LectorEventosCliente lector;
     private final NormalizadorPerfil normalizador;
     private final ValidadorPerfil validador;
-    private final DetectorIncidenciasPerfil detector;
+    private final DetectorPerfil detector;
 
     public ProcesadorClientes(EventoClienteRepository eventos, ClienteRepository clientes,
                               ClienteOrigenRepository origenes, HistorialCambios historial,
@@ -70,7 +70,7 @@ public class ProcesadorClientes {
                               ConflictoPerfilRepository conflictos, ResolutorConflictos resolutor,
                               LectorEventosCliente lector,
                               NormalizadorPerfil normalizador, ValidadorPerfil validador,
-                              DetectorIncidenciasPerfil detector) {
+                              DetectorPerfil detector) {
         this.eventos = eventos;
         this.clientes = clientes;
         this.origenes = origenes;
@@ -130,7 +130,7 @@ public class ProcesadorClientes {
         if (propuesta.informa(EventoClienteRecibido.Campos.DIRECCIONES)) {
             cambios.addAll(cliente.sincronizarDirecciones(evento.origen(), perfil.direcciones()));
         }
-        DetectorIncidenciasPerfil.Evaluacion evaluacion = detector.evaluar(cliente);
+        DetectorPerfil.Evaluacion evaluacion = detector.evaluar(cliente);
         List<String> motivos = Stream.concat(perfil.motivos().stream(), evaluacion.incompleto().stream())
                 .distinct().toList();
         cambios.addAll(cliente.marcarEstado(motivos, evaluacion.inconsistencias()));

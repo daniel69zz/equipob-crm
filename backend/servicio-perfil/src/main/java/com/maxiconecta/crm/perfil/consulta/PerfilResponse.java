@@ -15,7 +15,7 @@ import java.util.List;
  */
 public record PerfilResponse(Long id, String nombres, String apellidos, String tipoDocumento, String numeroDocumento,
                              String email, String telefono, EstadoPerfil estado, String motivosIncompleto,
-                             String motivosInconsistencia,
+                             String motivosInconsistencia, String motivosIncidencia,
                              OffsetDateTime creadoEn, OffsetDateTime actualizadoEn, Origen actualizadoPorOrigen,
                              String actualizadoPor, Long idClienteConsolidado,
                              List<IdentificadorOrigen> identificadoresOrigen, List<DireccionResponse> direcciones) {
@@ -24,6 +24,7 @@ public record PerfilResponse(Long id, String nombres, String apellidos, String t
         return new PerfilResponse(cliente.getId(), cliente.getNombres(), cliente.getApellidos(),
                 cliente.getTipoDocumento(), cliente.getNumeroDocumento(), cliente.getEmail(), cliente.getTelefono(),
                 cliente.getEstado(), cliente.getMotivosIncompleto(), cliente.getMotivosInconsistencia(),
+                cliente.getMotivosIncidencia(),
                 cliente.getCreadoEn(), cliente.getActualizadoEn(),
                 cliente.getActualizadoPorOrigen(), cliente.getActualizadoPor(), cliente.getIdClienteConsolidado(),
                 vinculos.stream().map(IdentificadorOrigen::de).toList(),

@@ -1,6 +1,7 @@
 package com.maxiconecta.crm.perfil.validacion;
 
 import com.maxiconecta.crm.perfil.cliente.Cliente;
+import com.maxiconecta.crm.perfil.cliente.CambioCampo;
 import com.maxiconecta.crm.perfil.cliente.Direccion;
 import com.maxiconecta.crm.perfil.cliente.Origen;
 import com.maxiconecta.crm.perfil.sincronizacion.EventoClienteRecibido;
@@ -13,12 +14,17 @@ import java.util.Set;
 
 /** Evalúa los datos guardados sin modificarlos, según el catálogo de SCRUM-168. */
 @Component
-public class DetectorIncidenciasPerfil {
+public class DetectorPerfil {
 
     private final ValidadorPerfil validador;
 
-    public DetectorIncidenciasPerfil(ValidadorPerfil validador) {
+    public DetectorPerfil(ValidadorPerfil validador) {
         this.validador = validador;
+    }
+
+    public List<CambioCampo> detectar(Cliente cliente) {
+        Evaluacion evaluacion = evaluar(cliente);
+        return cliente.marcarEstado(evaluacion.incompleto(), evaluacion.inconsistencias());
     }
 
     public Evaluacion evaluar(Cliente cliente) {

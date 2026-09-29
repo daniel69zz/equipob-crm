@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DetectorIncidenciasPerfilTest {
 
-    private final DetectorIncidenciasPerfil detector = new DetectorIncidenciasPerfil(new ValidadorPerfil());
+    private final DetectorPerfil detector = new DetectorPerfil(new ValidadorPerfil());
 
     @Test
     void unPerfilValidoNoNecesitaDireccionesNiAmbosMediosDeContacto() {

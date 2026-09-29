@@ -134,6 +134,13 @@ public class Cliente {
         return marcarEstado(motivos, List.of());
     }
 
+    public List<CambioCampo> marcarInconsistente(List<String> motivos) {
+        if (motivos.isEmpty()) {
+            throw new IllegalArgumentException("Se necesita al menos un motivo para marcar el perfil como inconsistente");
+        }
+        return marcarEstado(List.of(), motivos);
+    }
+
     public List<CambioCampo> marcarEstado(List<String> motivos, List<String> inconsistencias) {
         EstadoPerfil nuevoEstado = !motivos.isEmpty() ? EstadoPerfil.INCOMPLETO
                 : !inconsistencias.isEmpty() ? EstadoPerfil.INCONSISTENTE : EstadoPerfil.COMPLETO;
@@ -143,6 +150,8 @@ public class Cliente {
         CambioCampo.siCambio(cambios, "estado", this.id == null ? null : this.estado, nuevoEstado);
         CambioCampo.siCambio(cambios, "motivosIncompleto", this.motivosIncompleto, nuevosMotivos);
         CambioCampo.siCambio(cambios, "motivosInconsistencia", this.motivosInconsistencia, nuevasInconsistencias);
+        CambioCampo.siCambio(cambios, "motivosIncidencia", getMotivosIncidencia(),
+                combinarMotivos(nuevosMotivos, nuevasInconsistencias));
         this.estado = nuevoEstado;
         this.motivosIncompleto = nuevosMotivos;
         this.motivosInconsistencia = nuevasInconsistencias;
@@ -218,6 +227,15 @@ public class Cliente {
 
     public String getMotivosInconsistencia() {
         return motivosInconsistencia;
+    }
+
+    public String getMotivosIncidencia() {
+        return combinarMotivos(motivosIncompleto, motivosInconsistencia);
+    }
+
+    private static String combinarMotivos(String incompleto, String inconsistente) {
+        return incompleto == null ? inconsistente : inconsistente == null ? incompleto
+                : incompleto + "; " + inconsistente;
     }
 
     public OffsetDateTime getCreadoEn() {

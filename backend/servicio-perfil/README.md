@@ -36,7 +36,7 @@ Configuración (`application.yml`): `crm.perfil.conflictos.prioridad-identificac
 
 ## Histórico de cambios (SCRUM-22)
 
-Cada creación o cambio del perfil deja un registro de solo lectura con el campo, el valor anterior y el nuevo, la fecha, el origen (`VENTAS`, `MARKETPLACE` o `CRM`) y el responsable. Modelo en `docs/perfil/historico-cambios.md`.
+Cada creación o cambio del perfil deja un registro de solo lectura con el campo, el valor anterior y el nuevo, la fecha, el origen (`VENTAS`, `MARKETPLACE`, `CRM` o `SISTEMA`) y el responsable. Modelo en `docs/perfil/historico-cambios.md`.
 
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
@@ -60,7 +60,9 @@ La migración V5 agrega `INCONSISTENTE` y `motivos_inconsistencia`. Un perfil v�
 
 `GET /api/perfil/clientes/{clienteId}` expone ambos grupos como texto y la búsqueda existente acepta `estado=INCONSISTENTE`. La reevaluación devuelve 404 para un cliente inexistente y 409 para un perfil absorbido por otro; en ese caso se debe evaluar el perfil consolidado. La evaluación y la sincronización bloquean el perfil durante su transacción para evitar sobrescribir una detección con datos anteriores.
 
-La única restricción adicional de formato por tipo de documento definida en el catálogo es que `NIT` sea numérico. No se agregan restricciones de otros tipos ni detección de duplicados. La evaluación independiente usa los datos actualmente guardados; los motivos de datos descartados al recibir eventos siguen disponibles en la bitácora de sincronización. La vista y filtros visuales (SCRUM-167/169), la auditoría de detecciones y revisiones (SCRUM-170) y la QA de la historia completa (SCRUM-555) se integran en sus subtareas.
+La única restricción adicional de formato por tipo de documento definida en el catálogo es que `NIT` sea numérico. No se agregan restricciones de otros tipos ni detección de duplicados. La evaluación independiente usa los datos actualmente guardados; los motivos de datos descartados al recibir eventos siguen disponibles en la bitácora de sincronización. La vista y filtros visuales (SCRUM-167/169) y la QA de la historia completa (SCRUM-555) se integran en sus subtareas.
+
+La auditoría de detecciones (SCRUM-170) registra los cambios de estado y motivos con origen `SISTEMA`, responsable `deteccion-automatica` y sin evento asociado. Usa el histórico existente y su detalle por campo dentro de la misma transacción. Una reevaluación sin cambios no genera registros ni modifica la fecha del último cambio. La consulta conserva ambos grupos de motivos y expone además `motivosIncidencia` como resumen combinado.
 
 ## Ejecutar en local
 

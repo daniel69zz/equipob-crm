@@ -34,5 +34,5 @@ Esta lista se amplía cuando el motor de detección (SCRUM-166) lo requiera. No 
 ## Evaluación
 
 - **Al sincronizar** (SCRUM-9): `ValidadorPerfil` aplica las reglas de completitud sobre cada evento entrante, antes de guardar.
-- **Detección independiente** (SCRUM-166): vuelve a evaluar el perfil ya guardado contra ambos catálogos, sin esperar un nuevo evento, y lo etiqueta con la regla incumplida (criterio de aceptación 1 de SCRUM-12). Un perfil que no incumple ninguna regla queda **válido** (criterio de aceptación 2).
-- Si `INCONSISTENTE` es un estado nuevo del perfil o un motivo adicional sobre `INCOMPLETO` lo define el modelo de datos en SCRUM-165/166; este catálogo solo fija las reglas, no su representación en `perfil.cliente`.
+- **Detección independiente** (SCRUM-166): vuelve a evaluar el perfil ya guardado contra ambos catálogos, sin esperar un nuevo evento, y lo etiqueta con la regla incumplida (criterio de aceptación 1 de SCRUM-12). Un perfil que no incumple ninguna regla queda **válido**, es decir `COMPLETO` (criterio de aceptación 2).
+- `perfil.cliente.estado` distingue `COMPLETO`, `INCOMPLETO` e `INCONSISTENTE`; los motivos se conservan en `motivos_incompleto` y `motivos_inconsistencia`. La consulta expone también `motivosIncidencia`, que combina ambos grupos para revisión (SCRUM-165). Si concurren ambos tipos, prevalece `INCOMPLETO` sin perder las inconsistencias.

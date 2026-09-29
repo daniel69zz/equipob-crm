@@ -7,10 +7,11 @@ package com.maxiconecta.crm.perfil.cliente;
 public enum Origen {
     MARKETPLACE,
     VENTAS,
-    CRM;
+    CRM,
+    SISTEMA;
 
     /** Solo Marketplace y Ventas envían eventos y tienen identificadores de cliente. */
     public boolean esSistemaExterno() {
-        return this != CRM;
+        return this == MARKETPLACE || this == VENTAS;
     }
 }
