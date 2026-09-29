@@ -42,7 +42,7 @@ class ProcesadorComprasIdempotenciaTest {
     }
 
     @Test
-    void laClaveEsTipoOrigenYTransaccion() {
+    void laClaveEsTipoYTransaccion() {
         when(procesados.buscar(any())).thenReturn(Optional.empty());
 
         procesador.procesar(7L);

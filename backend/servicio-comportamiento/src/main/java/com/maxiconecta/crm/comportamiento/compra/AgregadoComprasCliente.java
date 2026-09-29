@@ -10,12 +10,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Agrega en la base los montos de compra de un cliente, sin traer las compras a memoria.
- * Cuenta solo lo vigente: una compra anulada no suma y una devolución parcial aporta lo que
- * quedó (docs/compra/ticket-promedio.md).
+ * Agrega en la base las compras de un cliente, sin traer su historial a memoria. Los indicadores
+ * consideran solo lo vigente: una compra anulada no participa y una devolución parcial sí
+ * (docs/compra/ticket-promedio.md y docs/compra/recencia-compra.md).
  */
 @Service
 public class AgregadoComprasCliente {
@@ -40,5 +42,23 @@ public class AgregadoComprasCliente {
         Tuple fila = entityManager.createQuery(consulta).getSingleResult();
         BigDecimal monto = fila.get(1, BigDecimal.class);
         return new ResumenCompras(fila.get(0, Long.class), monto == null ? BigDecimal.ZERO : monto);
+    }
+
+    /**
+     * Fecha de la compra vigente más reciente del cliente. La agregación se hace en la base para
+     * no cargar su historial en memoria; sin identificadores o compras vigentes no hay fecha.
+     */
+    @Transactional(readOnly = true)
+    public Optional<OffsetDateTime> ultimaCompraVigente(List<Identificador> identificadores) {
+        if (identificadores.isEmpty()) {
+            return Optional.empty();
+        }
+        CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
+        CriteriaQuery<OffsetDateTime> consulta = criterios.createQuery(OffsetDateTime.class);
+        Root<Compra> compra = consulta.from(Compra.class);
+        consulta.select(criterios.greatest(compra.<OffsetDateTime>get("fecha")));
+        consulta.where(ComprasDelCliente.deIdentificadores(compra, criterios, identificadores),
+                ComprasDelCliente.vigente(compra, criterios));
+        return Optional.ofNullable(entityManager.createQuery(consulta).getSingleResult());
     }
 }

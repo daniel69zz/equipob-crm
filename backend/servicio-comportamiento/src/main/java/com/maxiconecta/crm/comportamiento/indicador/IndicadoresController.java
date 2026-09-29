@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Indicadores de comportamiento de un cliente (SCRUM-17). Igual que el historial de compras, el
+ * Indicadores de comportamiento de un cliente (SCRUM-17, SCRUM-19). Igual que el historial de compras, el
  * API Gateway exige INDICADORES_CONSULTAR y audita el acceso con el {clienteId} de la ruta; la
  * búsqueda real usa los identificadores del cliente en Marketplace y Ventas de la query (docs/compra/ticket-promedio.md).
  */
@@ -27,10 +27,11 @@ public class IndicadoresController {
     @GetMapping("/{clienteId}/indicadores")
     public IndicadoresCliente indicadores(@PathVariable String clienteId,
                                           @RequestParam(name = "identificador", required = false) List<String> identificadores) {
-        return new IndicadoresCliente(consulta.ticketPromedio(Identificador.parsearTodos(identificadores)));
+        List<Identificador> ids = Identificador.parsearTodos(identificadores);
+        return new IndicadoresCliente(consulta.ticketPromedio(ids), consulta.recencia(ids));
     }
 
     /** Cada indicador es un campo propio, para que los nuevos se sumen sin cambiar los existentes. */
-    public record IndicadoresCliente(TicketPromedio ticketPromedio) {
+    public record IndicadoresCliente(TicketPromedio ticketPromedio, RecenciaCompra recencia) {
     }
 }
