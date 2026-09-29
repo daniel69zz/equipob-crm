@@ -1,0 +1,84 @@
+package com.maxiconecta.crm.comportamiento.inactividad;
+
+import com.maxiconecta.crm.comportamiento.compra.AgregadoComprasCliente;
+import com.maxiconecta.crm.comportamiento.compra.Identificador;
+import com.maxiconecta.crm.comportamiento.compra.UltimaCompraCliente;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+/**
+ * Detecta y persiste los clientes inactivos (SCRUM-294, SCRUM-296): sin compras vigentes desde
+ * hace más del umbral definido en {@link CriterioInactividad}. {@link #detectar()} se ejecuta
+ * periódicamente (SCRUM-297, {@link ClientesInactivosScheduler}); {@link #reactivar} corrige de
+ * inmediato a un cliente que vuelve a comprar, sin esperar a la próxima ejecución (criterio de
+ * aceptación 2 de SCRUM-31).
+ */
+@Service
+public class DetectorClientesInactivos {
+
+    private final AgregadoComprasCliente agregado;
+    private final ClienteInactivoRepository inactivos;
+    private final CriterioInactividad criterio;
+
+    public DetectorClientesInactivos(AgregadoComprasCliente agregado, ClienteInactivoRepository inactivos,
+                                     CriterioInactividad criterio) {
+        this.agregado = agregado;
+        this.inactivos = inactivos;
+        this.criterio = criterio;
+    }
+
+    /**
+     * Recalcula el listado completo: agrega los clientes recién inactivos, actualiza la última
+     * compra de los que ya estaban y quita a quienes volvieron a comprar dentro del umbral (por si
+     * la reactivación puntual de {@link #reactivar} no llegó a aplicarse). Devuelve cuántos
+     * clientes quedaron inactivos tras la ejecución.
+     */
+    @Transactional
+    public int detectar() {
+        List<UltimaCompraCliente> candidatos = agregado.ultimaCompraVigentePorClienteAnteriorA(criterio.fechaCorte());
+        Set<String> vigentes = new HashSet<>();
+        for (UltimaCompraCliente candidato : candidatos) {
+            vigentes.add(candidato.idClienteOrigen());
+            inactivos.findByIdClienteOrigen(candidato.idClienteOrigen())
+                    .ifPresentOrElse(existente -> existente.actualizar(candidato.ultimaCompra()),
+                            () -> inactivos.save(new ClienteInactivo(candidato.idClienteOrigen(),
+                                    candidato.ultimaCompra())));
+        }
+        for (ClienteInactivo registrado : inactivos.findAll()) {
+            if (!vigentes.contains(registrado.getIdClienteOrigen())) {
+                inactivos.delete(registrado);
+            }
+        }
+        return candidatos.size();
+    }
+
+    /** Quita a un cliente del listado en cuanto se procesa una compra suya. */
+    @Transactional
+    public void reactivar(String idClienteOrigen) {
+        inactivos.deleteByIdClienteOrigen(idClienteOrigen);
+    }
+
+    /**
+     * Vuelve a evaluar a un solo cliente tras anularse una de sus compras (SCRUM-523): su última
+     * compra vigente pudo cambiar o dejar de existir. Aplica el mismo criterio que
+     * {@link #detectar()}: sin compras vigentes, o con la última dentro del umbral, no figura como
+     * inactivo; si la última quedó fuera del umbral, figura con esa fecha.
+     */
+    @Transactional
+    public void reevaluar(String idClienteOrigen) {
+        Optional<OffsetDateTime> ultimaCompra = agregado.ultimaCompraVigente(List.of(new Identificador(idClienteOrigen)));
+        if (ultimaCompra.isPresent() && ultimaCompra.get().isBefore(criterio.fechaCorte())) {
+            inactivos.findByIdClienteOrigen(idClienteOrigen)
+                    .ifPresentOrElse(existente -> existente.actualizar(ultimaCompra.get()),
+                            () -> inactivos.save(new ClienteInactivo(idClienteOrigen, ultimaCompra.get())));
+        } else {
+            inactivos.deleteByIdClienteOrigen(idClienteOrigen);
+        }
+    }
+}

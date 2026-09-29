@@ -67,4 +67,4 @@ Sin compras vigentes:
 }
 ```
 
-Los demás indicadores del cliente (recencia, frecuencia, valor acumulado) se agregarán como campos hermanos de `ticketPromedio`.
+Ya se agregaron como campos hermanos de `ticketPromedio`: la recencia (`docs/compra/recencia-compra.md`, SCRUM-19), la frecuencia de compra (`docs/compra/frecuencia-compra.md`, SCRUM-37) y el valor acumulado (`docs/compra/valor-acumulado.md`, SCRUM-33).

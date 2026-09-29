@@ -52,13 +52,28 @@ Ver diseño en `docs/compra/historial-compras.md` y el formato de la respuesta e
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/compras` | `INDICADORES_CONSULTAR` | Compras del cliente, de la más reciente a la más antigua. `{clienteId}` solo identifica al cliente para la auditoría del Gateway; la búsqueda usa `identificador` (repetible: cada identificador del cliente en Marketplace y Ventas, tal como los devuelve `identificadoresOrigen` en `GET /api/perfil/clientes/{clienteId}`). Sin identificadores, o si ninguno tiene compras, responde una página vacía. `pagina`, `tamanio` (por defecto 20, máx. 100) |
 
-## Indicadores del cliente (SCRUM-17, SCRUM-19)
+## Indicadores del cliente (SCRUM-17, SCRUM-19, SCRUM-33, SCRUM-37)
 
-Reglas de cálculo en `docs/compra/ticket-promedio.md` y `docs/compra/recencia-compra.md`. Los indicadores se calculan al consultarlos sobre el historial, así que reflejan de inmediato las compras nuevas, devoluciones y anulaciones.
+Reglas de cálculo en `docs/compra/ticket-promedio.md`, `docs/compra/recencia-compra.md`,
+`docs/compra/frecuencia-compra.md` y `docs/compra/valor-acumulado.md`. Ticket, recencia y valor
+acumulado se derivan del historial y se calculan al consultarlos, así que reflejan de inmediato
+las compras nuevas, devoluciones y anulaciones; frecuencia es la excepción, se persiste y se
+incrementa atómicamente al registrar una compra confirmada.
 
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
-| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio` y `recencia`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; se calcula al consultar, sin persistirla. Igual que el historial, usa el parámetro repetible `identificador` (`ORIGEN:idCliente`) |
+| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia` y `valorAcumulado`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`). Usa el parámetro repetible `identificador` |
+
+## Clientes inactivos (SCRUM-31)
+
+Diseño y criterio en `docs/compra/clientes-inactivos.md`. Un cliente es inactivo cuando su última
+compra vigente tiene más de `comportamiento.inactividad.umbral-dias` días (por defecto 90). Se
+recalcula con una tarea programada (`comportamiento.inactividad.cron`, por defecto una vez al día)
+y se corrige de inmediato cuando el cliente vuelve a comprar.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes?estado=inactivo` | `INDICADORES_CONSULTAR` | Clientes sin compras vigentes desde hace más del umbral configurado, del que lleva más tiempo sin comprar al que lleva menos. Devuelve el identificador del cliente (`idClienteOrigen`), la última compra y los días transcurridos. `pagina`, `tamanio` (por defecto 20, máx. 100) |
 
 ## Ejecutar en local
 

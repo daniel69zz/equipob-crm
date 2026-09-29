@@ -15,6 +15,7 @@ const TRAZOS: Record<string, string> = {
   segmentos: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5A9 9 0 0 1 20.5 9H15z',
   fidelizacion: 'M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.4 6.8 19.2l1-5.9L3.5 9.2l5.9-.8z',
   interacciones: 'M4 5h16v10H9l-5 4zM8 9h8M8 12h5',
+  inactivos: 'M12 7v5l3 2M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9',
   salir: 'M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10',
   menu: 'M4 6h16M4 12h16M4 18h16',
   flecha: 'M5 12h14M13 6l6 6-6 6',

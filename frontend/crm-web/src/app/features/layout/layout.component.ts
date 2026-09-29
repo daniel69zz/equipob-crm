@@ -30,6 +30,7 @@ const GRUPOS: Grupo[] = [
     enlaces: [
       { texto: 'Clientes', ruta: '/clientes', icono: 'clientes', permiso: Permisos.CLIENTE_CONSULTAR },
       { texto: 'Revisión de perfiles', ruta: '/perfiles/revision', icono: 'revision', permiso: Permisos.CLIENTE_CONSULTAR },
+      { texto: 'Clientes inactivos', ruta: '/clientes-inactivos', icono: 'inactivos', permiso: Permisos.INDICADORES_CONSULTAR },
     ],
   },
   {

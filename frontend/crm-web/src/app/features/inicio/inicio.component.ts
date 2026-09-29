@@ -30,6 +30,13 @@ const MODULOS: Modulo[] = [
     ruta: '/perfiles/revision',
   },
   {
+    titulo: 'Clientes inactivos',
+    descripcion: 'Clientes que no compran desde hace un tiempo, para actuar antes de perderlos.',
+    permiso: Permisos.INDICADORES_CONSULTAR,
+    icono: 'inactivos',
+    ruta: '/clientes-inactivos',
+  },
+  {
     titulo: 'Eventos de venta',
     descripcion: 'Bitácora de lo que llega de Marketplace y Ventas, y reproceso de los fallidos.',
     permiso: Permisos.EVENTOS_REPROCESAR,
