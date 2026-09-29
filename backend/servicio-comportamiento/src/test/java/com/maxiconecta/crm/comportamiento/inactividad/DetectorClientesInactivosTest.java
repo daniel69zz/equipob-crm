@@ -1,6 +1,7 @@
 package com.maxiconecta.crm.comportamiento.inactividad;
 
 import com.maxiconecta.crm.comportamiento.compra.AgregadoComprasCliente;
+import com.maxiconecta.crm.comportamiento.compra.Identificador;
 import com.maxiconecta.crm.comportamiento.compra.UltimaCompraCliente;
 import org.junit.jupiter.api.Test;
 
@@ -76,5 +77,57 @@ class DetectorClientesInactivosTest {
         detector.reactivar("CLI-5521");
 
         verify(repositorio).deleteByIdClienteOrigen("CLI-5521");
+    }
+
+    // --- SCRUM-523: reevaluar a un cliente tras anularse una de sus compras ---
+
+    @Test
+    void reevaluarQuitaAlClienteQueSeQuedoSinComprasVigentes() {
+        when(criterio.fechaCorte()).thenReturn(CORTE);
+        when(agregado.ultimaCompraVigente(List.of(new Identificador("CLI-5521")))).thenReturn(Optional.empty());
+
+        detector.reevaluar("CLI-5521");
+
+        verify(repositorio).deleteByIdClienteOrigen("CLI-5521");
+        verify(repositorio, never()).save(any(ClienteInactivo.class));
+    }
+
+    @Test
+    void reevaluarAgregaComoInactivoAlClienteCuyaUltimaCompraVigenteQuedoFueraDelUmbral() {
+        when(criterio.fechaCorte()).thenReturn(CORTE);
+        OffsetDateTime anterior = OffsetDateTime.parse("2026-05-01T10:00:00Z");
+        when(agregado.ultimaCompraVigente(List.of(new Identificador("CLI-5521")))).thenReturn(Optional.of(anterior));
+        when(repositorio.findByIdClienteOrigen("CLI-5521")).thenReturn(Optional.empty());
+
+        detector.reevaluar("CLI-5521");
+
+        verify(repositorio).save(any(ClienteInactivo.class));
+        verify(repositorio, never()).deleteByIdClienteOrigen("CLI-5521");
+    }
+
+    @Test
+    void reevaluarActualizaLaUltimaCompraDeUnClienteQueYaEstabaInactivo() {
+        when(criterio.fechaCorte()).thenReturn(CORTE);
+        OffsetDateTime anterior = OffsetDateTime.parse("2026-05-01T10:00:00Z");
+        when(agregado.ultimaCompraVigente(List.of(new Identificador("CLI-5521")))).thenReturn(Optional.of(anterior));
+        ClienteInactivo existente = new ClienteInactivo("CLI-5521", OffsetDateTime.parse("2026-06-20T10:00:00Z"));
+        when(repositorio.findByIdClienteOrigen("CLI-5521")).thenReturn(Optional.of(existente));
+
+        detector.reevaluar("CLI-5521");
+
+        assertThat(existente.getUltimaCompra()).isEqualTo(anterior);
+        verify(repositorio, never()).save(any(ClienteInactivo.class));
+    }
+
+    @Test
+    void reevaluarNoListaAlClienteCuyaUltimaCompraVigenteSigueDentroDelUmbral() {
+        when(criterio.fechaCorte()).thenReturn(CORTE);
+        OffsetDateTime reciente = OffsetDateTime.parse("2026-08-01T10:00:00Z");
+        when(agregado.ultimaCompraVigente(List.of(new Identificador("CLI-5521")))).thenReturn(Optional.of(reciente));
+
+        detector.reevaluar("CLI-5521");
+
+        verify(repositorio).deleteByIdClienteOrigen("CLI-5521");
+        verify(repositorio, never()).save(any(ClienteInactivo.class));
     }
 }

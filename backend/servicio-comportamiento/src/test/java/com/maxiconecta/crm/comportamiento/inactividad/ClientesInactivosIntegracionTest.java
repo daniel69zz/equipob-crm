@@ -17,6 +17,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static com.maxiconecta.crm.comportamiento.ingesta.LectorEventosTest.ejemplo;
 import static org.mockito.Mockito.when;
@@ -68,6 +69,7 @@ class ClientesInactivosIntegracionTest {
                 + "comportamiento.anulacion_item, comportamiento.anulacion, "
                 + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
         when(reloj.instant()).thenReturn(REFERENCIA);
+        when(reloj.getZone()).thenReturn(ZoneOffset.UTC);
     }
 
     // --- Criterio 1: un cliente sin compras vigentes en el periodo definido aparece listado ---

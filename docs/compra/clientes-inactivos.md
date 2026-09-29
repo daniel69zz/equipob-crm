@@ -83,6 +83,12 @@ la siguiente ejecución programada (criterio de aceptación 2), y la ejecución 
 cualquier caso que se le escape a esa reactivación puntual (por ejemplo, si el umbral se reduce y
 un cliente que ya estaba en el límite pasa a cumplir el criterio sin haber comprado).
 
+Cuando una anulación total deja una compra en `ANULADA` (SCRUM-523),
+`DetectorClientesInactivos.reevaluar(idClienteOrigen)` vuelve a evaluar a ese cliente al momento,
+con el mismo criterio de la detección: el listado no espera a la siguiente ejecución para quitar a
+quien se quedó sin compras vigentes ni para reflejar una última compra anterior. Ver
+`docs/compra/recalculo-por-anulacion.md`.
+
 ## Listado para usuarios de negocio (SCRUM-298)
 
 ```

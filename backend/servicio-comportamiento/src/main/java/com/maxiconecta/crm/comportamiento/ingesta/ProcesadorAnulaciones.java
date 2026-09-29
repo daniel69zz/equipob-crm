@@ -4,6 +4,8 @@ import com.maxiconecta.crm.comportamiento.compra.Anulacion;
 import com.maxiconecta.crm.comportamiento.compra.AnulacionRepository;
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
+import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
+import com.maxiconecta.crm.comportamiento.inactividad.DetectorClientesInactivos;
 import com.maxiconecta.crm.comportamiento.compra.TipoAnulacion;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorAnulaciones;
 import org.springframework.stereotype.Service;
@@ -32,16 +34,21 @@ public class ProcesadorAnulaciones {
     private final ControlIdempotencia idempotencia;
     private final LectorEventos lector;
     private final ValidadorAnulaciones validador;
+    private final FrecuenciaCompraRepository frecuencias;
+    private final DetectorClientesInactivos inactividad;
 
     public ProcesadorAnulaciones(EventoRecibidoRepository eventos, CompraRepository compras,
                                  AnulacionRepository anulaciones, ControlIdempotencia idempotencia,
-                                 LectorEventos lector, ValidadorAnulaciones validador) {
+                                 LectorEventos lector, ValidadorAnulaciones validador,
+                                 FrecuenciaCompraRepository frecuencias, DetectorClientesInactivos inactividad) {
         this.eventos = eventos;
         this.compras = compras;
         this.anulaciones = anulaciones;
         this.idempotencia = idempotencia;
         this.lector = lector;
         this.validador = validador;
+        this.frecuencias = frecuencias;
+        this.inactividad = inactividad;
     }
 
     @Transactional
@@ -74,6 +81,10 @@ public class ProcesadorAnulaciones {
         }
         compra.revertir(datos.montoRevertido());
         Anulacion guardada = anulaciones.save(anulacion);
+        if (compra.estaAnulada()) {
+            frecuencias.decrementar(compra.getIdClienteOrigen());
+            inactividad.reevaluar(compra.getIdClienteOrigen());
+        }
         recibido.marcarProcesado();
         return guardada;
     }

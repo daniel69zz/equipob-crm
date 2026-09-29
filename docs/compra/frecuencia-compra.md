@@ -24,6 +24,10 @@ se revierten juntos.
 Marketplace y Ventas recorren el mismo flujo y cuentan de igual forma. Una compra pendiente de
 vinculación también cuenta mediante su `id_cliente_origen`.
 
-SCRUM-37 no modifica el contador al recibir una anulación posterior. Ese ajuste corresponde a
-SCRUM-523; la tabla separada y actualizable permite incorporarlo sin cambiar el contrato del
-indicador.
+## Anulaciones (SCRUM-523)
+
+Una devolución parcial no modifica el contador: la compra sigue vigente. Cuando una anulación
+deja la compra en `ANULADA`, `ProcesadorAnulaciones` descuenta 1 del contador de su
+`id_cliente_origen` dentro de la misma transacción, sin bajar nunca de cero. Una anulación repetida
+se descarta por idempotencia antes de descontar, y una rechazada no toca el contador. Un cliente
+cuya única compra se anuló vuelve a `0`. Ver `docs/compra/recalculo-por-anulacion.md`.
