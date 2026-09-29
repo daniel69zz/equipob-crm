@@ -22,8 +22,9 @@ evento_cliente                       (bitácora de sincronización)
 | `estado` | varchar(14) | `COMPLETO`, `INCOMPLETO` o `INCONSISTENTE` (ver `docs/perfil/catalogo-reglas-validacion.md`) |
 | `motivos_incidencia` | varchar(1000) | Qué falta, está mal formado o es incoherente, por ejemplo `numeroDocumento: vacío; email: formato inválido` |
 | `creado_en`, `actualizado_en` | timestamptz | Alta y último cambio |
-| `actualizado_por_origen` | varchar(15) | Sistema del último cambio (`MARKETPLACE`, `VENTAS` o `SISTEMA` cuando lo origina la detección, SCRUM-170) |
+| `actualizado_por_origen` | varchar(15) | Sistema del último cambio (`MARKETPLACE`, `VENTAS` o `CRM` cuando lo origina una acción interna, incluida la detección de SCRUM-170) |
 | `actualizado_por` | varchar(100) | Responsable del último cambio |
+| `id_cliente_consolidado` | FK → `cliente` | Si el perfil fue absorbido en una unificación, el perfil que se conserva |
 
 Un perfil es **completo** cuando tiene nombres, apellidos, tipo y número de documento válidos, al menos un medio de contacto válido (correo o teléfono) y todas las direcciones informadas tienen código, calle y ciudad. Una dirección inválida no se guarda. La detección y el seguimiento de los perfiles incompletos o inconsistentes es de SCRUM-12.
 
@@ -34,10 +35,11 @@ Un perfil es **completo** cuando tiene nombres, apellidos, tipo y número de doc
 | `origen`, `id_cliente_origen` | PK | Canal e identificador del cliente en ese canal |
 | `id_cliente` | FK → `cliente` | Perfil al que apunta |
 | `fecha_vinculacion` | timestamptz | Cuándo se vinculó |
-| `motivo_vinculacion` | varchar(30) | `ALTA_AUTOMATICA` por ahora; la unificación de duplicados (SCRUM-13) agregará `UNIFICACION` |
+| `motivo_vinculacion` | varchar(30) | `ALTA_AUTOMATICA`, `VINCULACION_MANUAL` o `UNIFICACION` |
+| `vinculado_por` | varchar(100) | Quién lo vinculó |
 | `ultima_actualizacion_origen` | timestamptz | `fechaActualizacion` del último evento aplicado; ordena los eventos de ese cliente |
 
-Varios identificadores pueden apuntar al mismo perfil. Cada evento se resuelve contra esta tabla: si el identificador ya está vinculado, se actualiza ese perfil; si no, se crea uno nuevo.
+Varios identificadores pueden apuntar al mismo perfil. Cómo se resuelve el perfil de cada evento, las vinculaciones pendientes y la unificación están en `identificadores-origen.md`.
 
 ## `direccion`
 
@@ -61,14 +63,14 @@ La zona y la ciudad se guardan como texto: el catálogo de zonas y ciudades del 
 | `id` | bigint, PK | |
 | `id_cliente` | FK → `cliente` | |
 | `fecha` | timestamptz | Momento del cambio |
-| `tipo` | varchar(15) | `CREACION` o `ACTUALIZACION` |
-| `origen` | varchar(15) | Sistema que originó el cambio, o `SISTEMA` cuando lo origina la detección (SCRUM-170) |
+| `tipo` | varchar(15) | `CREACION`, `ACTUALIZACION`, `VINCULACION`, `UNIFICACION` o `DETECCION` |
+| `origen` | varchar(15) | Sistema que originó el cambio (`MARKETPLACE`, `VENTAS`) o `CRM` para una acción interna: administrador (vinculación, unificación) o motor de detección (SCRUM-170) |
 | `responsable` | varchar(100) | Usuario del sistema de origen, `sincronizacion-automatica`, o `deteccion-automatica` |
 | `cambios` | text (JSON) | Lista de `{campo, anterior, nuevo}` |
 | `id_evento` | FK → `evento_cliente`, opcional | Evento que produjo el cambio; vacío cuando el cambio viene de la detección, no de un evento |
 
-Es de **solo inserción**: un trigger rechaza `UPDATE`, `DELETE` y `TRUNCATE`. La consulta del histórico es de SCRUM-22.
+Es de **solo inserción**: un trigger rechaza `UPDATE`, `DELETE` y `TRUNCATE`. El detalle de cada campo está en `cambio_perfil_detalle`; el modelo completo y la consulta del histórico, en `historico-cambios.md`.
 
 ## `evento_cliente` — bitácora de sincronización
 
-Cada mensaje recibido, con su contenido original: `id_evento_origen`, `tipo_evento`, `origen`, `id_cliente_origen`, `id_cliente` (perfil afectado), `estado` (`RECIBIDO`, `PROCESADO`, `INCOMPLETO`, `DESCARTADO`, `FALLIDO`), `causa`, `recibido_en`, `procesado_en`.
+Cada mensaje recibido, con su contenido original: `id_evento_origen`, `tipo_evento`, `origen`, `id_cliente_origen`, `id_cliente` (perfil afectado), `estado` (`RECIBIDO`, `PROCESADO`, `INCOMPLETO`, `PENDIENTE`, `DESCARTADO`, `FALLIDO`), `causa`, `recibido_en`, `procesado_en`.

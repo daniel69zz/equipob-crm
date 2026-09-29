@@ -67,6 +67,37 @@ class LectorEventosClienteTest {
     }
 
     @Test
+    void unAltaInformaTodosLosCampos() {
+        assertThat(lector.leer(ejemplo("cliente-ventas-alta.json")).cliente().camposInformados())
+                .isEqualTo(EventoClienteRecibido.Campos.TODOS);
+    }
+
+    @Test
+    void unaActualizacionInformaSoloLosCamposQueTrae() {
+        String parcial = """
+                {"idEvento": "5e6f7a8b-9c0d-4e1f-8a2b-4c5d6e7f8a9b", "tipoEvento": "CLIENTE_ACTUALIZADO",
+                 "origen": "VENTAS", "fechaEmision": "2026-09-28T09:00:00-04:00",
+                 "cliente": {"idCliente": "CLI-5521", "contacto": {"email": "nuevo@correo.com"}, "apellidos": null}}
+                """;
+
+        EventoClienteRecibido.DatosCliente datos = lector.leer(parcial).cliente();
+
+        assertThat(datos.camposInformados()).containsExactlyInAnyOrder("email", "apellidos");
+        assertThat(datos.contacto().email()).isEqualTo("nuevo@correo.com");
+    }
+
+    @Test
+    void unContactoNuloEnUnaActualizacionBorraCorreoYTelefono() {
+        String parcial = """
+                {"idEvento": "5e6f7a8b-9c0d-4e1f-8a2b-4c5d6e7f8a9b", "tipoEvento": "CLIENTE_ACTUALIZADO",
+                 "origen": "VENTAS", "fechaEmision": "2026-09-28T09:00:00-04:00",
+                 "cliente": {"idCliente": "CLI-5521", "contacto": null}}
+                """;
+
+        assertThat(lector.leer(parcial).cliente().camposInformados()).containsExactlyInAnyOrder("email", "telefono");
+    }
+
+    @Test
     void sinIdentificadorDeClienteElEventoEsIlegible() {
         assertThatThrownBy(() -> lector.leer(ejemplo("cliente-sin-id.json")))
                 .isInstanceOf(EventoIlegibleException.class)

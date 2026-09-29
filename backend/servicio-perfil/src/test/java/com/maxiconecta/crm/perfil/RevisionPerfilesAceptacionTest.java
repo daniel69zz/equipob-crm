@@ -59,7 +59,8 @@ class RevisionPerfilesAceptacionTest {
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
-                + "TRUNCATE perfil.cambio_perfil, perfil.direccion, perfil.cliente_origen, perfil.cliente "
+                + "TRUNCATE perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil_detalle, perfil.cambio_perfil, "
+                + "perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, perfil.cliente, perfil.evento_cliente "
                 + "RESTART IDENTITY; SET session_replication_role = DEFAULT");
     }
 
@@ -149,7 +150,7 @@ class RevisionPerfilesAceptacionTest {
         List<CambioPerfil> auditoria = cambiosPerfil.findByIdClienteOrderByFechaAscIdAsc(incompleto.getId());
         assertThat(auditoria).hasSize(2);
         assertThat(auditoria).allSatisfy(cambio -> {
-            assertThat(cambio.getOrigen()).isEqualTo(Origen.SISTEMA);
+            assertThat(cambio.getOrigen()).isEqualTo(Origen.CRM);
             assertThat(cambio.getResponsable()).isEqualTo("deteccion-automatica");
             assertThat(cambio.getFecha()).isNotNull();
         });

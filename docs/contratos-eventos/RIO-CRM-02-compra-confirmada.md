@@ -32,7 +32,7 @@ Notas:
 
 - El evento **no transporta identificadores de producto**, solo categorías (ver `ACTUALIZACION_RF_CRM_V3`, observación sobre RF-35). El CRM guarda el nombre de la categoría tal como llegó, para que un cambio posterior en el catálogo no altere el historial.
 - Los campos desconocidos se ignoran: el emisor puede agregar campos sin romper al CRM.
-- Las reglas de validación de contenido (montos positivos, suma de ítems, formatos por canal) son de la historia **SCRUM-21**.
+- Reglas de validación (SCRUM-21), además de los tipos y largos de la tabla: `idEvento` con formato UUID; `montoTotal`, cada `items[].monto` y cada `items[].cantidad` mayores que cero; montos con formato decimal (12,2); y la suma de `items[].monto` igual a `montoTotal`. Un evento que no las cumple queda `FALLIDO` con el campo y la regla incumplida.
 
 ## Ejemplo
 

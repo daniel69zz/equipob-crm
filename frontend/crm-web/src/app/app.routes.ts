@@ -3,6 +3,8 @@ import { autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.
 import { Permisos } from './core/auth/sesion';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
+import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
+import { HistorialCambiosComponent } from './features/clientes/historial-cambios.component';
 import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
 import { RolesComponent } from './features/admin/roles.component';
 import { UsuariosComponent } from './features/admin/usuarios.component';
@@ -19,6 +21,18 @@ export const routes: Routes = [
     canActivate: [autenticadoGuard],
     children: [
       { path: '', component: InicioComponent },
+      {
+        path: 'clientes',
+        component: BuscarClientesComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.CLIENTE_CONSULTAR },
+      },
+      {
+        path: 'clientes/:id/historial',
+        component: HistorialCambiosComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.CLIENTE_CONSULTAR },
+      },
       {
         path: 'perfiles/revision',
         component: RevisionPerfilesComponent,

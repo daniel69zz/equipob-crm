@@ -3,9 +3,13 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -21,9 +25,14 @@ import java.util.Map;
 public class BitacoraController {
 
     private final ConsultaBitacora consulta;
+    private final ReprocesadorEventos reprocesador;
+    private final ReinyectorMensajesRespaldo reinyector;
 
-    public BitacoraController(ConsultaBitacora consulta) {
+    public BitacoraController(ConsultaBitacora consulta, ReprocesadorEventos reprocesador,
+                              ReinyectorMensajesRespaldo reinyector) {
         this.consulta = consulta;
+        this.reprocesador = reprocesador;
+        this.reinyector = reinyector;
     }
 
     @GetMapping
@@ -54,5 +63,37 @@ public class BitacoraController {
                     evento.getOrigen(), evento.getIdTransaccion(), evento.getEstado(), evento.getCausa(),
                     evento.getRecibidoEn(), evento.getProcesadoEn());
         }
+    }
+
+    @PostMapping("/{id}/reprocesar")
+    public IntentoResponse reprocesar(@PathVariable Long id,
+                                      @RequestHeader(name = "X-Usuario", required = false) String usuario) {
+        return IntentoResponse.de(reprocesador.reprocesar(id, usuario));
+    }
+
+    @GetMapping("/{id}/intentos")
+    public List<IntentoResponse> intentos(@PathVariable Long id) {
+        return reprocesador.intentos(id).stream().map(IntentoResponse::de).toList();
+    }
+
+    @PostMapping("/respaldo/reinyectar")
+    public ResponseEntity<ReinyeccionResponse> reinyectarRespaldo(
+            @RequestHeader(name = "X-Usuario", required = false) String usuario) {
+        return reinyector.reinyectarUno(usuario)
+                .map(resultado -> ResponseEntity.ok(new ReinyeccionResponse(true, resultado.idMensaje(),
+                        resultado.bytes())))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    public record IntentoResponse(Long id, Long idEvento, int numero, OffsetDateTime intentadoEn,
+                                  ResultadoReproceso resultado, String causa, String usuario) {
+
+        static IntentoResponse de(IntentoReproceso intento) {
+            return new IntentoResponse(intento.getId(), intento.getIdEvento(), intento.getNumero(),
+                    intento.getIntentadoEn(), intento.getResultado(), intento.getCausa(), intento.getUsuario());
+        }
+    }
+
+    public record ReinyeccionResponse(boolean reinyectado, String idMensaje, int bytes) {
     }
 }

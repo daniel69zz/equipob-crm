@@ -12,7 +12,12 @@ interface Modulo {
 
 /** Módulos del CRM. Cada usuario ve solo los que su rol permite. */
 const MODULOS: Modulo[] = [
-  { titulo: 'Clientes', descripcion: 'Ficha integral, perfil e historial de cambios', permiso: Permisos.CLIENTE_CONSULTAR },
+  {
+    titulo: 'Clientes',
+    descripcion: 'Búsqueda de clientes e historial de cambios',
+    permiso: Permisos.CLIENTE_CONSULTAR,
+    ruta: '/clientes',
+  },
   { titulo: 'Compras e indicadores', descripcion: 'Historial de compras y comportamiento', permiso: Permisos.INDICADORES_CONSULTAR },
   {
     titulo: 'Eventos de venta',

@@ -10,6 +10,8 @@ public enum EstadoEventoCliente {
     PROCESADO,
     /** El perfil quedó creado o actualizado, pero con datos obligatorios vacíos o mal formados. */
     INCOMPLETO,
+    /** Identificador desconocido que coincide con un perfil existente: espera la decisión de un administrador. */
+    PENDIENTE,
     /** No se aplicó: evento más antiguo que el último aplicado o reentrega del mismo cambio. */
     DESCARTADO,
     /** No se pudo procesar; queda disponible para reproceso. */

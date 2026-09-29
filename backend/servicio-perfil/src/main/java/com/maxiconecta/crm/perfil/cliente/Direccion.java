@@ -100,15 +100,21 @@ public class Direccion {
         return cambios;
     }
 
-    /** El sistema de origen dejó de informarla: se desactiva, no se borra. */
+    /** El sistema de origen dejó de informarla: se desactiva, no se borra. Si era la principal, deja de serlo. */
     List<CambioCampo> desactivar() {
         if (!activa) {
             return List.of();
         }
+        String prefijo = "direcciones[" + idDireccionOrigen + "].";
+        List<CambioCampo> cambios = new ArrayList<>();
+        if (principal) {
+            cambios.add(new CambioCampo(prefijo + "principal", "true", "false"));
+        }
+        cambios.add(new CambioCampo(prefijo + "activa", "true", "false"));
         activa = false;
         principal = false;
         actualizadaEn = OffsetDateTime.now();
-        return List.of(new CambioCampo("direcciones[" + idDireccionOrigen + "].activa", "true", "false"));
+        return cambios;
     }
 
     public Long getId() {

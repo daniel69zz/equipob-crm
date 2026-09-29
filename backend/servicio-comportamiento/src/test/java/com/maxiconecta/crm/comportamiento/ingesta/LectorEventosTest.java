@@ -117,6 +117,15 @@ class LectorEventosTest {
     }
 
     @Test
+    void unaFechaMalEscritaIndicaElCampoYLaRegla() {
+        String fechaMalEscrita = ejemplo("compra-ventas.json").replace("2026-09-27T15:28:10-04:00", "27/09/2026");
+
+        assertThatThrownBy(() -> lector.leer(fechaMalEscrita))
+                .isInstanceOf(EventoIlegibleException.class)
+                .hasMessage("El campo 'compra.fecha' debe ser una fecha y hora ISO-8601 con zona (llegó \"27/09/2026\")");
+    }
+
+    @Test
     void rechazaFechaNumericaPorqueElContratoExigeIso8601ConZona() {
         String fechaNumerica = ejemplo("compra-ventas.json")
                 .replace("\"fechaEmision\": \"2026-09-27T15:30:05-04:00\"", "\"fechaEmision\": 1790548205");
