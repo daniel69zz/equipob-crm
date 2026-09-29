@@ -4,6 +4,7 @@ import { Permisos } from './core/auth/sesion';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
+import { ClientesInactivosComponent } from './features/clientes/clientes-inactivos.component';
 import { ConsentimientoComponent } from './features/clientes/consentimiento.component';
 import { HistorialCambiosComponent } from './features/clientes/historial-cambios.component';
 import { HistorialComprasComponent } from './features/clientes/historial-compras.component';
@@ -44,6 +45,12 @@ export const routes: Routes = [
       {
         path: 'clientes/:id/compras',
         component: HistorialComprasComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.INDICADORES_CONSULTAR },
+      },
+      {
+        path: 'clientes-inactivos',
+        component: ClientesInactivosComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.INDICADORES_CONSULTAR },
       },

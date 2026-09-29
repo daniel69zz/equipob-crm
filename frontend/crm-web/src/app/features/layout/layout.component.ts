@@ -19,6 +19,9 @@ import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.direct
         <a *appSiTienePermiso="permisos.CLIENTE_CONSULTAR" routerLink="/perfiles/revision" routerLinkActive="activo">
           Revisión de perfiles
         </a>
+        <a *appSiTienePermiso="permisos.INDICADORES_CONSULTAR" routerLink="/clientes-inactivos" routerLinkActive="activo">
+          Clientes inactivos
+        </a>
         <a *appSiTienePermiso="permisos.EVENTOS_REPROCESAR" routerLink="/eventos" routerLinkActive="activo">
           Eventos de venta
         </a>
