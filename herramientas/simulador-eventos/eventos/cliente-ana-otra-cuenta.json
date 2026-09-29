@@ -1,7 +1,6 @@
 {
   "idEvento": "4d5e6f7a-8b9c-4d0e-9f1a-3b4c5d6e7f8a",
   "tipoEvento": "CLIENTE_REGISTRADO",
-  "origen": "MARKETPLACE",
   "fechaEmision": "2026-09-26T19:12:08-04:00",
   "cliente": {
     "idCliente": "mp-user-9001",

@@ -10,13 +10,13 @@ import java.util.Optional;
 
 public interface CompraRepository extends JpaRepository<Compra, Long>, JpaSpecificationExecutor<Compra> {
 
-    Optional<Compra> findByOrigenAndIdCompraOrigen(Origen origen, String idCompraOrigen);
+    Optional<Compra> findByIdCompraOrigen(String idCompraOrigen);
 
     /**
-     * Igual que {@link #findByOrigenAndIdCompraOrigen}, pero bloquea la compra hasta el fin de la
+     * Igual que {@link #findByIdCompraOrigen}, pero bloquea la compra hasta el fin de la
      * transacción: dos devoluciones de la misma compra procesadas a la vez se aplican una tras otra.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select c from Compra c where c.origen = :origen and c.idCompraOrigen = :idCompraOrigen")
-    Optional<Compra> bloquear(Origen origen, String idCompraOrigen);
+    @Query("select c from Compra c where c.idCompraOrigen = :idCompraOrigen")
+    Optional<Compra> bloquear(String idCompraOrigen);
 }

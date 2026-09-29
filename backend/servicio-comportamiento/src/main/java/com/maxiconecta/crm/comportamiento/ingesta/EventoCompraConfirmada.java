@@ -12,7 +12,7 @@ import java.util.List;
  * para que el emisor pueda agregar campos sin romper al CRM.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record EventoCompraConfirmada(String idEvento, String tipoEvento, String origen,
+public record EventoCompraConfirmada(String idEvento, String tipoEvento,
                                      @JsonFormat(shape = JsonFormat.Shape.STRING) OffsetDateTime fechaEmision,
                                      DatosCompra compra) {
 

@@ -1,12 +1,12 @@
 # Identificadores de origen del cliente (RF-62)
 
-Un mismo cliente puede estar registrado en Marketplace y en Ventas con identificadores distintos (`mp-user-3307` en uno, `CLI-5521` en otro). El CRM mantiene **un solo perfil** y le asocia todos esos identificadores, para que cada evento se aplique al cliente correcto sin crear duplicados.
+El módulo Marketplace y Ventas identifica a cada cliente con su `idCliente`. Una misma persona puede terminar con más de un identificador (por ejemplo, si abrió dos cuentas: `CLI-5521` y `mp-user-9001`). El CRM mantiene **un solo perfil** y le asocia todos esos identificadores, para que cada evento se aplique al cliente correcto sin crear duplicados.
 
 ## Tablas
 
 | Tabla | Para qué |
 |---|---|
-| `perfil.cliente_origen` | Identificadores vinculados: `origen` + `id_cliente_origen` (PK) → `id_cliente`. Varios pueden apuntar al mismo perfil |
+| `perfil.cliente_origen` | Identificadores vinculados: `id_cliente_origen` (PK) → `id_cliente`. Varios pueden apuntar al mismo perfil |
 | `perfil.vinculacion_pendiente` | Identificadores desconocidos que coinciden con un perfil existente y esperan que un administrador decida |
 | `perfil.cliente.id_cliente_consolidado` | En un perfil absorbido por una unificación, el perfil que se conserva |
 
@@ -23,7 +23,7 @@ y `vinculado_por` (usuario del CRM o `sincronizacion-automatica`).
 ## Cómo se resuelve el perfil de cada evento
 
 ```
-evento (origen, idCliente)
+evento (idCliente)
   │
   ├─ ¿está en cliente_origen? ──sí──► se aplica a ese perfil
   │                                  (si ese perfil fue absorbido, al que lo absorbió)
@@ -42,10 +42,9 @@ evento (origen, idCliente)
 
 La coincidencia por documento **no vincula sola**: un error de tipeo en el documento uniría a dos personas distintas. Un administrador confirma la vinculación o decide que es otra persona.
 
-## Qué datos quedan cuando dos sistemas informan al mismo perfil
+## Qué datos quedan cuando varios identificadores informan al mismo perfil
 
-- **Identificación y contacto** (nombre, documento, correo, teléfono): quedan los del evento más reciente de **cualquiera** de los identificadores vinculados. Cada evento trae la foto completa del cliente en su sistema.
-- **Direcciones**: se mantienen **por sistema**. Un evento de Marketplace solo agrega, cambia o desactiva direcciones de Marketplace; las de Ventas no se tocan.
+- Cada evento se aplica al perfil igual que si viniera del identificador principal: identificación, contacto y direcciones se actualizan con lo que trae.
 - El orden (descartar eventos obsoletos) es **por identificador**: cada uno guarda la fecha del último cambio aplicado.
 
 ## Vinculación pendiente
@@ -65,14 +64,14 @@ Así, un evento posterior con un identificador del perfil absorbido se aplica al
 
 ## Registro de cambios
 
-Cada vinculación y cada unificación queda en `perfil.cambio_perfil` con origen `CRM`, el usuario que la hizo y el campo `identificadoresOrigen` (por ejemplo `null → MARKETPLACE/mp-user-3307`).
+Cada vinculación y cada unificación queda en `perfil.cambio_perfil` con origen `CRM`, el usuario que la hizo y el campo `identificadoresOrigen` (por ejemplo `null → mp-user-3307`).
 
 ## API
 
 | Método | Ruta | Permiso (Gateway) | Descripción |
 |---|---|---|---|
 | GET | `/api/perfil/vinculaciones` | `CLIENTE_CONSULTAR` | Vinculaciones pendientes (o `?estado=VINCULADO`, `NUEVO_PERFIL`) con el perfil sugerido |
-| POST | `/api/perfil/clientes/{clienteId}/identificadores` | `CLIENTE_EDITAR` | Vincula un identificador (`{"origen": "MARKETPLACE", "idCliente": "mp-user-3307"}`) al perfil y aplica sus eventos pendientes |
-| POST | `/api/perfil/vinculaciones/nuevo-perfil` | `CLIENTE_EDITAR` | Declara que el identificador (`{"origen", "idCliente"}`) es otra persona: sus eventos pendientes crean un perfil nuevo |
+| POST | `/api/perfil/clientes/{clienteId}/identificadores` | `CLIENTE_EDITAR` | Vincula un identificador (`{"idCliente": "mp-user-3307"}`) al perfil y aplica sus eventos pendientes |
+| POST | `/api/perfil/vinculaciones/nuevo-perfil` | `CLIENTE_EDITAR` | Declara que el identificador (`{"idCliente"}`) es otra persona: sus eventos pendientes crean un perfil nuevo |
 
 La unificación se expone con la historia SCRUM-13, que usa `ConsolidacionIdentificadores` para mover los identificadores.

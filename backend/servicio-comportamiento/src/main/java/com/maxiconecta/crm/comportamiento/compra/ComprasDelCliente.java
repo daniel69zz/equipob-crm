@@ -10,7 +10,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Condiciones para seleccionar las compras de un cliente a partir de sus identificadores por canal.
+ * Condiciones para seleccionar las compras de un cliente a partir de sus identificadores en
+ * Marketplace y Ventas.
  * Las comparten el historial y los indicadores (docs/compra/historial-compras.md).
  */
 public final class ComprasDelCliente {
@@ -19,17 +20,12 @@ public final class ComprasDelCliente {
     }
 
     /**
-     * Un OR de pares (origen, idClienteOrigen): un IN por columna mezclaría pares que no
-     * corresponden al mismo cliente si dos clientes comparten un identificador de canal.
-     * Sirve tanto sobre la raíz de la consulta como sobre una compra alcanzada por un join.
+     * Compras de cualquiera de los identificadores. Sirve tanto sobre la raíz de la consulta como
+     * sobre una compra alcanzada por un join.
      */
     public static Predicate deIdentificadores(From<?, Compra> compra, CriteriaBuilder criterios,
                                               List<Identificador> identificadores) {
-        List<Predicate> pares = identificadores.stream()
-                .map(id -> criterios.and(criterios.equal(compra.get("origen"), id.origen()),
-                        criterios.equal(compra.get("idClienteOrigen"), id.idClienteOrigen())))
-                .toList();
-        return criterios.or(pares.toArray(Predicate[]::new));
+        return compra.get("idClienteOrigen").in(identificadores.stream().map(Identificador::idClienteOrigen).toList());
     }
 
     public static Specification<Compra> deIdentificadores(List<Identificador> identificadores) {

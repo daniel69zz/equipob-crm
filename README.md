@@ -32,7 +32,11 @@ Aplicación Web (Angular) ──► API Gateway ──► microservicios ──�
 
 ## Integración con Marketplace y Ventas
 
-Mientras Marketplace y Ventas no estén disponibles, el CRM construye **su lado de la integración**
+El CRM se comunica con **un solo módulo** del ERP: **Marketplace y Ventas**. Ese módulo publica en
+RabbitMQ los eventos de clientes, compras y anulaciones (contratos en `docs/contratos-eventos/`), y el
+CRM los identifica por sus identificadores en ese módulo (`idCliente`, `idCompra`, `idAnulacion`).
+
+Mientras el módulo no esté disponible, el CRM construye **su lado de la integración**
 (los consumidores de eventos) y lo prueba con eventos simulados publicados en RabbitMQ
 (ver `herramientas/simulador-eventos/`).
 

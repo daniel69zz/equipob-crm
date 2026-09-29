@@ -1,29 +1,28 @@
 # RIO-CRM-01 · Datos del cliente
 
-Evento que Marketplace y Ventas publica cuando registra un cliente o cambia sus datos. El CRM lo usa para crear y mantener el perfil único del cliente.
+Evento que el módulo **Marketplace y Ventas** del ERP publica cuando registra un cliente o cambia sus datos. El CRM lo usa para crear y mantener el perfil único del cliente.
 
 | | |
 |---|---|
-| **Emisor** | Marketplace y Ventas (canal `MARKETPLACE` o `VENTAS`) |
+| **Emisor** | Módulo Marketplace y Ventas del ERP |
 | **Receptor** | `servicio-perfil` |
 | **Transporte** | RabbitMQ, mensaje JSON en UTF-8 |
 | **Exchange** | `ventas.eventos` (tipo `topic`, durable) |
 | **Routing keys** | `cliente.registrado`, `cliente.actualizado` |
 | **Cola del CRM** | `crm.perfil.clientes` (durable, enlazada con `cliente.*`) |
 
-`CLIENTE_REGISTRADO` trae la **foto completa** del cliente: un campo ausente o vacío significa que el cliente no tiene ese dato. `CLIENTE_ACTUALIZADO` trae **solo los campos que cambiaron**: los ausentes se conservan. Detalle, normalización y conflictos entre sistemas en `docs/perfil/mapeo-datos-perfil.md`.
+`CLIENTE_REGISTRADO` trae la **foto completa** del cliente: un campo ausente o vacío significa que el cliente no tiene ese dato. `CLIENTE_ACTUALIZADO` trae **solo los campos que cambiaron**: los ausentes se conservan. Detalle y normalización en `docs/perfil/mapeo-datos-perfil.md`.
 
 ## Campos
 
 | Campo | Tipo | Obligatorio | Descripción |
 |---|---|:---:|---|
 | `idEvento` | texto (UUID, máx. 64) | ✅ | Identificador único del mensaje |
-| `tipoEvento` | `CLIENTE_REGISTRADO` \| `CLIENTE_ACTUALIZADO` | ✅ | Alta o cambio en el sistema de origen |
-| `origen` | `MARKETPLACE` \| `VENTAS` | ✅ | Sistema que registró el cambio |
+| `tipoEvento` | `CLIENTE_REGISTRADO` \| `CLIENTE_ACTUALIZADO` | ✅ | Alta o cambio en Marketplace y Ventas |
 | `fechaEmision` | fecha y hora ISO-8601 con zona | ✅ | Momento en que se publicó el evento |
-| `responsable` | texto (máx. 100) | | Usuario del sistema de origen que hizo el cambio. Si no viene, se registra `sincronizacion-automatica` |
-| `cliente.idCliente` | texto (máx. 64) | ✅ | Identificador del cliente en el sistema de origen |
-| `cliente.fechaActualizacion` | fecha y hora ISO-8601 con zona | | Momento del cambio en el sistema de origen. Ordena los eventos: uno más antiguo que el último aplicado se descarta. Si no viene, se usa `fechaEmision` |
+| `responsable` | texto (máx. 100) | | Usuario de Marketplace y Ventas que hizo el cambio. Si no viene, se registra `sincronizacion-automatica` |
+| `cliente.idCliente` | texto (máx. 64) | ✅ | Identificador del cliente en Marketplace y Ventas |
+| `cliente.fechaActualizacion` | fecha y hora ISO-8601 con zona | | Momento del cambio en Marketplace y Ventas. Ordena los eventos: uno más antiguo que el último aplicado se descarta. Si no viene, se usa `fechaEmision` |
 | `cliente.nombres` | texto (máx. 100) | ✅* | Nombres |
 | `cliente.apellidos` | texto (máx. 100) | ✅* | Apellidos |
 | `cliente.tipoDocumento` | `CI` \| `NIT` \| `PASAPORTE` \| `CE` | ✅* | Tipo de documento de identidad |
@@ -31,7 +30,7 @@ Evento que Marketplace y Ventas publica cuando registra un cliente o cambia sus 
 | `cliente.contacto.email` | correo electrónico (máx. 150) | ✅** | Correo del cliente |
 | `cliente.contacto.telefono` | texto, 7 a 20 dígitos, `+`, espacios, guiones o paréntesis | ✅** | Teléfono del cliente |
 | `cliente.direcciones` | lista | | Direcciones registradas. Puede estar vacía |
-| `cliente.direcciones[].idDireccion` | texto (máx. 64) | ✅ | Identificador de la dirección en el sistema de origen |
+| `cliente.direcciones[].idDireccion` | texto (máx. 64) | ✅ | Identificador de la dirección en Marketplace y Ventas |
 | `cliente.direcciones[].tipo` | `ENTREGA` \| `FACTURACION` \| `OTRA` | | Uso de la dirección. Si no viene, `OTRA` |
 | `cliente.direcciones[].calle` | texto (máx. 200) | ✅ | Calle o avenida |
 | `cliente.direcciones[].numero` | texto (máx. 20) | | Número de puerta |
@@ -53,7 +52,6 @@ El evento **no transporta el consentimiento** de tratamiento de datos: el CRM lo
 {
   "idEvento": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
   "tipoEvento": "CLIENTE_REGISTRADO",
-  "origen": "VENTAS",
   "fechaEmision": "2026-09-20T10:15:02-04:00",
   "responsable": "vendedor.jperez",
   "cliente": {
@@ -86,14 +84,15 @@ Más ejemplos en `herramientas/simulador-eventos/eventos/`.
 
 | Situación | Perfil | Bitácora de sincronización |
 |---|---|---|
-| Cliente nuevo (el par `origen` + `idCliente` no está vinculado a ningún perfil) | Se **crea** el perfil y se vincula el identificador de origen | `PROCESADO` |
+| Cliente nuevo (su `idCliente` no está vinculado a ningún perfil) | Se **crea** el perfil y se vincula el identificador de origen | `PROCESADO` |
 | Identificador nuevo cuyo documento coincide con un perfil existente | No se crea otro perfil: espera que un administrador lo vincule o confirme que es otra persona (ver `docs/perfil/identificadores-origen.md`) | `PENDIENTE` |
 | Cliente ya vinculado | Se **actualiza** el mismo perfil (en una actualización, solo los campos que trae); nunca se crea otro | `PROCESADO` |
-| Otro sistema ya había puesto un valor distinto en ese campo | Se aplica la regla de prioridad y queda la traza del conflicto | `PROCESADO`, con la cantidad de conflictos |
 | Error técnico (base de datos) | Se reintenta hasta 3 veces | El resultado final, con los intentos |
 | `CLIENTE_ACTUALIZADO` de un cliente que el CRM aún no conoce (el alta se perdió o llegó después) | Se crea el perfil | `PROCESADO` |
 | Dato obligatorio vacío o mal formado | Se guarda lo válido, el dato inválido queda vacío y el perfil queda **incompleto** con el motivo | `INCOMPLETO` con el motivo |
 | Evento más antiguo que el último aplicado para ese cliente, o el mismo evento reentregado | Sin cambios | `DESCARTADO` con el motivo |
-| Mensaje ilegible, `origen` o `tipoEvento` desconocidos, o sin `cliente.idCliente` | Sin cambios | `FALLIDO` con la causa y el mensaje original |
+| Mensaje ilegible, `tipoEvento` desconocido, o sin `cliente.idCliente` | Sin cambios | `FALLIDO` con la causa y el mensaje original |
 
-Cada creación o cambio del perfil queda registrado con fecha, sistema de origen, responsable y qué campos cambiaron.
+Cada creación o cambio del perfil queda registrado con fecha, origen (`MARKETPLACE_VENTAS`), responsable y qué campos cambiaron.
+
+Los campos desconocidos se ignoran: si un mensaje trae un campo `origen`, el CRM no lo usa.

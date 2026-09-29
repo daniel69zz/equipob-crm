@@ -2,7 +2,6 @@ package com.maxiconecta.crm.comportamiento.indicador;
 
 import com.maxiconecta.crm.comportamiento.comun.ManejadorDeErrores;
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * SCRUM-205 · Forma de la respuesta de indicadores y lectura de los identificadores por canal.
+ * SCRUM-205 · Forma de la respuesta de indicadores y lectura de los identificadores del cliente.
  */
 class IndicadoresControllerTest {
 
@@ -37,12 +36,12 @@ class IndicadoresControllerTest {
 
     @Test
     void devuelveElTicketPromedioYLosDatosConLosQueSeCalculo() throws Exception {
-        when(consulta.ticketPromedio(List.of(new Identificador(Origen.VENTAS, "CLI-5521"),
-                new Identificador(Origen.MARKETPLACE, "mp-user-3307"))))
+        when(consulta.ticketPromedio(List.of(new Identificador("CLI-5521"),
+                new Identificador("mp-user-3307"))))
                 .thenReturn(new TicketPromedio(new BigDecimal("240.25"), 2, new BigDecimal("480.50"), false));
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores")
-                        .param("identificador", "VENTAS:CLI-5521", "MARKETPLACE:mp-user-3307"))
+                        .param("identificador", "CLI-5521", "mp-user-3307"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticketPromedio.valor").value(240.25))
                 .andExpect(jsonPath("$.ticketPromedio.compras").value(2))
@@ -66,9 +65,9 @@ class IndicadoresControllerTest {
 
     @Test
     void unIdentificadorMalFormadoSeRechazaConUn400SinConsultar() throws Exception {
-        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").param("identificador", "CLI-5521"))
+        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").param("identificador", " "))
                 .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").param("identificador", "PUNTOS:CLI-5521"))
+        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").param("identificador", "x".repeat(65)))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(consulta);

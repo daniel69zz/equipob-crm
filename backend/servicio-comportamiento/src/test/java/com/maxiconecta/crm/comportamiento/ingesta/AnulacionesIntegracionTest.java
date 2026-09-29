@@ -4,7 +4,6 @@ import com.maxiconecta.crm.comportamiento.compra.Anulacion;
 import com.maxiconecta.crm.comportamiento.compra.AnulacionRepository;
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.compra.TipoAnulacion;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
 import org.junit.jupiter.api.BeforeEach;
@@ -99,14 +98,14 @@ class AnulacionesIntegracionTest {
     void unaDevolucionParcialQuedaRegistradaYDescuentaLaCompra() {
         compraDeVentas();
 
-        publicarAnulacion(ejemplo("anulacion-parcial-ventas.json"));
+        publicarAnulacion(ejemplo("anulacion-parcial.json"));
 
         EventoRecibido recibido = esperarEventos(2).get(1);
         assertThat(recibido.getEstado()).isEqualTo(EstadoEvento.PROCESADO);
         assertThat(recibido.getTipoEvento()).isEqualTo("COMPRA_ANULADA");
         assertThat(recibido.getIdTransaccion()).isEqualTo("V-100234-D1");
         transaccion.executeWithoutResult(estado -> {
-            Anulacion anulacion = anulaciones.findByOrigenAndIdAnulacionOrigen(Origen.VENTAS, "V-100234-D1").orElseThrow();
+            Anulacion anulacion = anulaciones.findByIdAnulacionOrigen("V-100234-D1").orElseThrow();
             assertThat(anulacion.getCompra().getIdCompraOrigen()).isEqualTo("V-100234");
             assertThat(anulacion.getTipo()).isEqualTo(TipoAnulacion.PARCIAL);
             assertThat(anulacion.getFecha()).isNotNull();
@@ -126,10 +125,10 @@ class AnulacionesIntegracionTest {
     @Test
     void unaAnulacionTotalDespuesDeUnaDevolucionDejaLaCompraAnulada() {
         compraDeVentas();
-        publicarAnulacion(ejemplo("anulacion-parcial-ventas.json"));
+        publicarAnulacion(ejemplo("anulacion-parcial.json"));
         esperarEventos(2);
 
-        publicarAnulacion(ejemplo("anulacion-total-ventas.json"));
+        publicarAnulacion(ejemplo("anulacion-total.json"));
 
         assertThat(esperarEventos(3).get(2).getEstado()).isEqualTo(EstadoEvento.PROCESADO);
         Compra compra = compraV100234();
@@ -140,13 +139,13 @@ class AnulacionesIntegracionTest {
 
     @Test
     void unaAnulacionTotalDeMarketplaceAnulaLaCompraCompleta() {
-        publicarCompra(ejemplo("compra-marketplace.json"));
+        publicarCompra(ejemplo("compra-carlos.json"));
         esperarEventos(1);
 
-        publicarAnulacion(ejemplo("anulacion-total-marketplace.json"));
+        publicarAnulacion(ejemplo("anulacion-total-carlos.json"));
 
         assertThat(esperarEventos(2).get(1).getEstado()).isEqualTo(EstadoEvento.PROCESADO);
-        assertThat(compras.findByOrigenAndIdCompraOrigen(Origen.MARKETPLACE, "MP-88120").orElseThrow().getEstado())
+        assertThat(compras.findByIdCompraOrigen("MP-88120").orElseThrow().getEstado())
                 .isEqualTo(Compra.ANULADA);
     }
 
@@ -155,14 +154,14 @@ class AnulacionesIntegracionTest {
     @Test
     void unaAnulacionRepetidaSeDescartaSinEfectos() {
         compraDeVentas();
-        publicarAnulacion(ejemplo("anulacion-parcial-ventas.json"));
+        publicarAnulacion(ejemplo("anulacion-parcial.json"));
         esperarEventos(2);
 
-        publicarAnulacion(ejemplo("anulacion-parcial-ventas.json"));
+        publicarAnulacion(ejemplo("anulacion-parcial.json"));
 
         EventoRecibido repetido = esperarEventos(3).get(2);
         assertThat(repetido.getEstado()).isEqualTo(EstadoEvento.DESCARTADO);
-        assertThat(repetido.getCausa()).contains("La anulación VENTAS/V-100234-D1 ya fue registrada por el evento");
+        assertThat(repetido.getCausa()).contains("La anulación V-100234-D1 ya fue registrada por el evento");
         assertThat(anulaciones.count()).isEqualTo(1);
         assertThat(compraV100234().getMontoVigente()).isEqualByComparingTo("300.00");
     }
@@ -170,10 +169,10 @@ class AnulacionesIntegracionTest {
     @Test
     void unReenvioConOtroIdEventoTambienSeDescarta() {
         compraDeVentas();
-        publicarAnulacion(ejemplo("anulacion-total-ventas.json").replace("300.00", "350.50"));
+        publicarAnulacion(ejemplo("anulacion-total.json").replace("300.00", "350.50"));
         esperarEventos(2);
 
-        publicarAnulacion(ejemplo("anulacion-total-ventas.json").replace("300.00", "350.50")
+        publicarAnulacion(ejemplo("anulacion-total.json").replace("300.00", "350.50")
                 .replace("3a9c7e1f-5d2b-4f8a-b6c4-7e8f9a0b1c2d", "0f1e2d3c-4b5a-4968-8776-655443322110"));
 
         // La compra ya está anulada, pero la anulación repetida se reconoce antes: DESCARTADO, no FALLIDO.
@@ -185,7 +184,7 @@ class AnulacionesIntegracionTest {
     void unaAnulacionYSuCompraConElMismoIdentificadorNoSeConfunden() {
         compraDeVentas();
 
-        publicarAnulacion(ejemplo("anulacion-total-ventas.json").replace("V-100234-A1", "V-100234")
+        publicarAnulacion(ejemplo("anulacion-total.json").replace("V-100234-A1", "V-100234")
                 .replace("300.00", "350.50"));
 
         assertThat(esperarEventos(2).get(1).getEstado()).isEqualTo(EstadoEvento.PROCESADO);
@@ -195,12 +194,12 @@ class AnulacionesIntegracionTest {
 
     @Test
     void unaAnulacionDeUnaCompraQueNoExisteQuedaFallidaYSeReprocesaCuandoLlegaLaCompra() {
-        publicarAnulacion(ejemplo("anulacion-parcial-ventas.json"));
+        publicarAnulacion(ejemplo("anulacion-parcial.json"));
 
         EventoRecibido fallido = esperarEventos(1).get(0);
         assertThat(fallido.getEstado()).isEqualTo(EstadoEvento.FALLIDO);
         assertThat(fallido.getCausa())
-                .isEqualTo("AnulacionInconsistenteException: La compra VENTAS/V-100234 no está registrada");
+                .isEqualTo("AnulacionInconsistenteException: La compra V-100234 no está registrada");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.evento_procesado", Long.class)).isZero();
 
         compraDeVentas();
@@ -238,11 +237,11 @@ class AnulacionesIntegracionTest {
     @Test
     void rechazaLoQueNoCuadraConLaCompra() {
         compraDeVentas();
-        String parcial = ejemplo("anulacion-parcial-ventas.json");
+        String parcial = ejemplo("anulacion-parcial.json");
 
         publicarAnulacion(parcial.replace("\"idCliente\": \"CLI-5521\"", "\"idCliente\": \"CLI-9999\""));
         assertThat(esperarEventos(2).get(1).getCausa())
-                .contains("El cliente CLI-9999 no es el de la compra VENTAS/V-100234 (CLI-5521)");
+                .contains("El cliente CLI-9999 no es el de la compra V-100234 (CLI-5521)");
 
         publicarAnulacion(parcial.replace("V-100234-D1", "V-100234-D2").replace("\"cantidad\": 2", "\"cantidad\": 3"));
         assertThat(esperarEventos(3).get(2).getCausa())
@@ -250,11 +249,11 @@ class AnulacionesIntegracionTest {
 
         publicarAnulacion(parcial.replace("V-100234-D1", "V-100234-D3").replace("Accesorios", "Hogar"));
         assertThat(esperarEventos(4).get(3).getCausa())
-                .contains("La compra VENTAS/V-100234 no tiene ítems de la categoría 'Hogar'");
+                .contains("La compra V-100234 no tiene ítems de la categoría 'Hogar'");
 
-        publicarAnulacion(ejemplo("anulacion-total-ventas.json"));
+        publicarAnulacion(ejemplo("anulacion-total.json"));
         assertThat(esperarEventos(5).get(4).getCausa())
-                .contains("La anulación total debe revertir 350.50, lo que sigue vigente de la compra VENTAS/V-100234");
+                .contains("La anulación total debe revertir 350.50, lo que sigue vigente de la compra V-100234");
 
         publicarAnulacion(parcial.replace("V-100234-D1", "V-100234-D4")
                 .replace("2026-09-28T11:02:30-04:00", "2026-09-20T10:00:00-04:00"));
@@ -271,7 +270,7 @@ class AnulacionesIntegracionTest {
         compraDeVentas();
         doThrow(new IllegalStateException("base no disponible")).when(bitacora).registrarRecepcion(anyString());
 
-        publicarAnulacion(ejemplo("anulacion-parcial-ventas.json"));
+        publicarAnulacion(ejemplo("anulacion-parcial.json"));
 
         await().atMost(Duration.ofSeconds(15))
                 .until(() -> mensajesEn(ConfiguracionRabbit.COLA_ANULACIONES_RESPALDO) == 1);
@@ -300,12 +299,12 @@ class AnulacionesIntegracionTest {
 
     private void compraDeVentas() {
         long antes = eventos.count();
-        publicarCompra(ejemplo("compra-ventas.json"));
+        publicarCompra(ejemplo("compra-ana.json"));
         esperarEventos((int) antes + 1);
     }
 
     private Compra compraV100234() {
-        return compras.findByOrigenAndIdCompraOrigen(Origen.VENTAS, "V-100234").orElseThrow();
+        return compras.findByIdCompraOrigen("V-100234").orElseThrow();
     }
 
     private void publicarCompra(String contenido) {

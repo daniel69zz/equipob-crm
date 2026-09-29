@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Indicadores de comportamiento de un cliente (SCRUM-17). Igual que el historial de compras, el
  * API Gateway exige INDICADORES_CONSULTAR y audita el acceso con el {clienteId} de la ruta; la
- * búsqueda real usa los identificadores por canal de la query (docs/compra/ticket-promedio.md).
+ * búsqueda real usa los identificadores del cliente en Marketplace y Ventas de la query (docs/compra/ticket-promedio.md).
  */
 @RestController
 @RequestMapping("/api/comportamiento/clientes")

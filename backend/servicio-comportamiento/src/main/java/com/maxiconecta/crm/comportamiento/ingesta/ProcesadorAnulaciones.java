@@ -4,7 +4,6 @@ import com.maxiconecta.crm.comportamiento.compra.Anulacion;
 import com.maxiconecta.crm.comportamiento.compra.AnulacionRepository;
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.compra.TipoAnulacion;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorAnulaciones;
 import org.springframework.stereotype.Service;
@@ -51,16 +50,15 @@ public class ProcesadorAnulaciones {
                 .orElseThrow(() -> new IllegalStateException("No existe el evento " + idEvento + " en la bitácora"));
         EventoAnulacionCompra evento = lector.leerAnulacion(recibido.getContenido());
         validador.validar(evento);
-        Origen origen = Origen.valueOf(evento.origen());
         EventoAnulacionCompra.DatosAnulacion datos = evento.anulacion();
         TipoAnulacion tipo = TipoAnulacion.valueOf(datos.tipo());
 
-        ClaveIdempotencia clave = new ClaveIdempotencia(evento.tipoEvento(), origen.name(), datos.idAnulacion());
+        ClaveIdempotencia clave = new ClaveIdempotencia(evento.tipoEvento(), datos.idAnulacion());
         idempotencia.reservar(clave, recibido.getId(), motivo -> new AnulacionDuplicadaException(
-                "La anulación " + origen + "/" + datos.idAnulacion() + " " + motivo));
+                "La anulación " + datos.idAnulacion() + " " + motivo));
 
-        String nombreCompra = origen + "/" + datos.idCompra();
-        Compra compra = compras.bloquear(origen, datos.idCompra())
+        String nombreCompra = datos.idCompra();
+        Compra compra = compras.bloquear(datos.idCompra())
                 .orElseThrow(() -> rechazo("La compra " + nombreCompra + " no está registrada"));
         exigirCoherenciaConLaCompra(datos, compra, nombreCompra);
         if (tipo == TipoAnulacion.TOTAL) {
@@ -69,7 +67,7 @@ public class ProcesadorAnulaciones {
             exigirDevolucionPosible(datos, compra, nombreCompra);
         }
 
-        Anulacion anulacion = new Anulacion(origen, datos.idAnulacion(), compra, tipo, datos.fecha(),
+        Anulacion anulacion = new Anulacion(datos.idAnulacion(), compra, tipo, datos.fecha(),
                 datos.montoRevertido(), datos.motivo(), recibido.getId());
         if (tipo == TipoAnulacion.PARCIAL) {
             datos.items().forEach(item -> anulacion.agregarItem(item.categoria(), item.cantidad(), item.monto()));

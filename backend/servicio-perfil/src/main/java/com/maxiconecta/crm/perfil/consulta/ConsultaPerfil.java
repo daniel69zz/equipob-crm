@@ -1,11 +1,9 @@
 package com.maxiconecta.crm.perfil.consulta;
 
 import com.maxiconecta.crm.perfil.cliente.Cliente;
-import com.maxiconecta.crm.perfil.cliente.ClienteOrigen;
 import com.maxiconecta.crm.perfil.cliente.ClienteOrigenRepository;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
 import com.maxiconecta.crm.perfil.cliente.EstadoPerfil;
-import com.maxiconecta.crm.perfil.cliente.Origen;
 import com.maxiconecta.crm.perfil.comun.RecursoNoEncontradoException;
 import com.maxiconecta.crm.perfil.comun.ReglaNegocioException;
 import jakarta.persistence.criteria.Predicate;
@@ -55,10 +53,7 @@ public class ConsultaPerfil {
         PageRequest solicitud = PageRequest.of(Math.max(pagina, 0), Math.min(Math.max(tamanio, 1), TAMANIO_MAXIMO_PAGINA),
                 Sort.by(Sort.Order.desc("actualizadoEn"), Sort.Order.desc("id")));
         if (filtro.idClienteOrigen() != null) {
-            if (filtro.origen() == null) {
-                throw new ReglaNegocioException("Para buscar por 'idClienteOrigen' también se necesita 'origen'");
-            }
-            List<ResumenPerfil> encontrado = origenes.findById(new ClienteOrigen.Clave(filtro.origen(), filtro.idClienteOrigen()))
+            List<ResumenPerfil> encontrado = origenes.findById(filtro.idClienteOrigen())
                     .flatMap(vinculo -> clientes.findById(vinculo.getIdCliente()))
                     .map(ResumenPerfil::de)
                     .stream().toList();
@@ -102,7 +97,7 @@ public class ConsultaPerfil {
      * motivos de incidencia; {@code desde}/{@code hasta} filtran por última actualización, días
      * completos en la zona horaria del servidor.
      */
-    public record FiltroPerfiles(Origen origen, String idClienteOrigen, String tipoDocumento, String numeroDocumento,
+    public record FiltroPerfiles(String idClienteOrigen, String tipoDocumento, String numeroDocumento,
                                  EstadoPerfil estado, String motivo, LocalDate desde, LocalDate hasta) {
 
         public FiltroPerfiles {

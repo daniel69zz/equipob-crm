@@ -6,7 +6,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Set;
 
 import static com.maxiconecta.crm.comportamiento.validacion.ReglasContrato.LARGO_MAXIMO_CATEGORIA;
 import static com.maxiconecta.crm.comportamiento.validacion.ReglasContrato.LARGO_MAXIMO_ID;
@@ -25,8 +24,6 @@ import static com.maxiconecta.crm.comportamiento.validacion.ReglasContrato.valid
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ReglaContratoCompraConfirmada implements ReglaValidacionEvento {
 
-    static final Set<String> ORIGENES_PERMITIDOS = Set.of("MARKETPLACE", "VENTAS");
-
     @Override
     public void validar(EventoCompraConfirmada evento) {
         exigir(evento, "evento");
@@ -37,11 +34,6 @@ public class ReglaContratoCompraConfirmada implements ReglaValidacionEvento {
         String tipoEvento = exigir(evento.tipoEvento(), "tipoEvento");
         if (!EventoCompraConfirmada.TIPO.equals(tipoEvento)) {
             rechazar("El campo 'tipoEvento' debe ser " + EventoCompraConfirmada.TIPO);
-        }
-
-        String origen = exigir(evento.origen(), "origen");
-        if (!ORIGENES_PERMITIDOS.contains(origen)) {
-            rechazar("El campo 'origen' debe ser MARKETPLACE o VENTAS");
         }
 
         exigir(evento.fechaEmision(), "fechaEmision");

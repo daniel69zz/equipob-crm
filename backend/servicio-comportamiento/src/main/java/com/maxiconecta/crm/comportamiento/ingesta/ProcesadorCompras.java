@@ -3,7 +3,6 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorEventos;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,27 +43,18 @@ public class ProcesadorCompras {
                 .orElseThrow(() -> new IllegalStateException("No existe el evento " + idEvento + " en la bitácora"));
         EventoCompraConfirmada evento = lector.leer(recibido.getContenido());
         validador.validar(evento);
-        Origen origen = origen(evento.origen());
         EventoCompraConfirmada.DatosCompra datos = evento.compra();
 
-        ClaveIdempotencia clave = new ClaveIdempotencia(evento.tipoEvento(), origen.name(), datos.idCompra());
+        ClaveIdempotencia clave = new ClaveIdempotencia(evento.tipoEvento(), datos.idCompra());
         idempotencia.reservar(clave, recibido.getId(),
-                motivo -> new CompraDuplicadaException("La compra " + origen + "/" + datos.idCompra() + " " + motivo));
+                motivo -> new CompraDuplicadaException("La compra " + datos.idCompra() + " " + motivo));
 
-        Compra compra = new Compra(origen, datos.idCompra(), datos.idCliente(), datos.fecha(), datos.montoTotal(),
+        Compra compra = new Compra(datos.idCompra(), datos.idCliente(), datos.fecha(), datos.montoTotal(),
                 recibido.getId());
         datos.items().forEach(item -> compra.agregarItem(item.categoria(), item.cantidad(), item.monto()));
-        perfiles.buscar(origen, datos.idCliente()).ifPresent(compra::vincularCliente);
+        perfiles.buscar(datos.idCliente()).ifPresent(compra::vincularCliente);
         Compra guardada = compras.save(compra);
         recibido.marcarProcesado();
         return guardada;
-    }
-
-    private static Origen origen(String valor) {
-        try {
-            return Origen.valueOf(valor);
-        } catch (IllegalArgumentException ex) {
-            throw new EventoIlegibleException("Origen desconocido: " + valor + " (se espera MARKETPLACE o VENTAS)");
-        }
     }
 }

@@ -38,7 +38,7 @@ class ProcesadorComprasIdempotenciaTest {
     @BeforeEach
     void eventoEnLaBitacora() {
         when(eventos.findById(7L)).thenReturn(Optional.of(
-                new EventoRecibido(ejemplo("compra-ventas.json"), null, null, null, null)));
+                new EventoRecibido(ejemplo("compra-ana.json"), null, null, null)));
     }
 
     @Test
@@ -47,17 +47,17 @@ class ProcesadorComprasIdempotenciaTest {
 
         procesador.procesar(7L);
 
-        verify(procesados).buscar(new ClaveIdempotencia("COMPRA_CONFIRMADA", "VENTAS", "V-100234"));
+        verify(procesados).buscar(new ClaveIdempotencia("COMPRA_CONFIRMADA", "V-100234"));
     }
 
     @Test
     void unaTransaccionYaProcesadaSeRechazaSinGuardarNada() {
         when(procesados.buscar(any())).thenReturn(Optional.of(new EventoProcesado(
-                new ClaveIdempotencia("COMPRA_CONFIRMADA", "VENTAS", "V-100234"), 3L)));
+                new ClaveIdempotencia("COMPRA_CONFIRMADA", "V-100234"), 3L)));
 
         assertThatThrownBy(() -> procesador.procesar(7L))
                 .isInstanceOf(CompraDuplicadaException.class)
-                .hasMessage("La compra VENTAS/V-100234 ya fue registrada por el evento 3");
+                .hasMessage("La compra V-100234 ya fue registrada por el evento 3");
         verify(procesados, never()).saveAndFlush(any());
         verify(compras, never()).save(any());
     }
@@ -78,7 +78,7 @@ class ProcesadorComprasIdempotenciaTest {
     void otroErrorDeIntegridadNoSeConfundeConUnDuplicado() {
         when(procesados.buscar(any())).thenReturn(Optional.empty());
         DataIntegrityViolationException otroError = new DataIntegrityViolationException("no se pudo guardar",
-                new SQLException("null value in column \"origen\""));
+                new SQLException("null value in column \"id_cliente_origen\""));
         when(procesados.saveAndFlush(any())).thenThrow(otroError);
 
         assertThatThrownBy(() -> procesador.procesar(7L)).isSameAs(otroError);
@@ -86,7 +86,7 @@ class ProcesadorComprasIdempotenciaTest {
 
     @Test
     void laCabeceraIncluyeLaTransaccionParaLaTraza() {
-        assertThat(lector.cabecera(ejemplo("compra-ventas.json")).idTransaccion()).isEqualTo("V-100234");
+        assertThat(lector.cabecera(ejemplo("compra-ana.json")).idTransaccion()).isEqualTo("V-100234");
         assertThat(lector.cabecera(ejemplo("mensaje-ilegible.txt")).idTransaccion()).isNull();
     }
 

@@ -3,7 +3,6 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.validacion.EventoInvalidoException;
 import com.maxiconecta.crm.comportamiento.validacion.ReglaContratoCompraConfirmada;
 import com.maxiconecta.crm.comportamiento.validacion.ReglaValidacionEvento;
@@ -78,7 +77,7 @@ class ProcesadorComprasTest {
     }
 
     private static EventoRecibido recibido() {
-        return new EventoRecibido("contenido original", null, null, null, null);
+        return new EventoRecibido("contenido original", null, null, null);
     }
 
     private static EventoCompraConfirmada evento(String idEvento) {
@@ -87,7 +86,7 @@ class ProcesadorComprasTest {
         EventoCompraConfirmada.DatosCompra compra = new EventoCompraConfirmada.DatosCompra(
                 "V-100234", "CLI-5521", OffsetDateTime.parse("2026-09-27T15:28:10-04:00"),
                 new BigDecimal("350.50"), List.of(item));
-        return new EventoCompraConfirmada(idEvento, EventoCompraConfirmada.TIPO, "VENTAS",
+        return new EventoCompraConfirmada(idEvento, EventoCompraConfirmada.TIPO,
                 OffsetDateTime.parse("2026-09-27T15:30:05-04:00"), compra);
     }
 }

@@ -4,7 +4,6 @@ import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.EstadoVinculacionCompra;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -63,15 +62,14 @@ class HistorialComprasIntegracionTest {
     }
 
     @Test
-    void vinculaAmbosCanalesAlMismoPerfilYConservaFechaMontosYCategorias() {
-        when(perfiles.buscar(Origen.VENTAS, "CLI-5521")).thenReturn(Optional.of(42L));
-        // El identificador se obtiene del evento real de ejemplo, sin asumir que coincide entre canales.
-        String marketplace = ejemplo("compra-ventas.json").replace("\"VENTAS\"", "\"MARKETPLACE\"")
-                .replace("CLI-5521", "MP-42");
-        when(perfiles.buscar(Origen.MARKETPLACE, "MP-42")).thenReturn(Optional.of(42L));
+    void vinculaLasComprasDeLosIdentificadoresDelClienteAlMismoPerfilYConservaFechaMontosYCategorias() {
+        when(perfiles.buscar("CLI-5521")).thenReturn(Optional.of(42L));
+        // Otra compra del mismo cliente, hecha con otro de sus identificadores en Marketplace y Ventas.
+        String otraCuenta = ejemplo("compra-ana.json").replace("V-100234", "V-100299").replace("CLI-5521", "MP-42");
+        when(perfiles.buscar("MP-42")).thenReturn(Optional.of(42L));
 
-        ingesta.recibir(ejemplo("compra-ventas.json"));
-        ingesta.recibir(marketplace);
+        ingesta.recibir(ejemplo("compra-ana.json"));
+        ingesta.recibir(otraCuenta);
 
         assertThat(eventos.findAll()).allMatch(e -> e.getEstado() == EstadoEvento.PROCESADO);
         transaccion.executeWithoutResult(estado -> {
@@ -93,23 +91,22 @@ class HistorialComprasIntegracionTest {
 
     @Test
     void unClienteSinPerfilConservaSuCompraPendienteDeVinculacion() {
-        ingesta.recibir(ejemplo("compra-ventas.json"));
+        ingesta.recibir(ejemplo("compra-ana.json"));
 
         Compra compra = compras.findAll().get(0);
         assertThat(compra.getIdCliente()).isNull();
         assertThat(compra.getEstadoVinculacion()).isEqualTo(EstadoVinculacionCompra.PENDIENTE);
-        assertThat(compra.getOrigen()).isEqualTo(Origen.VENTAS);
         assertThat(compra.getIdClienteOrigen()).isEqualTo("CLI-5521");
         assertThat(eventos.findAll().get(0).getEstado()).isEqualTo(EstadoEvento.PROCESADO);
     }
 
     @Test
     void elReenvioNoDuplicaNiReasignaUnaCompraYaRegistrada() {
-        when(perfiles.buscar(Origen.VENTAS, "CLI-5521")).thenReturn(Optional.of(42L));
-        ingesta.recibir(ejemplo("compra-ventas.json"));
-        when(perfiles.buscar(Origen.VENTAS, "CLI-5521")).thenReturn(Optional.of(99L));
+        when(perfiles.buscar("CLI-5521")).thenReturn(Optional.of(42L));
+        ingesta.recibir(ejemplo("compra-ana.json"));
+        when(perfiles.buscar("CLI-5521")).thenReturn(Optional.of(99L));
 
-        ingesta.recibir(ejemplo("compra-ventas.json"));
+        ingesta.recibir(ejemplo("compra-ana.json"));
 
         assertThat(compras.findAll()).singleElement().satisfies(c -> assertThat(c.getIdCliente()).isEqualTo(42L));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.compra_item", Long.class)).isEqualTo(2L);
@@ -120,7 +117,7 @@ class HistorialComprasIntegracionTest {
     @ParameterizedTest
     @ValueSource(strings = {"categoria", "fecha", "monto", "suma", "cantidad", "confirmacion"})
     void rechazaDatosInvalidosSinDejarCompraItemsNiClave(String caso) {
-        String contenido = ejemplo("compra-ventas.json");
+        String contenido = ejemplo("compra-ana.json");
         contenido = switch (caso) {
             case "categoria" -> contenido.replace("Electrónica", " ");
             case "fecha" -> contenido.replace("2026-09-27T15:28:10-04:00", "fecha-invalida");
@@ -152,7 +149,7 @@ class HistorialComprasIntegracionTest {
         jdbc.execute("CREATE TRIGGER fallo_item_prueba BEFORE INSERT ON comportamiento.compra_item "
                 + "FOR EACH ROW EXECUTE FUNCTION comportamiento.rechazar_item_prueba()");
         try {
-            ingesta.recibir(ejemplo("compra-ventas.json"));
+            ingesta.recibir(ejemplo("compra-ana.json"));
             assertThat(eventos.findAll().get(0).getEstado()).isEqualTo(EstadoEvento.FALLIDO);
             assertThat(compras.count()).isZero();
             assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.compra_item", Long.class)).isZero();
@@ -161,7 +158,7 @@ class HistorialComprasIntegracionTest {
             jdbc.execute("DROP TRIGGER fallo_item_prueba ON comportamiento.compra_item");
             jdbc.execute("DROP FUNCTION comportamiento.rechazar_item_prueba()");
         }
-        ingesta.recibir(ejemplo("compra-ventas.json"));
+        ingesta.recibir(ejemplo("compra-ana.json"));
         assertThat(compras.count()).isEqualTo(1L);
     }
 
@@ -175,7 +172,7 @@ class HistorialComprasIntegracionTest {
             "UPDATE comportamiento.compra_item SET categoria = ' '"
     })
     void laBaseRechazaDatosIncoherentesAunqueSeEscribanSinElProcesador(String sql) {
-        ingesta.recibir(ejemplo("compra-ventas.json"));
+        ingesta.recibir(ejemplo("compra-ana.json"));
 
         assertThatThrownBy(() -> jdbc.execute(sql)).isInstanceOf(DataIntegrityViolationException.class);
     }

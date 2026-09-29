@@ -44,7 +44,7 @@ class ConsultaPerfilTest {
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
-                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil_detalle, "
+                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.cambio_perfil_detalle, "
                 + "perfil.cambio_perfil, perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, "
                 + "perfil.cliente, perfil.evento_cliente "
                 + "RESTART IDENTITY; SET session_replication_role = DEFAULT");
@@ -56,7 +56,7 @@ class ConsultaPerfilTest {
         guardarConMotivo("direcciones: ninguna dirección principal");
 
         List<ResumenPerfil> resultado = consulta
-                .buscar(new ConsultaPerfil.FiltroPerfiles(null, null, null, null, null, "APELLIDOS", null, null), 0, 50)
+                .buscar(new ConsultaPerfil.FiltroPerfiles(null, null, null, null, "APELLIDOS", null, null), 0, 50)
                 .getContent();
 
         assertThat(resultado).extracting(ResumenPerfil::id).containsExactly(conApellidos.getId());
@@ -74,7 +74,7 @@ class ConsultaPerfilTest {
         guardarConMotivo("apellidos: vacío");
 
         List<ResumenPerfil> resultado = consulta.buscar(new ConsultaPerfil.FiltroPerfiles(
-                null, null, null, null, null, "FORMATO DE NIT", null, null), 0, 50).getContent();
+                null, null, null, null, "FORMATO DE NIT", null, null), 0, 50).getContent();
 
         assertThat(resultado).extracting(ResumenPerfil::id)
                 .containsExactlyInAnyOrder(inconsistente.getId(), mixto.getId());
@@ -82,7 +82,7 @@ class ConsultaPerfilTest {
             assertThat(p.estado()).isEqualTo(EstadoPerfil.INCOMPLETO);
             assertThat(p.motivosIncidencia()).contains("apellidos: vacío", "formato de NIT");
         });
-        assertThat(consulta.buscar(new ConsultaPerfil.FiltroPerfiles(null, null, null, null,
+        assertThat(consulta.buscar(new ConsultaPerfil.FiltroPerfiles(null, null, null,
                 EstadoPerfil.INCONSISTENTE, "FORMATO DE NIT", null, null), 0, 50).getContent())
                 .extracting(ResumenPerfil::id).containsExactly(inconsistente.getId());
     }
@@ -94,7 +94,7 @@ class ConsultaPerfilTest {
         actualizarFecha(dentro.getId(), LocalDate.of(2026, 9, 15));
         actualizarFecha(fuera.getId(), LocalDate.of(2026, 8, 1));
 
-        List<ResumenPerfil> resultado = consulta.buscar(new ConsultaPerfil.FiltroPerfiles(null, null, null, null, null,
+        List<ResumenPerfil> resultado = consulta.buscar(new ConsultaPerfil.FiltroPerfiles(null, null, null, null,
                 null, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30)), 0, 50).getContent();
 
         assertThat(resultado).extracting(ResumenPerfil::id).containsExactly(dentro.getId());
@@ -102,7 +102,7 @@ class ConsultaPerfilTest {
 
     @Test
     void desdePosteriorAHastaFalla() {
-        assertThatThrownBy(() -> new ConsultaPerfil.FiltroPerfiles(null, null, null, null, null, null,
+        assertThatThrownBy(() -> new ConsultaPerfil.FiltroPerfiles(null, null, null, null, null,
                 LocalDate.of(2026, 9, 30), LocalDate.of(2026, 9, 1)))
                 .isInstanceOf(ReglaNegocioException.class);
     }

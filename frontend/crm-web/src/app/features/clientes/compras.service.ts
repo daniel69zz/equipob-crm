@@ -12,7 +12,6 @@ export interface ItemCompra {
 export interface Compra {
   fecha: string;
   referencia: string;
-  origen: 'MARKETPLACE' | 'VENTAS';
   montoTotal: number;
   estado: 'CONFIRMADA' | 'DEVOLUCION_PARCIAL' | 'ANULADA';
   items: ItemCompra[];
@@ -66,5 +65,5 @@ export class ComprasService {
 }
 
 function parametrosDeIdentificadores(params: HttpParams, identificadores: IdentificadorOrigen[]): HttpParams {
-  return identificadores.reduce((acumulado, id) => acumulado.append('identificador', `${id.origen}:${id.idCliente}`), params);
+  return identificadores.reduce((acumulado, id) => acumulado.append('identificador', id.idCliente), params);
 }

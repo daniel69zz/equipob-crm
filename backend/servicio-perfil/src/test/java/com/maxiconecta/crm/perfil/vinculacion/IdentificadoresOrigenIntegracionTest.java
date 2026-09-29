@@ -45,8 +45,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * SCRUM-553 · Identificadores de origen: un mismo cliente en Marketplace y en Ventas apunta a un
- * solo perfil, y un evento de un perfil unificado no recrea el duplicado.
+ * SCRUM-553 · Identificadores de origen: los identificadores de un mismo cliente en Marketplace y
+ * Ventas apuntan a un solo perfil, y un evento de un perfil unificado no recrea el duplicado.
  */
 @SpringBootTest(properties = {
         "spring.rabbitmq.listener.simple.concurrency=4",
@@ -56,7 +56,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers(disabledWithoutDocker = true)
 class IdentificadoresOrigenIntegracionTest {
 
-    private static final String ID_MARKETPLACE_ANA = "mp-user-9001";
+    private static final String ID_OTRA_CUENTA_ANA = "mp-user-9001";
 
     @Container
     @ServiceConnection
@@ -96,7 +96,7 @@ class IdentificadoresOrigenIntegracionTest {
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
-                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil_detalle, perfil.cambio_perfil, perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, "
+                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.cambio_perfil_detalle, perfil.cambio_perfil, perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, "
                 + "perfil.cliente, perfil.evento_cliente RESTART IDENTITY; "
                 + "SET session_replication_role = DEFAULT");
     }
@@ -105,7 +105,7 @@ class IdentificadoresOrigenIntegracionTest {
 
     @Test
     void unIdentificadorDesconocidoSinCoincidenciasCreaSuPerfil() {
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        publicar(ejemplo("cliente-carlos-alta.json"));
 
         assertThat(esperar(1).get(0).getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
         assertThat(clientes.count()).isEqualTo(1);
@@ -114,9 +114,9 @@ class IdentificadoresOrigenIntegracionTest {
 
     @Test
     void unIdentificadorDesconocidoConElDocumentoDeOtroPerfilQuedaPendiente() throws Exception {
-        Long idAna = altaDeAnaEnVentas();
-        publicar(ejemplo("cliente-marketplace-ana.json"));
-        publicar(conFecha(ejemplo("cliente-marketplace-ana.json"), "2026-09-27T08:00:00-04:00"));
+        Long idAna = altaDeAna();
+        publicar(ejemplo("cliente-ana-otra-cuenta.json"));
+        publicar(conFecha(ejemplo("cliente-ana-otra-cuenta.json"), "2026-09-27T08:00:00-04:00"));
 
         List<EventoCliente> recibidos = esperar(3);
         assertThat(recibidos.subList(1, 3)).allSatisfy(e -> {
@@ -124,7 +124,7 @@ class IdentificadoresOrigenIntegracionTest {
             assertThat(e.getIdCliente()).isNull();
         });
         assertThat(clientes.count()).isEqualTo(1);
-        assertThat(vinculaciones.findById(new ClienteOrigen.Clave(Origen.MARKETPLACE, ID_MARKETPLACE_ANA)))
+        assertThat(vinculaciones.findById(ID_OTRA_CUENTA_ANA))
                 .hasValueSatisfying(v -> {
                     assertThat(v.getEstado()).isEqualTo(EstadoVinculacion.PENDIENTE);
                     assertThat(v.getIdClienteSugerido()).isEqualTo(idAna);
@@ -133,15 +133,15 @@ class IdentificadoresOrigenIntegracionTest {
 
         mvc.perform(get("/api/perfil/vinculaciones"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].idCliente").value(ID_MARKETPLACE_ANA))
+                .andExpect(jsonPath("$[0].idCliente").value(ID_OTRA_CUENTA_ANA))
                 .andExpect(jsonPath("$[0].idClienteSugerido").value(idAna))
                 .andExpect(jsonPath("$[0].eventosPendientes").value(2));
     }
 
     @Test
     void variasCopiasSimultaneasDeUnIdentificadorPendienteNoFallan() {
-        altaDeAnaEnVentas();
-        String evento = ejemplo("cliente-marketplace-ana.json");
+        altaDeAna();
+        String evento = ejemplo("cliente-ana-otra-cuenta.json");
         IntStream.range(0, 6).parallel().forEach(i -> publicar(evento));
 
         List<EventoCliente> recibidos = esperar(7);
@@ -154,31 +154,31 @@ class IdentificadoresOrigenIntegracionTest {
 
     @Test
     void alVincularElIdentificadorSusEventosPendientesSeAplicanAlMismoPerfil() throws Exception {
-        Long idAna = altaDeAnaEnVentas();
-        publicar(ejemplo("cliente-marketplace-ana.json"));
+        Long idAna = altaDeAna();
+        publicar(ejemplo("cliente-ana-otra-cuenta.json"));
         esperar(2);
 
         mvc.perform(post("/api/perfil/clientes/{id}/identificadores", idAna).header("X-Usuario", "admin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"origen\":\"MARKETPLACE\",\"idCliente\":\"" + ID_MARKETPLACE_ANA + "\"}"))
+                        .content("{\"idCliente\":\"" + ID_OTRA_CUENTA_ANA + "\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.idClienteVinculado").value(idAna))
                 .andExpect(jsonPath("$.eventosAplicados[0].estado").value("PROCESADO"));
 
         assertThat(clientes.count()).isEqualTo(1);
         assertThat(origenes.findByIdClienteOrderByFechaVinculacion(idAna))
-                .extracting(v -> v.getOrigen() + "/" + v.getIdClienteOrigen() + " " + v.getMotivoVinculacion())
-                .containsExactly("VENTAS/CLI-5521 ALTA_AUTOMATICA", "MARKETPLACE/mp-user-9001 VINCULACION_MANUAL");
-        assertThat(vinculaciones.findById(new ClienteOrigen.Clave(Origen.MARKETPLACE, ID_MARKETPLACE_ANA)))
+                .extracting(v -> v.getIdClienteOrigen() + " " + v.getMotivoVinculacion())
+                .containsExactly("CLI-5521 ALTA_AUTOMATICA", "mp-user-9001 VINCULACION_MANUAL");
+        assertThat(vinculaciones.findById(ID_OTRA_CUENTA_ANA))
                 .hasValueSatisfying(v -> {
                     assertThat(v.getEstado()).isEqualTo(EstadoVinculacion.VINCULADO);
                     assertThat(v.getResueltaPor()).isEqualTo("admin");
                 });
         assertThat(clientes.findById(idAna).orElseThrow().getEmail()).isEqualTo("anita.perez@correo.com");
 
-        publicar(conFecha(ejemplo("cliente-ventas-alta.json"), "2026-09-28T09:00:00-04:00")
+        publicar(conFecha(ejemplo("cliente-ana-alta.json"), "2026-09-28T09:00:00-04:00")
                 .replace("ana.perez@correo.com", "ana.desde.ventas@correo.com"));
-        publicar(conFecha(ejemplo("cliente-marketplace-ana.json"), "2026-09-28T10:00:00-04:00")
+        publicar(conFecha(ejemplo("cliente-ana-otra-cuenta.json"), "2026-09-28T10:00:00-04:00")
                 .replace("anita.perez@correo.com", "ana.desde.marketplace@correo.com"));
 
         List<EventoCliente> recibidos = esperar(4);
@@ -191,54 +191,51 @@ class IdentificadoresOrigenIntegracionTest {
 
     @Test
     void laVinculacionQuedaEnElRegistroDeCambiosConElAdministrador() throws Exception {
-        Long idAna = altaDeAnaEnVentas();
+        Long idAna = altaDeAna();
         vincularMarketplace(idAna).andExpect(status().isCreated());
 
         CambioPerfil cambio = cambios.findByIdClienteOrderByFechaAscIdAsc(idAna).get(1);
         assertThat(cambio.getOrigen()).isEqualTo(Origen.CRM);
         assertThat(cambio.getResponsable()).isEqualTo("admin");
-        assertThat(cambio.getCambios()).contains("identificadoresOrigen", "MARKETPLACE/mp-user-9001");
+        assertThat(cambio.getCambios()).contains("identificadoresOrigen", "mp-user-9001");
     }
 
     @Test
     void siElAdministradorDecideQueEsOtraPersonaSeCreaUnPerfilNuevo() throws Exception {
-        Long idAna = altaDeAnaEnVentas();
-        publicar(ejemplo("cliente-marketplace-ana.json"));
+        Long idAna = altaDeAna();
+        publicar(ejemplo("cliente-ana-otra-cuenta.json"));
         esperar(2);
 
         mvc.perform(post("/api/perfil/vinculaciones/nuevo-perfil").header("X-Usuario", "admin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"origen\":\"MARKETPLACE\",\"idCliente\":\"" + ID_MARKETPLACE_ANA + "\"}"))
+                        .content("{\"idCliente\":\"" + ID_OTRA_CUENTA_ANA + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.eventosAplicados[0].estado").value("PROCESADO"));
 
         assertThat(clientes.count()).isEqualTo(2);
-        Long idNuevo = origenes.findById(new ClienteOrigen.Clave(Origen.MARKETPLACE, ID_MARKETPLACE_ANA))
+        Long idNuevo = origenes.findById(ID_OTRA_CUENTA_ANA)
                 .orElseThrow().getIdCliente();
         assertThat(idNuevo).isNotEqualTo(idAna);
 
-        publicar(conFecha(ejemplo("cliente-marketplace-ana.json"), "2026-09-28T10:00:00-04:00"));
+        publicar(conFecha(ejemplo("cliente-ana-otra-cuenta.json"), "2026-09-28T10:00:00-04:00"));
         assertThat(esperar(3).get(2).getIdCliente()).isEqualTo(idNuevo);
     }
 
     @Test
     void noSePuedeVincularUnIdentificadorQueYaTieneOtroPerfil() throws Exception {
-        Long idAna = altaDeAnaEnVentas();
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        Long idAna = altaDeAna();
+        publicar(ejemplo("cliente-carlos-alta.json"));
         esperar(2);
 
         mvc.perform(post("/api/perfil/clientes/{id}/identificadores", idAna).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"origen\":\"MARKETPLACE\",\"idCliente\":\"mp-user-3307\"}"))
+                        .content("{\"idCliente\":\"mp-user-3307\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.mensaje").value(org.hamcrest.Matchers.containsString("unifique los perfiles")));
         mvc.perform(post("/api/perfil/clientes/{id}/identificadores", idAna).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"origen\":\"CRM\",\"idCliente\":\"x\"}"))
-                .andExpect(status().isBadRequest());
-        mvc.perform(post("/api/perfil/clientes/{id}/identificadores", idAna).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"origen\":\"MARKETPLACE\"}"))
+                        .content("{}"))
                 .andExpect(status().isBadRequest());
         mvc.perform(post("/api/perfil/clientes/{id}/identificadores", 999_999).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"origen\":\"MARKETPLACE\",\"idCliente\":\"mp-x\"}"))
+                        .content("{\"idCliente\":\"mp-x\"}"))
                 .andExpect(status().isNotFound());
     }
 
@@ -246,35 +243,35 @@ class IdentificadoresOrigenIntegracionTest {
 
     @Test
     void alUnificarLosIdentificadoresDelAbsorbidoPasanAlConservado() throws Exception {
-        Long idAna = altaDeAnaEnVentas();
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        Long idAna = altaDeAna();
+        publicar(ejemplo("cliente-carlos-alta.json"));
         Long idCarlos = esperar(2).get(1).getIdCliente();
 
-        List<ClienteOrigen.Clave> movidos = consolidacion.consolidar(idCarlos, idAna, "admin");
+        List<String> movidos = consolidacion.consolidar(idCarlos, idAna, "admin");
 
-        assertThat(movidos).extracting(ClienteOrigen.Clave::toString).containsExactly("MARKETPLACE/mp-user-3307");
+        assertThat(movidos).containsExactly("mp-user-3307");
         assertThat(origenes.findByIdClienteOrderByFechaVinculacion(idAna))
                 .extracting(v -> v.getId().toString() + " " + v.getMotivoVinculacion())
-                .containsExactlyInAnyOrder("VENTAS/CLI-5521 ALTA_AUTOMATICA", "MARKETPLACE/mp-user-3307 UNIFICACION");
+                .containsExactlyInAnyOrder("CLI-5521 ALTA_AUTOMATICA", "mp-user-3307 UNIFICACION");
         assertThat(origenes.findByIdClienteOrderByFechaVinculacion(idCarlos)).isEmpty();
         assertThat(clientes.findById(idCarlos).orElseThrow().getIdClienteConsolidado()).isEqualTo(idAna);
 
         mvc.perform(get("/api/perfil/clientes/{id}", idCarlos))
                 .andExpect(jsonPath("$.idClienteConsolidado").value(idAna))
                 .andExpect(jsonPath("$.identificadoresOrigen").isEmpty());
-        mvc.perform(get("/api/perfil/clientes").param("origen", "MARKETPLACE").param("idClienteOrigen", "mp-user-3307"))
+        mvc.perform(get("/api/perfil/clientes").param("idClienteOrigen", "mp-user-3307"))
                 .andExpect(jsonPath("$.clientes[0].id").value(idAna));
     }
 
     @Test
     void unEventoDeUnPerfilUnificadoSeAplicaAlConservadoYNoRecreaElDuplicado() {
-        Long idAna = altaDeAnaEnVentas();
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        Long idAna = altaDeAna();
+        publicar(ejemplo("cliente-carlos-alta.json"));
         Long idCarlos = esperar(2).get(1).getIdCliente();
         consolidacion.consolidar(idCarlos, idAna, "admin");
 
-        publicar(conFecha(ejemplo("cliente-marketplace-alta.json"), "2026-09-28T10:00:00-04:00"));
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        publicar(conFecha(ejemplo("cliente-carlos-alta.json"), "2026-09-28T10:00:00-04:00"));
+        publicar(ejemplo("cliente-carlos-alta.json"));
 
         // Con varios consumidores, los dos mensajes pueden anotarse en la bitácora en cualquier orden.
         List<EventoCliente> posteriores = esperar(4).subList(2, 4);
@@ -295,8 +292,8 @@ class IdentificadoresOrigenIntegracionTest {
 
     @Test
     void unaUnificacionEncadenadaApuntaAlUltimoPerfilConservado() {
-        publicar(ejemplo("cliente-ventas-alta.json"));
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
+        publicar(ejemplo("cliente-carlos-alta.json"));
         publicar(ejemplo("cliente-incompleto.json"));
         List<EventoCliente> recibidos = esperar(3);
         Long a = recibidos.get(0).getIdCliente();
@@ -314,35 +311,26 @@ class IdentificadoresOrigenIntegracionTest {
 
     @Test
     void unaVinculacionPendienteSugiereElPerfilConservadoTrasUnaUnificacion() {
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        publicar(ejemplo("cliente-carlos-alta.json"));
         Long idCarlos = esperar(1).get(0).getIdCliente();
-        Long idAna = altaDeAnaEnVentas(2);
-        publicar(ejemplo("cliente-marketplace-ana.json"));
+        Long idAna = altaDeAna(2);
+        publicar(ejemplo("cliente-ana-otra-cuenta.json"));
         esperar(3);
 
         consolidacion.consolidar(idAna, idCarlos, "admin");
 
-        assertThat(vinculaciones.findById(new ClienteOrigen.Clave(Origen.MARKETPLACE, ID_MARKETPLACE_ANA)))
+        assertThat(vinculaciones.findById(ID_OTRA_CUENTA_ANA))
                 .hasValueSatisfying(v -> assertThat(v.getIdClienteSugerido()).isEqualTo(idCarlos));
-    }
-
-    @Test
-    void unEventoNoPuedeVenirDelPropioCrm() {
-        publicar(ejemplo("cliente-ventas-alta.json").replace("\"VENTAS\"", "\"CRM\""));
-
-        EventoCliente evento = esperar(1).get(0);
-        assertThat(evento.getEstado()).isEqualTo(EstadoEventoCliente.FALLIDO);
-        assertThat(evento.getCausa()).contains("MARKETPLACE o VENTAS");
     }
 
     // --- Utilidades ---
 
-    private Long altaDeAnaEnVentas() {
-        return altaDeAnaEnVentas(1);
+    private Long altaDeAna() {
+        return altaDeAna(1);
     }
 
-    private Long altaDeAnaEnVentas(int eventosEsperados) {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+    private Long altaDeAna(int eventosEsperados) {
+        publicar(ejemplo("cliente-ana-alta.json"));
         List<EventoCliente> recibidos = esperar(eventosEsperados);
         return recibidos.get(recibidos.size() - 1).getIdCliente();
     }
@@ -350,7 +338,7 @@ class IdentificadoresOrigenIntegracionTest {
     private org.springframework.test.web.servlet.ResultActions vincularMarketplace(Long idCliente) throws Exception {
         return mvc.perform(post("/api/perfil/clientes/{id}/identificadores", idCliente).header("X-Usuario", "admin")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"origen\":\"MARKETPLACE\",\"idCliente\":\"" + ID_MARKETPLACE_ANA + "\"}"));
+                .content("{\"idCliente\":\"" + ID_OTRA_CUENTA_ANA + "\"}"));
     }
 
     private static String conFecha(String evento, String fecha) {

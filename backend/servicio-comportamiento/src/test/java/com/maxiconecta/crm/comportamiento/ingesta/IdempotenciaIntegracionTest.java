@@ -2,7 +2,6 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -91,7 +90,7 @@ class IdempotenciaIntegracionTest {
 
     @Test
     void elMismoEventoReenviadoVariasVecesSeRegistraUnaSolaVez() {
-        String evento = ejemplo("compra-ventas.json");
+        String evento = ejemplo("compra-ana.json");
         publicar(evento);
         esperar(1);
         IntStream.range(0, 4).forEach(i -> publicar(evento));
@@ -106,9 +105,9 @@ class IdempotenciaIntegracionTest {
 
     @Test
     void unReenvioConOtroIdEventoYDatosDistintosNoCambiaLaCompraOriginal() {
-        publicar(ejemplo("compra-ventas.json"));
+        publicar(ejemplo("compra-ana.json"));
         esperar(1);
-        String reenvio = ejemplo("compra-ventas.json")
+        String reenvio = ejemplo("compra-ana.json")
                 .replace("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c", UUID.randomUUID().toString())
                 .replace("350.50", "999.99")
                 .replace("300.00", "949.49");
@@ -117,30 +116,31 @@ class IdempotenciaIntegracionTest {
         assertThat(esperar(2)).extracting(EventoRecibido::getEstado)
                 .containsExactlyInAnyOrder(EstadoEvento.PROCESADO, EstadoEvento.DESCARTADO);
         transaccion.executeWithoutResult(estado -> {
-            Compra compra = compras.findByOrigenAndIdCompraOrigen(Origen.VENTAS, "V-100234").orElseThrow();
+            Compra compra = compras.findByIdCompraOrigen("V-100234").orElseThrow();
             assertThat(compra.getMontoTotal()).isEqualByComparingTo(new BigDecimal("350.50"));
             assertThat(compra.getItems()).hasSize(2);
         });
     }
 
     @Test
-    void elMismoIdentificadorEnOtroCanalEsOtraCompra() {
-        publicar(ejemplo("compra-ventas.json"));
-        publicar(ejemplo("compra-ventas.json")
+    void unCampoOrigenEnElMensajeNoHaceOtraCompra() {
+        publicar(ejemplo("compra-ana.json"));
+        publicar(ejemplo("compra-ana.json")
                 .replace("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c", UUID.randomUUID().toString())
-                .replace("\"VENTAS\"", "\"MARKETPLACE\""));
+                .replace("\"tipoEvento\"", "\"origen\": \"MARKETPLACE\", \"tipoEvento\""));
 
-        assertThat(esperar(2)).allMatch(e -> e.getEstado() == EstadoEvento.PROCESADO);
-        assertThat(compras.count()).isEqualTo(2);
+        assertThat(esperar(2)).extracting(EventoRecibido::getEstado)
+                .containsExactlyInAnyOrder(EstadoEvento.PROCESADO, EstadoEvento.DESCARTADO);
+        assertThat(compras.count()).isEqualTo(1);
     }
 
     @Test
     void siElPrimerEnvioFallaElReenvioCorrectoSiSeProcesa() {
-        String sinCliente = ejemplo("compra-ventas.json").replace("\"idCliente\": \"CLI-5521\",", "");
+        String sinCliente = ejemplo("compra-ana.json").replace("\"idCliente\": \"CLI-5521\",", "");
         publicar(sinCliente);
         assertThat(esperar(1).get(0).getEstado()).isEqualTo(EstadoEvento.FALLIDO);
 
-        publicar(ejemplo("compra-ventas.json"));
+        publicar(ejemplo("compra-ana.json"));
 
         assertThat(esperar(2)).extracting(EventoRecibido::getEstado)
                 .containsExactlyInAnyOrder(EstadoEvento.FALLIDO, EstadoEvento.PROCESADO);
@@ -149,7 +149,7 @@ class IdempotenciaIntegracionTest {
 
     @Test
     void veinteCopiasSimultaneasDejanUnaSolaCompraYNingunFallido() {
-        String evento = ejemplo("compra-marketplace.json");
+        String evento = ejemplo("compra-carlos.json");
         IntStream.range(0, 20).parallel().forEach(i -> publicar(evento));
 
         List<EventoRecibido> recibidos = esperar(20);
@@ -160,34 +160,33 @@ class IdempotenciaIntegracionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.compra_item", Long.class)).isEqualTo(2);
     }
 
-    // --- Criterio 2: el descarte queda en la traza con identificador, origen y fecha ---
+    // --- Criterio 2: el descarte queda en la traza con identificador y fecha ---
 
     @Test
-    void elDescarteQuedaEnLaTrazaConTransaccionOrigenYFecha() {
-        publicar(ejemplo("compra-ventas.json"));
+    void elDescarteQuedaEnLaTrazaConTransaccionYFecha() {
+        publicar(ejemplo("compra-ana.json"));
         EventoRecibido original = esperar(1).get(0);
-        publicar(ejemplo("compra-ventas.json"));
+        publicar(ejemplo("compra-ana.json"));
 
         EventoRecibido descartado = esperar(2).stream()
                 .filter(e -> e.getEstado() == EstadoEvento.DESCARTADO).findFirst().orElseThrow();
         assertThat(descartado.getIdTransaccion()).isEqualTo("V-100234");
         assertThat(descartado.getIdEventoOrigen()).isEqualTo("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c");
-        assertThat(descartado.getOrigen()).isEqualTo("VENTAS");
         assertThat(descartado.getProcesadoEn()).isNotNull();
         assertThat(descartado.getCausa()).isEqualTo(
-                "La compra VENTAS/V-100234 ya fue registrada por el evento " + original.getId());
+                "La compra V-100234 ya fue registrada por el evento " + original.getId());
     }
 
     // --- Criterio 5: la bitácora muestra cuántos se descartaron por duplicidad en el periodo ---
 
     @Test
     void laBitacoraCuentaLosDescartadosYBuscaPorTransaccion() throws Exception {
-        String evento = ejemplo("compra-ventas.json");
+        String evento = ejemplo("compra-ana.json");
         publicar(evento);
         esperar(1);
         publicar(evento);
         publicar(evento);
-        publicar(ejemplo("compra-marketplace.json"));
+        publicar(ejemplo("compra-carlos.json"));
         esperar(4);
 
         mvc.perform(get("/api/comportamiento/eventos"))

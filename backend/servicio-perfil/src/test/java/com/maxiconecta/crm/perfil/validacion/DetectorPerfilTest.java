@@ -21,7 +21,7 @@ class DetectorPerfilTest {
     @Test
     void unPerfilCompletoYCoherenteQuedaValido() {
         Cliente cliente = clienteBase();
-        cliente.sincronizarDirecciones(Origen.VENTAS, List.of(direccion("D-1", true)));
+        cliente.sincronizarDirecciones(List.of(direccion("D-1", true)));
 
         detector.detectar(cliente);
 
@@ -55,7 +55,7 @@ class DetectorPerfilTest {
     @Test
     void direccionesActivasSinNingunaPrincipalQuedaInconsistente() {
         Cliente cliente = clienteBase();
-        cliente.sincronizarDirecciones(Origen.VENTAS, List.of(direccion("D-1", false)));
+        cliente.sincronizarDirecciones(List.of(direccion("D-1", false)));
 
         detector.detectar(cliente);
 

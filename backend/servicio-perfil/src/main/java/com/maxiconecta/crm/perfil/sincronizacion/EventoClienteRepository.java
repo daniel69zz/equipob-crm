@@ -8,6 +8,5 @@ public interface EventoClienteRepository extends JpaRepository<EventoCliente, Lo
 
     List<EventoCliente> findTop100ByIdClienteOrderByIdDesc(Long idCliente);
 
-    List<EventoCliente> findByOrigenAndIdClienteOrigenAndEstadoOrderByIdAsc(String origen, String idClienteOrigen,
-                                                                            EstadoEventoCliente estado);
+    List<EventoCliente> findByIdClienteOrigenAndEstadoOrderByIdAsc(String idClienteOrigen, EstadoEventoCliente estado);
 }

@@ -1,10 +1,10 @@
 # RIO-CRM-02 · Compra confirmada
 
-Evento que Marketplace y Ventas publican cada vez que se confirma una compra. El CRM lo usa para construir el historial de compras y los indicadores de comportamiento del cliente.
+Evento que el módulo **Marketplace y Ventas** del ERP publica cada vez que se confirma una compra. El CRM lo usa para construir el historial de compras y los indicadores de comportamiento del cliente.
 
 | | |
 |---|---|
-| **Emisor** | Marketplace y Ventas (canal `MARKETPLACE` o `VENTAS`) |
+| **Emisor** | Módulo Marketplace y Ventas del ERP |
 | **Receptor** | `servicio-comportamiento` |
 | **Transporte** | RabbitMQ, mensaje JSON en UTF-8 |
 | **Exchange** | `ventas.eventos` (tipo `topic`, durable) |
@@ -17,10 +17,9 @@ Evento que Marketplace y Ventas publican cada vez que se confirma una compra. El
 |---|---|:---:|---|
 | `idEvento` | texto (UUID, máx. 64) | ✅ | Identificador único del mensaje, asignado por el emisor |
 | `tipoEvento` | texto | ✅ | Siempre `COMPRA_CONFIRMADA` |
-| `origen` | `MARKETPLACE` \| `VENTAS` | ✅ | Canal donde se hizo la compra |
 | `fechaEmision` | fecha y hora ISO-8601 con zona | ✅ | Momento en que se publicó el evento |
-| `compra.idCompra` | texto (máx. 64) | ✅ | **Identificador de la transacción** en el sistema de origen. Junto con `origen`, identifica la compra de forma única |
-| `compra.idCliente` | texto (máx. 64) | ✅ | Identificador del cliente en el sistema de origen. El CRM lo vincula a su perfil mediante los identificadores de origen del servicio de Perfil |
+| `compra.idCompra` | texto (máx. 64) | ✅ | **Identificador de la transacción** en Marketplace y Ventas. Identifica la compra de forma única |
+| `compra.idCliente` | texto (máx. 64) | ✅ | Identificador del cliente en Marketplace y Ventas. El CRM lo vincula a su perfil mediante los identificadores de origen del servicio de Perfil |
 | `compra.fecha` | fecha y hora ISO-8601 con zona | ✅ | Momento en que se confirmó la compra |
 | `compra.montoTotal` | decimal (12,2) | ✅ | Monto total de la compra, en bolivianos |
 | `compra.items` | lista (mín. 1) | ✅ | Detalle de la compra por categoría |
@@ -40,7 +39,6 @@ Notas:
 {
   "idEvento": "5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c",
   "tipoEvento": "COMPRA_CONFIRMADA",
-  "origen": "VENTAS",
   "fechaEmision": "2026-09-27T15:30:05-04:00",
   "compra": {
     "idCompra": "V-100234",
@@ -55,14 +53,14 @@ Notas:
 }
 ```
 
-Más ejemplos, de los dos canales y de casos de error, en `herramientas/simulador-eventos/eventos/`.
+Más ejemplos, incluidos casos de error, en `herramientas/simulador-eventos/eventos/`.
 
 ## Qué hace el CRM al recibirlo
 
 | Situación | Resultado en la bitácora de ingesta |
 |---|---|
 | Evento correcto | `PROCESADO`: la compra y sus ítems quedan guardados |
-| La compra (`origen` + `idCompra`) ya estaba registrada | `DESCARTADO`: no se duplica; queda la causa (ver `docs/ingesta/idempotencia-eventos-venta.md`) |
+| La compra (`idCompra`) ya estaba registrada | `DESCARTADO`: no se duplica; queda la causa (ver `docs/ingesta/idempotencia-eventos-venta.md`) |
 | JSON ilegible, campo obligatorio faltante o error al guardar | `FALLIDO`: queda la causa y el mensaje original, disponible para reproceso |
 
 Cada mensaje recibido queda en la bitácora con su contenido original, aunque no se haya podido leer.

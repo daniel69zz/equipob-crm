@@ -9,7 +9,7 @@ export type AlcanceConsentimiento =
   | 'FIDELIZACION'
   | 'COMUNICACIONES_COMERCIALES';
 
-export type CanalConsentimiento = 'MARKETPLACE' | 'VENTAS' | 'PRESENCIAL' | 'TELEFONICO' | 'CORREO';
+export type CanalConsentimiento = 'MARKETPLACE_VENTAS' | 'PRESENCIAL' | 'TELEFONICO' | 'CORREO';
 
 export type EstadoConsentimiento = 'OTORGADO' | 'REVOCADO';
 

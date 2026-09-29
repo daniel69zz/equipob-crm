@@ -99,7 +99,7 @@ class ReprocesoEventosIntegracionTest {
 
     @Test
     void unEventoFallidoSeReprocesaYRegistraUsuarioEHistorial() throws Exception {
-        Long idEvento = fallido(ejemplo("compra-ventas.json"), "SQLException: conexión temporal");
+        Long idEvento = fallido(ejemplo("compra-ana.json"), "SQLException: conexión temporal");
 
         mvc.perform(post("/api/comportamiento/eventos/{id}/reprocesar", idEvento)
                         .header("X-Usuario", "admin"))
@@ -124,7 +124,7 @@ class ReprocesoEventosIntegracionTest {
 
     @Test
     void unEventoQueSigueInvalidoVuelveAFallarYAcumulaIntentosConCausa() throws Exception {
-        String invalido = ejemplo("compra-ventas.json")
+        String invalido = ejemplo("compra-ana.json")
                 .replace("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c", "id-no-es-uuid");
         Long idEvento = fallido(invalido, "EventoInvalidoException: idEvento inválido");
 
@@ -152,10 +152,10 @@ class ReprocesoEventosIntegracionTest {
 
     @Test
     void unEventoProcesadoOUnoDescartadoNoSePuedenReprocesar() throws Exception {
-        Long procesado = bitacora.registrarRecepcion(ejemplo("compra-ventas.json"));
+        Long procesado = bitacora.registrarRecepcion(ejemplo("compra-ana.json"));
         ingesta.procesarRegistrado(procesado);
 
-        Long descartado = bitacora.registrarRecepcion(ejemplo("compra-ventas.json"));
+        Long descartado = bitacora.registrarRecepcion(ejemplo("compra-ana.json"));
         ingesta.procesarRegistrado(descartado);
         assertThat(eventos.findById(descartado).orElseThrow().getEstado()).isEqualTo(EstadoEvento.DESCARTADO);
 
@@ -176,9 +176,9 @@ class ReprocesoEventosIntegracionTest {
 
     @Test
     void laIdempotenciaEvitaDuplicarUnaCompraDuranteElReproceso() {
-        Long original = bitacora.registrarRecepcion(ejemplo("compra-ventas.json"));
+        Long original = bitacora.registrarRecepcion(ejemplo("compra-ana.json"));
         ingesta.procesarRegistrado(original);
-        Long fallido = fallido(ejemplo("compra-ventas.json"), "TimeoutException: temporal");
+        Long fallido = fallido(ejemplo("compra-ana.json"), "TimeoutException: temporal");
 
         IntentoReproceso intento = reprocesador.reprocesar(fallido, "admin");
 
@@ -189,7 +189,7 @@ class ReprocesoEventosIntegracionTest {
 
     @Test
     void noPermiteDosReprocesosSimultaneosDelMismoEvento() throws Exception {
-        Long idEvento = fallido(ejemplo("compra-marketplace.json"), "TimeoutException: temporal");
+        Long idEvento = fallido(ejemplo("compra-carlos.json"), "TimeoutException: temporal");
         CountDownLatch iniciado = new CountDownLatch(1);
         CountDownLatch continuar = new CountDownLatch(1);
         doAnswer(invocacion -> {
@@ -214,8 +214,8 @@ class ReprocesoEventosIntegracionTest {
 
     @Test
     void reinyectaSoloUnMensajeDeLaDlqYLoProcesaPorElFlujoNormal() throws Exception {
-        Message primero = new Message(ejemplo("compra-marketplace.json").getBytes(StandardCharsets.UTF_8));
-        Message segundo = new Message(ejemplo("compra-ventas.json").getBytes(StandardCharsets.UTF_8));
+        Message primero = new Message(ejemplo("compra-carlos.json").getBytes(StandardCharsets.UTF_8));
+        Message segundo = new Message(ejemplo("compra-ana.json").getBytes(StandardCharsets.UTF_8));
         rabbit.send(ConfiguracionRabbit.EXCHANGE_RESPALDO, ConfiguracionRabbit.COLA_COMPRAS_RESPALDO, primero);
         rabbit.send(ConfiguracionRabbit.EXCHANGE_RESPALDO, ConfiguracionRabbit.COLA_COMPRAS_RESPALDO, segundo);
         await().atMost(Duration.ofSeconds(5)).until(() -> mensajesEn(ConfiguracionRabbit.COLA_COMPRAS_RESPALDO) == 2);
@@ -238,7 +238,7 @@ class ReprocesoEventosIntegracionTest {
                 .when(bitacora).registrarRecepcion(anyString());
 
         rabbit.send(ConfiguracionRabbit.EXCHANGE_VENTAS, ConfiguracionRabbit.RUTA_COMPRA_CONFIRMADA,
-                new Message(ejemplo("compra-ventas.json").getBytes(StandardCharsets.UTF_8)));
+                new Message(ejemplo("compra-ana.json").getBytes(StandardCharsets.UTF_8)));
 
         await().atMost(Duration.ofSeconds(15))
                 .until(() -> mensajesEn(ConfiguracionRabbit.COLA_COMPRAS_RESPALDO) == 1);
