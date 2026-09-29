@@ -148,6 +148,18 @@ class AccesoPorRolTest {
     }
 
     @Test
+    void reevaluarUnPerfilExigePermisoDeEdicion() throws Exception {
+        String ruta = "/api/perfil/clientes/1/validacion";
+        mvc.perform(post(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(post(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
     void elGerenteConsultaInteraccionesPeroNoLasRegistra() throws Exception {
         String gerente = bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE);
 
