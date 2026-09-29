@@ -52,6 +52,14 @@ Ver diseño en `docs/compra/historial-compras.md` y el formato de la respuesta e
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/compras` | `INDICADORES_CONSULTAR` | Compras del cliente, de la más reciente a la más antigua. `{clienteId}` solo identifica al cliente para la auditoría del Gateway; la búsqueda usa los pares por canal de `identificador` (repetible, formato `ORIGEN:idCliente`, tal como los devuelve `identificadoresOrigen` en `GET /api/perfil/clientes/{clienteId}`). Sin identificadores, o si ninguno tiene compras, responde una página vacía. `pagina`, `tamanio` (por defecto 20, máx. 100) |
 
+## Indicadores del cliente (SCRUM-17)
+
+Regla de cálculo en `docs/compra/ticket-promedio.md`. Los indicadores se calculan al consultarlos sobre el historial, así que reflejan de inmediato las compras nuevas, devoluciones y anulaciones.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Hoy devuelve `ticketPromedio` (`valor`, `compras`, `montoAcumulado`, `sinDatos`): monto vigente acumulado entre compras vigentes; una compra anulada no cuenta y una devolución parcial aporta lo que quedó. Sin compras vigentes, `valor` es nulo y `sinDatos` verdadero. Igual que el historial, usa el parámetro repetible `identificador` (`ORIGEN:idCliente`) |
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ. Con Docker:

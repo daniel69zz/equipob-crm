@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * SCRUM-558 · Lectura de los eventos de ejemplo del simulador según el contrato RIO-CRM-02.
  */
-class LectorEventosTest {
+public class LectorEventosTest {
 
     static final Path EJEMPLOS = Path.of("../../herramientas/simulador-eventos/eventos");
 
@@ -142,7 +142,7 @@ class LectorEventosTest {
         assertThat(lector.cabecera(ejemplo("mensaje-ilegible.txt"))).isEqualTo(LectorEventos.Cabecera.VACIA);
     }
 
-    static String ejemplo(String archivo) {
+    public static String ejemplo(String archivo) {
         try {
             return Files.readString(EJEMPLOS.resolve(archivo));
         } catch (IOException ex) {

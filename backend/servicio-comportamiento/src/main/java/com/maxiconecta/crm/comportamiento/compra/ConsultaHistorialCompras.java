@@ -1,10 +1,8 @@
 package com.maxiconecta.crm.comportamiento.compra;
 
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,20 +40,6 @@ public class ConsultaHistorialCompras {
         if (identificadores.isEmpty()) {
             return Page.empty(solicitud);
         }
-        return repository.findAll(deIdentificadores(identificadores), solicitud).map(conversion);
-    }
-
-    /**
-     * Un OR de pares (origen, idClienteOrigen): un IN por columna mezclaría pares que no
-     * corresponden al mismo cliente si dos clientes comparten un identificador de canal.
-     */
-    private static Specification<Compra> deIdentificadores(List<Identificador> identificadores) {
-        return (compra, consulta, criterios) -> {
-            List<Predicate> pares = identificadores.stream()
-                    .map(id -> criterios.and(criterios.equal(compra.get("origen"), id.origen()),
-                            criterios.equal(compra.get("idClienteOrigen"), id.idClienteOrigen())))
-                    .toList();
-            return criterios.or(pares.toArray(Predicate[]::new));
-        };
+        return repository.findAll(ComprasDelCliente.deIdentificadores(identificadores), solicitud).map(conversion);
     }
 }
