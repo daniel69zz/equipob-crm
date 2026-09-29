@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -147,6 +148,29 @@ class AccesoPorRolTest {
                 .andExpect(pasaElControlDeAcceso());
     }
 
+    // --- Ficha integral del cliente (SCRUM-10, SCRUM-153): solo Administrador y Agente ---
+
+    @Test
+    void elAdministradorYElAgentePuedenConsultarLaFichaIntegral() throws Exception {
+        String ruta = "/api/perfil/clientes/42/ficha-integral";
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("ana", "AGENTE_ATENCION", agregar(PERMISOS_AGENTE, "FICHA_INTEGRAL_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "FICHA_INTEGRAL_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elGerenteComercialNoPuedeConsultarLaFichaIntegralAunqueConsulteElPerfilBasico() throws Exception {
+        String gerente = bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE);
+
+        mvc.perform(get("/api/perfil/clientes/42").header("Authorization", gerente))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get("/api/perfil/clientes/42/ficha-integral").header("Authorization", gerente))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     void reevaluarUnPerfilExigePermisoDeEdicion() throws Exception {
         String ruta = "/api/perfil/clientes/1/validacion";
@@ -246,6 +270,10 @@ class AccesoPorRolTest {
 
     private static ResultMatcher pasaElControlDeAcceso() {
         return resultado -> assertThat(resultado.getResponse().getStatus()).isNotIn(401, 403);
+    }
+
+    private static List<String> agregar(List<String> permisos, String extra) {
+        return Stream.concat(permisos.stream(), Stream.of(extra)).toList();
     }
 
     private String bearerAdministrador() {
