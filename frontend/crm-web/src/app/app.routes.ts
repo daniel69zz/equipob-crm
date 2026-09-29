@@ -11,6 +11,7 @@ import { UsuariosComponent } from './features/admin/usuarios.component';
 import { InicioComponent } from './features/inicio/inicio.component';
 import { LayoutComponent } from './features/layout/layout.component';
 import { LoginComponent } from './features/login/login.component';
+import { RevisionPerfilesComponent } from './features/perfiles/revision-perfiles.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [invitadoGuard] },
@@ -29,6 +30,12 @@ export const routes: Routes = [
       {
         path: 'clientes/:id/historial',
         component: HistorialCambiosComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.CLIENTE_CONSULTAR },
+      },
+      {
+        path: 'perfiles/revision',
+        component: RevisionPerfilesComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.CLIENTE_CONSULTAR },
       },

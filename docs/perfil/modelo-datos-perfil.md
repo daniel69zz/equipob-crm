@@ -19,14 +19,14 @@ evento_cliente                       (bitácora de sincronización)
 | `numero_documento` | varchar(20) | Número de documento |
 | `email` | varchar(150) | Contacto |
 | `telefono` | varchar(30) | Contacto |
-| `estado` | varchar(12) | `COMPLETO` o `INCOMPLETO` |
-| `motivos_incompleto` | varchar(1000) | Qué falta o está mal formado, por ejemplo `numeroDocumento: vacío; email: formato inválido` |
+| `estado` | varchar(14) | `COMPLETO`, `INCOMPLETO` o `INCONSISTENTE` (ver `docs/perfil/catalogo-reglas-validacion.md`) |
+| `motivos_incidencia` | varchar(1000) | Qué falta, está mal formado o es incoherente, por ejemplo `numeroDocumento: vacío; email: formato inválido` |
 | `creado_en`, `actualizado_en` | timestamptz | Alta y último cambio |
-| `actualizado_por_origen` | varchar(15) | Sistema del último cambio (`MARKETPLACE`, `VENTAS`) |
+| `actualizado_por_origen` | varchar(15) | Sistema del último cambio (`MARKETPLACE`, `VENTAS` o `CRM` cuando lo origina una acción interna, incluida la detección de SCRUM-170) |
 | `actualizado_por` | varchar(100) | Responsable del último cambio |
 | `id_cliente_consolidado` | FK → `cliente` | Si el perfil fue absorbido en una unificación, el perfil que se conserva |
 
-Un perfil es **completo** cuando tiene nombres, apellidos, tipo y número de documento válidos, al menos un medio de contacto válido (correo o teléfono) y todas las direcciones informadas tienen código, calle y ciudad. Una dirección inválida no se guarda. La detección y el seguimiento de los incompletos es de SCRUM-12.
+Un perfil es **completo** cuando tiene nombres, apellidos, tipo y número de documento válidos, al menos un medio de contacto válido (correo o teléfono) y todas las direcciones informadas tienen código, calle y ciudad. Una dirección inválida no se guarda. La detección y el seguimiento de los perfiles incompletos o inconsistentes es de SCRUM-12.
 
 ## `cliente_origen` — identificadores de origen (RF-62)
 
@@ -63,11 +63,11 @@ La zona y la ciudad se guardan como texto: el catálogo de zonas y ciudades del 
 | `id` | bigint, PK | |
 | `id_cliente` | FK → `cliente` | |
 | `fecha` | timestamptz | Momento del cambio |
-| `tipo` | varchar(15) | `CREACION`, `ACTUALIZACION`, `VINCULACION` o `UNIFICACION` |
-| `origen` | varchar(15) | Sistema que originó el cambio (`MARKETPLACE`, `VENTAS` o `CRM` para las acciones de un administrador) |
-| `responsable` | varchar(100) | Usuario del sistema de origen, o `sincronizacion-automatica` |
+| `tipo` | varchar(15) | `CREACION`, `ACTUALIZACION`, `VINCULACION`, `UNIFICACION` o `DETECCION` |
+| `origen` | varchar(15) | Sistema que originó el cambio (`MARKETPLACE`, `VENTAS`) o `CRM` para una acción interna: administrador (vinculación, unificación) o motor de detección (SCRUM-170) |
+| `responsable` | varchar(100) | Usuario del sistema de origen, `sincronizacion-automatica`, o `deteccion-automatica` |
 | `cambios` | text (JSON) | Lista de `{campo, anterior, nuevo}` |
-| `id_evento` | FK → `evento_cliente` | Evento que produjo el cambio |
+| `id_evento` | FK → `evento_cliente`, opcional | Evento que produjo el cambio; vacío cuando el cambio viene de la detección, no de un evento |
 
 Es de **solo inserción**: un trigger rechaza `UPDATE`, `DELETE` y `TRUNCATE`. El detalle de cada campo está en `cambio_perfil_detalle`; el modelo completo y la consulta del histórico, en `historico-cambios.md`.
 

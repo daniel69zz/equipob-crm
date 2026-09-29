@@ -11,5 +11,7 @@ public enum TipoCambio {
     /** Un administrador vinculó un identificador de origen al perfil. */
     VINCULACION,
     /** Un administrador unificó dos perfiles duplicados. */
-    UNIFICACION
+    UNIFICACION,
+    /** El motor de detección (SCRUM-166) etiquetó el perfil al reevaluarlo. */
+    DETECCION
 }

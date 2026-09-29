@@ -1,8 +1,9 @@
 package com.maxiconecta.crm.perfil.cliente;
 
 /**
- * Sistema del que proviene un dato o un cambio del cliente: Marketplace, Ventas, o el propio CRM
- * cuando lo hace un administrador (vinculaciones, unificaciones).
+ * Sistema del que proviene un dato o un cambio del cliente: Marketplace o Ventas cuando lo
+ * origina un evento externo, o el propio CRM ({@code CRM}) cuando lo origina una acción interna
+ * (vinculaciones, unificaciones, o el motor de detección de SCRUM-166).
  */
 public enum Origen {
     MARKETPLACE,
