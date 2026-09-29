@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
+import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorEventos;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,8 +33,9 @@ class ProcesadorComprasIdempotenciaTest {
     private final CompraRepository compras = mock(CompraRepository.class);
     private final EventoProcesadoRepository procesados = mock(EventoProcesadoRepository.class);
     private final LectorEventos lector = new LectorEventos(new ObjectMapper().registerModule(new JavaTimeModule()));
+    private final FrecuenciaCompraRepository frecuencias = mock(FrecuenciaCompraRepository.class);
     private final ProcesadorCompras procesador = new ProcesadorCompras(eventos, compras, procesados, lector,
-            validadorSinReglas(), mock(ClientePerfiles.class));
+            validadorSinReglas(), mock(ClientePerfiles.class), frecuencias);
 
     @BeforeEach
     void eventoEnLaBitacora() {
@@ -60,6 +62,7 @@ class ProcesadorComprasIdempotenciaTest {
                 .hasMessage("La compra V-100234 ya fue registrada por el evento 3");
         verify(procesados, never()).saveAndFlush(any());
         verify(compras, never()).save(any());
+        verify(frecuencias, never()).incrementar(any());
     }
 
     @Test
@@ -72,6 +75,7 @@ class ProcesadorComprasIdempotenciaTest {
                 .isInstanceOf(CompraDuplicadaException.class)
                 .hasMessageContaining("procesado al mismo tiempo");
         verify(compras, never()).save(any());
+        verify(frecuencias, never()).incrementar(any());
     }
 
     @Test

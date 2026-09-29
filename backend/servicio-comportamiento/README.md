@@ -54,11 +54,13 @@ Ver diseño en `docs/compra/historial-compras.md` y el formato de la respuesta e
 
 ## Indicadores del cliente (SCRUM-17, SCRUM-19)
 
-Reglas de cálculo en `docs/compra/ticket-promedio.md` y `docs/compra/recencia-compra.md`. Los indicadores se calculan al consultarlos sobre el historial, así que reflejan de inmediato las compras nuevas, devoluciones y anulaciones.
+Reglas de cálculo en `docs/compra/ticket-promedio.md`, `docs/compra/recencia-compra.md` y
+`docs/compra/frecuencia-compra.md`. Ticket y recencia se derivan del historial; frecuencia se
+persiste y se incrementa atómicamente al registrar una compra confirmada.
 
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
-| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio` y `recencia`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; se calcula al consultar, sin persistirla. Igual que el historial, usa el parámetro repetible `identificador` (`ORIGEN:idCliente`) |
+| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia` y `frecuencia`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes. Usa el parámetro repetible `identificador` |
 
 ## Ejecutar en local
 

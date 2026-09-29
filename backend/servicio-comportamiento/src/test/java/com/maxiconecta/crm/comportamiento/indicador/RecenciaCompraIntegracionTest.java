@@ -54,7 +54,7 @@ class RecenciaCompraIntegracionTest {
 
     @BeforeEach
     void preparar() {
-        jdbc.execute("TRUNCATE comportamiento.intento_reproceso, comportamiento.evento_procesado, "
+        jdbc.execute("TRUNCATE comportamiento.frecuencia_compra, comportamiento.intento_reproceso, comportamiento.evento_procesado, "
                 + "comportamiento.anulacion_item, comportamiento.anulacion, "
                 + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
         when(reloj.instant()).thenReturn(REFERENCIA);

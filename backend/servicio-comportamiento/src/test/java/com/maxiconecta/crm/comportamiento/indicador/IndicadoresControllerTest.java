@@ -45,6 +45,8 @@ class IndicadoresControllerTest {
                 new Identificador("mp-user-3307"))))
                 .thenReturn(new RecenciaCompra(OffsetDateTime.parse("2026-09-27T15:28:10-04:00"),
                         Duration.ofHours(49).plusMinutes(30), false));
+        when(consulta.frecuencia(List.of(new Identificador("CLI-5521"),
+                new Identificador("mp-user-3307")))).thenReturn(5L);
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores")
                         .param("identificador", "CLI-5521", "mp-user-3307"))
@@ -55,7 +57,8 @@ class IndicadoresControllerTest {
                 .andExpect(jsonPath("$.ticketPromedio.sinDatos").value(false))
                 .andExpect(jsonPath("$.recencia.ultimaCompra").value("2026-09-27T15:28:10-04:00"))
                 .andExpect(jsonPath("$.recencia.tiempoTranscurrido").value("PT49H30M"))
-                .andExpect(jsonPath("$.recencia.sinDatos").value(false));
+                .andExpect(jsonPath("$.recencia.sinDatos").value(false))
+                .andExpect(jsonPath("$.frecuencia").value(5));
     }
 
     @Test
@@ -63,6 +66,7 @@ class IndicadoresControllerTest {
         when(consulta.ticketPromedio(List.of()))
                 .thenReturn(new TicketPromedio(null, 0, BigDecimal.ZERO, true));
         when(consulta.recencia(List.of())).thenReturn(new RecenciaCompra(null, null, true));
+        when(consulta.frecuencia(List.of())).thenReturn(0L);
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores"))
                 .andExpect(status().isOk())
@@ -71,10 +75,12 @@ class IndicadoresControllerTest {
                 .andExpect(jsonPath("$.ticketPromedio.compras").value(0))
                 .andExpect(jsonPath("$.recencia.ultimaCompra").doesNotExist())
                 .andExpect(jsonPath("$.recencia.tiempoTranscurrido").doesNotExist())
-                .andExpect(jsonPath("$.recencia.sinDatos").value(true));
+                .andExpect(jsonPath("$.recencia.sinDatos").value(true))
+                .andExpect(jsonPath("$.frecuencia").value(0));
 
         verify(consulta).ticketPromedio(List.of());
         verify(consulta).recencia(List.of());
+        verify(consulta).frecuencia(List.of());
     }
 
     @Test
