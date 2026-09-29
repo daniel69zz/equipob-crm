@@ -16,6 +16,8 @@ Consume el evento **RIO-CRM-02** (`docs/contratos-eventos/RIO-CRM-02-compra-conf
 2. Se lee, se aplican las reglas de validación (SCRUM-131) y se guarda la compra con sus ítems (`compra`, `compra_item`).
 3. El mensaje queda `PROCESADO`, `DESCARTADO` (la transacción ya había sido procesada; ver `docs/ingesta/idempotencia-eventos-venta.md`) o `FALLIDO` (con su causa, disponible para reproceso).
 
+Cada compra se vincula al perfil del cliente consultando el servicio de Perfil (`SERVICIO_PERFIL_URL`, `PERFIL_TIEMPO_ESPERA`); si el perfil no existe o el servicio no responde, queda `PENDIENTE` de vinculación. Estructura y reglas en `docs/ingesta/historial-compras.md`.
+
 Si ni siquiera se puede escribir en la bitácora, el mensaje se reintenta 3 veces y después pasa a la cola `crm.comportamiento.compras.respaldo`.
 
 | Método | Ruta | Permiso (en el Gateway) | Descripción |

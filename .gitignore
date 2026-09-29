@@ -7,9 +7,7 @@
 CLAUDE.md
 CLAUDE.local.md
 .mcp.json
-.claude/
-claude.md
-CLAUDE.local.md
+
 # --- Sistema operativo ---
 .DS_Store
 Thumbs.db

@@ -44,6 +44,12 @@ public class Compra {
     @Column(nullable = false)
     private String idClienteOrigen;
 
+    private Long idCliente;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EstadoVinculacionCompra estadoVinculacion = EstadoVinculacionCompra.PENDIENTE;
+
     @Column(nullable = false)
     private OffsetDateTime fecha;
 
@@ -81,6 +87,22 @@ public class Compra {
 
     public void agregarItem(String categoria, int cantidad, BigDecimal monto) {
         items.add(new CompraItem(this, categoria, cantidad, monto));
+    }
+
+    public void vincularCliente(Long idCliente) {
+        if (idCliente == null || idCliente <= 0) {
+            throw new IllegalArgumentException("El identificador del perfil debe ser positivo");
+        }
+        this.idCliente = idCliente;
+        this.estadoVinculacion = EstadoVinculacionCompra.VINCULADA;
+    }
+
+    public Long getIdCliente() {
+        return idCliente;
+    }
+
+    public EstadoVinculacionCompra getEstadoVinculacion() {
+        return estadoVinculacion;
     }
 
     /**

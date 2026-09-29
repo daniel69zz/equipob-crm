@@ -1,34 +1,35 @@
 package com.maxiconecta.crm.comportamiento.ingesta;
 
-import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
+import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
+import com.maxiconecta.crm.comportamiento.compra.Compra;
+import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
+import com.maxiconecta.crm.comportamiento.compra.EstadoVinculacionCompra;
+import com.maxiconecta.crm.comportamiento.compra.Origen;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.Optional;
 
 import static com.maxiconecta.crm.comportamiento.ingesta.LectorEventosTest.ejemplo;
-import static org.awaitility.Awaitility.await;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
-/**
- * SCRUM-194 · Pruebas de integración de la consulta del historial de compras (SCRUM-16).
- */
-@SpringBootTest
-@AutoConfigureMockMvc
+/** SCRUM-15 · Integridad del historial persistido y su asociación al perfil. */
+@SpringBootTest(properties = "spring.rabbitmq.listener.simple.auto-startup=false")
 @Testcontainers(disabledWithoutDocker = true)
 class HistorialComprasIntegracionTest {
 
@@ -36,12 +37,14 @@ class HistorialComprasIntegracionTest {
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
-    @Container
-    @ServiceConnection
-    static final RabbitMQContainer RABBIT = new RabbitMQContainer("rabbitmq:3.13-alpine");
+    @MockBean
+    private ClientePerfiles perfiles;
 
     @Autowired
-    private RabbitTemplate rabbit;
+    private IngestaCompras ingesta;
+
+    @Autowired
+    private CompraRepository compras;
 
     @Autowired
     private EventoRecibidoRepository eventos;
@@ -50,78 +53,130 @@ class HistorialComprasIntegracionTest {
     private JdbcTemplate jdbc;
 
     @Autowired
-    private MockMvc mvc;
+    private TransactionTemplate transaccion;
 
     @BeforeEach
     void limpiarBase() {
-        jdbc.execute("TRUNCATE comportamiento.intento_reproceso, comportamiento.evento_procesado, comportamiento.anulacion_item, "
-                + "comportamiento.anulacion, "
+        jdbc.execute("TRUNCATE comportamiento.intento_reproceso, comportamiento.evento_procesado, "
+                + "comportamiento.anulacion_item, comportamiento.anulacion, "
                 + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
     }
 
     @Test
-    void combinaLasComprasDeAmbosCanalesDeLaMasRecienteALaMasAntigua() throws Exception {
-        publicar(ejemplo("compra-ventas.json"));
-        publicar(ejemplo("compra-marketplace.json"));
-        esperarEstado(2);
+    void vinculaAmbosCanalesAlMismoPerfilYConservaFechaMontosYCategorias() {
+        when(perfiles.buscar(Origen.VENTAS, "CLI-5521")).thenReturn(Optional.of(42L));
+        // El identificador se obtiene del evento real de ejemplo, sin asumir que coincide entre canales.
+        String marketplace = ejemplo("compra-ventas.json").replace("\"VENTAS\"", "\"MARKETPLACE\"")
+                .replace("CLI-5521", "MP-42");
+        when(perfiles.buscar(Origen.MARKETPLACE, "MP-42")).thenReturn(Optional.of(42L));
 
-        mvc.perform(get("/api/comportamiento/clientes/CLI-INTERNO-9/compras")
-                        .param("identificador", "VENTAS:CLI-5521", "MARKETPLACE:mp-user-3307"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(2))
-                .andExpect(jsonPath("$.content[0].origen").value("MARKETPLACE"))
-                .andExpect(jsonPath("$.content[0].referencia").value("MP-88120"))
-                .andExpect(jsonPath("$.content[0].montoTotal").value(129.90))
-                .andExpect(jsonPath("$.content[0].items.length()").value(2))
-                .andExpect(jsonPath("$.content[1].origen").value("VENTAS"))
-                .andExpect(jsonPath("$.content[1].referencia").value("V-100234"))
-                .andExpect(jsonPath("$.content[1].estado").value("CONFIRMADA"));
+        ingesta.recibir(ejemplo("compra-ventas.json"));
+        ingesta.recibir(marketplace);
+
+        assertThat(eventos.findAll()).allMatch(e -> e.getEstado() == EstadoEvento.PROCESADO);
+        transaccion.executeWithoutResult(estado -> {
+            assertThat(compras.findAll()).hasSize(2).allSatisfy(compra -> {
+                assertThat(compra.getIdCliente()).isEqualTo(42L);
+                assertThat(compra.getEstadoVinculacion()).isEqualTo(EstadoVinculacionCompra.VINCULADA);
+                assertThat(compra.getEstado()).isEqualTo(Compra.CONFIRMADA);
+                assertThat(compra.getFecha().toInstant())
+                        .isEqualTo(OffsetDateTime.parse("2026-09-27T15:28:10-04:00").toInstant());
+                assertThat(compra.getMontoTotal()).isEqualByComparingTo("350.50");
+                assertThat(compra.getItems()).extracting(i -> i.getCategoria()).containsExactly("Electrónica", "Accesorios");
+                assertThat(compra.getItems()).extracting(i -> i.getCantidad()).containsExactly(1, 2);
+                assertThat(compra.getItems().get(0).getMonto()).isEqualByComparingTo("300.00");
+                assertThat(compra.getItems().get(1).getMonto()).isEqualByComparingTo("50.50");
+                assertThat(eventos.findById(compra.getIdEvento())).isPresent();
+            });
+        });
     }
 
     @Test
-    void soloTraeLasComprasDelIdentificadorPedidoAunqueOtroClienteTengaCompras() throws Exception {
-        publicar(ejemplo("compra-ventas.json"));
-        publicar(ejemplo("compra-marketplace.json"));
-        esperarEstado(2);
+    void unClienteSinPerfilConservaSuCompraPendienteDeVinculacion() {
+        ingesta.recibir(ejemplo("compra-ventas.json"));
 
-        mvc.perform(get("/api/comportamiento/clientes/CLI-INTERNO-9/compras")
-                        .param("identificador", "VENTAS:CLI-5521"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(1))
-                .andExpect(jsonPath("$.content[0].origen").value("VENTAS"));
+        Compra compra = compras.findAll().get(0);
+        assertThat(compra.getIdCliente()).isNull();
+        assertThat(compra.getEstadoVinculacion()).isEqualTo(EstadoVinculacionCompra.PENDIENTE);
+        assertThat(compra.getOrigen()).isEqualTo(Origen.VENTAS);
+        assertThat(compra.getIdClienteOrigen()).isEqualTo("CLI-5521");
+        assertThat(eventos.findAll().get(0).getEstado()).isEqualTo(EstadoEvento.PROCESADO);
     }
 
     @Test
-    void unClienteSinIdentificadoresOSinComprasRecibeUnaPaginaVaciaYNoUnError() throws Exception {
-        mvc.perform(get("/api/comportamiento/clientes/CLI-SIN-COMPRAS/compras"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(0))
-                .andExpect(jsonPath("$.content.length()").value(0));
+    void elReenvioNoDuplicaNiReasignaUnaCompraYaRegistrada() {
+        when(perfiles.buscar(Origen.VENTAS, "CLI-5521")).thenReturn(Optional.of(42L));
+        ingesta.recibir(ejemplo("compra-ventas.json"));
+        when(perfiles.buscar(Origen.VENTAS, "CLI-5521")).thenReturn(Optional.of(99L));
 
-        mvc.perform(get("/api/comportamiento/clientes/CLI-SIN-COMPRAS/compras")
-                        .param("identificador", "VENTAS:CLI-NO-EXISTE"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(0));
+        ingesta.recibir(ejemplo("compra-ventas.json"));
+
+        assertThat(compras.findAll()).singleElement().satisfies(c -> assertThat(c.getIdCliente()).isEqualTo(42L));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.compra_item", Long.class)).isEqualTo(2L);
+        assertThat(eventos.findAll()).extracting(EventoRecibido::getEstado)
+                .containsExactlyInAnyOrder(EstadoEvento.PROCESADO, EstadoEvento.DESCARTADO);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"categoria", "fecha", "monto", "suma", "cantidad", "confirmacion"})
+    void rechazaDatosInvalidosSinDejarCompraItemsNiClave(String caso) {
+        String contenido = ejemplo("compra-ventas.json");
+        contenido = switch (caso) {
+            case "categoria" -> contenido.replace("Electrónica", " ");
+            case "fecha" -> contenido.replace("2026-09-27T15:28:10-04:00", "fecha-invalida");
+            case "monto" -> contenido.replace("350.50", "-350.50");
+            case "suma" -> contenido.replace("350.50", "351.00");
+            case "cantidad" -> contenido.replace("\"cantidad\": 1", "\"cantidad\": 0");
+            default -> contenido.replace("COMPRA_CONFIRMADA", "COMPRA_PENDIENTE");
+        };
+        ingesta.recibir(contenido);
+
+        assertThat(eventos.findAll()).singleElement().satisfies(e -> {
+            assertThat(e.getEstado()).isEqualTo(EstadoEvento.FALLIDO);
+            assertThat(e.getCausa()).isNotBlank();
+        });
+        assertThat(compras.count()).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.compra_item", Long.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.evento_procesado", Long.class)).isZero();
     }
 
     @Test
-    void rechazaUnIdentificadorMalFormadoOConOrigenDesconocido() throws Exception {
-        mvc.perform(get("/api/comportamiento/clientes/CLI-INTERNO-9/compras")
-                        .param("identificador", "CLI-5521"))
-                .andExpect(status().isBadRequest());
-
-        mvc.perform(get("/api/comportamiento/clientes/CLI-INTERNO-9/compras")
-                        .param("identificador", "PUNTOS:CLI-5521"))
-                .andExpect(status().isBadRequest());
+    void unFalloAlGuardarUnItemRevierteTodaLaCompraYPermiteReintentar() {
+        jdbc.execute("""
+                CREATE FUNCTION comportamiento.rechazar_item_prueba() RETURNS trigger AS $$
+                BEGIN
+                    IF NEW.categoria = 'Accesorios' THEN RAISE EXCEPTION 'Fallo de almacenamiento de prueba'; END IF;
+                    RETURN NEW;
+                END; $$ LANGUAGE plpgsql
+                """);
+        jdbc.execute("CREATE TRIGGER fallo_item_prueba BEFORE INSERT ON comportamiento.compra_item "
+                + "FOR EACH ROW EXECUTE FUNCTION comportamiento.rechazar_item_prueba()");
+        try {
+            ingesta.recibir(ejemplo("compra-ventas.json"));
+            assertThat(eventos.findAll().get(0).getEstado()).isEqualTo(EstadoEvento.FALLIDO);
+            assertThat(compras.count()).isZero();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.compra_item", Long.class)).isZero();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.evento_procesado", Long.class)).isZero();
+        } finally {
+            jdbc.execute("DROP TRIGGER fallo_item_prueba ON comportamiento.compra_item");
+            jdbc.execute("DROP FUNCTION comportamiento.rechazar_item_prueba()");
+        }
+        ingesta.recibir(ejemplo("compra-ventas.json"));
+        assertThat(compras.count()).isEqualTo(1L);
     }
 
-    private void publicar(String contenido) {
-        rabbit.send(ConfiguracionRabbit.EXCHANGE_VENTAS, ConfiguracionRabbit.RUTA_COMPRA_CONFIRMADA,
-                new org.springframework.amqp.core.Message(contenido.getBytes(StandardCharsets.UTF_8)));
-    }
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "UPDATE comportamiento.compra SET monto_total = 0",
+            "UPDATE comportamiento.compra SET estado_vinculacion = 'VINCULADA'",
+            "UPDATE comportamiento.compra SET id_cliente = 42",
+            "UPDATE comportamiento.compra_item SET cantidad = 0",
+            "UPDATE comportamiento.compra_item SET monto = -1",
+            "UPDATE comportamiento.compra_item SET categoria = ' '"
+    })
+    void laBaseRechazaDatosIncoherentesAunqueSeEscribanSinElProcesador(String sql) {
+        ingesta.recibir(ejemplo("compra-ventas.json"));
 
-    private void esperarEstado(int cantidad) {
-        await().atMost(Duration.ofSeconds(15)).until(eventos::findAll,
-                lista -> lista.size() == cantidad && lista.stream().noneMatch(e -> e.getEstado() == EstadoEvento.RECIBIDO));
+        assertThatThrownBy(() -> jdbc.execute(sql)).isInstanceOf(DataIntegrityViolationException.class);
     }
 }
