@@ -215,6 +215,22 @@ class AccesoPorRolTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Categorías más consumidas (SCRUM-18): mismo permiso que el historial ---
+
+    @Test
+    void lasCategoriasMasConsumidasSeConsultanConIndicadoresConsultarYSeDenieganSinEl() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/categorias";
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+
+        mvc.perform(get(ruta).header("Authorization", bearer("carla", "SIN_INDICADORES", List.of("CLIENTE_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test
