@@ -25,10 +25,31 @@ export interface PaginaCompras {
   total: number;
 }
 
-/** Historial de compras de un cliente (SCRUM-16, GET /api/comportamiento/clientes/{clienteId}/compras). */
+/** Sin compras vigentes `valor` es nulo y `sinDatos` verdadero (docs/compra/ticket-promedio.md). */
+export interface TicketPromedio {
+  valor: number | null;
+  compras: number;
+  montoAcumulado: number;
+  sinDatos: boolean;
+}
+
+export interface IndicadoresCliente {
+  ticketPromedio: TicketPromedio;
+}
+
+/**
+ * Historial de compras (SCRUM-16, GET /api/comportamiento/clientes/{clienteId}/compras) e
+ * indicadores (SCRUM-17, .../indicadores) de un cliente.
+ */
 @Injectable({ providedIn: 'root' })
 export class ComprasService {
   private readonly http = inject(HttpClient);
+
+  indicadores(idCliente: number, identificadores: IdentificadorOrigen[]): Observable<IndicadoresCliente> {
+    return this.http.get<IndicadoresCliente>(`/api/comportamiento/clientes/${idCliente}/indicadores`, {
+      params: parametrosDeIdentificadores(new HttpParams(), identificadores),
+    });
+  }
 
   historial(
     idCliente: number,
@@ -36,10 +57,14 @@ export class ComprasService {
     pagina: number,
     tamanio: number,
   ): Observable<PaginaCompras> {
-    let params = new HttpParams().set('pagina', pagina).set('tamanio', tamanio);
-    for (const id of identificadores) {
-      params = params.append('identificador', `${id.origen}:${id.idCliente}`);
-    }
+    const params = parametrosDeIdentificadores(
+      new HttpParams().set('pagina', pagina).set('tamanio', tamanio),
+      identificadores,
+    );
     return this.http.get<PaginaCompras>(`/api/comportamiento/clientes/${idCliente}/compras`, { params });
   }
+}
+
+function parametrosDeIdentificadores(params: HttpParams, identificadores: IdentificadorOrigen[]): HttpParams {
+  return identificadores.reduce((acumulado, id) => acumulado.append('identificador', `${id.origen}:${id.idCliente}`), params);
 }

@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ClientesService, IdentificadorOrigen, PerfilCliente } from './clientes.service';
-import { Compra, ComprasService, PaginaCompras } from './compras.service';
+import { Compra, ComprasService, PaginaCompras, TicketPromedio } from './compras.service';
 
 const TAMANIO_PAGINA = 20;
 
@@ -39,6 +39,28 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
     @if (error()) {
       <p class="error" role="status">{{ error() }}</p>
     }
+
+    <section class="tarjeta indicadores" aria-label="Indicadores del cliente">
+      <div class="indicador">
+        <span class="nombre-indicador">Ticket promedio</span>
+        @if (ticketPromedio(); as ticket) {
+          @if (ticket.sinDatos) {
+            <strong class="sin-datos">Sin datos</strong>
+            <small>El cliente no tiene compras vigentes.</small>
+          } @else {
+            <strong>{{ ticket.valor | number: '1.2-2' }}</strong>
+            <small>
+              {{ ticket.compras }} {{ ticket.compras === 1 ? 'compra' : 'compras' }} ·
+              {{ ticket.montoAcumulado | number: '1.2-2' }} acumulado
+            </small>
+          }
+        } @else if (errorIndicadores()) {
+          <small class="error" role="status">{{ errorIndicadores() }}</small>
+        } @else {
+          <small>Calculando…</small>
+        }
+      </div>
+    </section>
 
     @if (historial(); as datos) {
       @for (compra of datos.content; track $index) {
@@ -88,6 +110,12 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
   `,
   styles: `
     .subtitulo { color: var(--color-texto-suave); margin-top: 0; }
+    .indicadores { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 1rem; padding: 1rem 1.25rem; }
+    .indicador { display: flex; flex-direction: column; gap: 0.15rem; }
+    .indicador strong { font-size: 1.6rem; }
+    .indicador small { color: var(--color-texto-suave); }
+    .nombre-indicador { color: var(--color-texto-suave); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .sin-datos { color: var(--color-texto-suave); }
     .compra { margin-bottom: 1rem; padding: 1rem 1.25rem; }
     .compra header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
     .fecha { font-family: monospace; }
@@ -113,6 +141,8 @@ export class HistorialComprasComponent implements OnInit {
   readonly historial = signal<PaginaCompras | null>(null);
   readonly cargando = signal(false);
   readonly error = signal<string | null>(null);
+  readonly ticketPromedio = signal<TicketPromedio | null>(null);
+  readonly errorIndicadores = signal<string | null>(null);
 
   readonly desdeRegistro = computed(() => (this.historial()?.pagina ?? 0) * TAMANIO_PAGINA + 1);
   readonly hastaRegistro = computed(
@@ -129,6 +159,7 @@ export class HistorialComprasComponent implements OnInit {
         // El servicio de comportamiento solo conoce los identificadores de Marketplace y Ventas.
         this.identificadores = perfil.identificadoresOrigen.filter((id) => id.origen !== 'CRM');
         this.buscar(0);
+        this.cargarIndicadores();
       },
       error: (e: HttpErrorResponse) => this.mostrarError(e),
     });
@@ -146,6 +177,15 @@ export class HistorialComprasComponent implements OnInit {
         this.cargando.set(false);
         this.mostrarError(e);
       },
+    });
+  }
+
+  private cargarIndicadores(): void {
+    this.errorIndicadores.set(null);
+    this.compras.indicadores(this.idCliente(), this.identificadores).subscribe({
+      next: (indicadores) => this.ticketPromedio.set(indicadores.ticketPromedio),
+      error: (e: HttpErrorResponse) =>
+        this.errorIndicadores.set(e.error?.mensaje ?? 'No se pudo calcular el ticket promedio.'),
     });
   }
 
