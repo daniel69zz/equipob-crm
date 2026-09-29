@@ -47,6 +47,8 @@ public class Cliente {
 
     private String motivosIncompleto;
 
+    private String motivosInconsistencia;
+
     @Column(nullable = false)
     private OffsetDateTime creadoEn = OffsetDateTime.now();
 
@@ -129,13 +131,21 @@ public class Cliente {
      * Marca el perfil como completo o incompleto según los motivos de la validación y devuelve el cambio.
      */
     public List<CambioCampo> marcarEstado(List<String> motivos) {
-        EstadoPerfil nuevoEstado = motivos.isEmpty() ? EstadoPerfil.COMPLETO : EstadoPerfil.INCOMPLETO;
+        return marcarEstado(motivos, List.of());
+    }
+
+    public List<CambioCampo> marcarEstado(List<String> motivos, List<String> inconsistencias) {
+        EstadoPerfil nuevoEstado = !motivos.isEmpty() ? EstadoPerfil.INCOMPLETO
+                : !inconsistencias.isEmpty() ? EstadoPerfil.INCONSISTENTE : EstadoPerfil.COMPLETO;
         String nuevosMotivos = motivos.isEmpty() ? null : recortar(String.join("; ", motivos), 1000);
+        String nuevasInconsistencias = inconsistencias.isEmpty() ? null : String.join("; ", inconsistencias);
         List<CambioCampo> cambios = new ArrayList<>();
         CambioCampo.siCambio(cambios, "estado", this.id == null ? null : this.estado, nuevoEstado);
         CambioCampo.siCambio(cambios, "motivosIncompleto", this.motivosIncompleto, nuevosMotivos);
+        CambioCampo.siCambio(cambios, "motivosInconsistencia", this.motivosInconsistencia, nuevasInconsistencias);
         this.estado = nuevoEstado;
         this.motivosIncompleto = nuevosMotivos;
+        this.motivosInconsistencia = nuevasInconsistencias;
         return cambios;
     }
 
@@ -204,6 +214,10 @@ public class Cliente {
 
     public String getMotivosIncompleto() {
         return motivosIncompleto;
+    }
+
+    public String getMotivosInconsistencia() {
+        return motivosInconsistencia;
     }
 
     public OffsetDateTime getCreadoEn() {

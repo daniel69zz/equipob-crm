@@ -6,5 +6,6 @@ package com.maxiconecta.crm.perfil.cliente;
  */
 public enum EstadoPerfil {
     COMPLETO,
-    INCOMPLETO
+    INCOMPLETO,
+    INCONSISTENTE
 }
