@@ -60,6 +60,14 @@ Regla de cálculo en `docs/compra/ticket-promedio.md`. Los indicadores se calcul
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Hoy devuelve `ticketPromedio` (`valor`, `compras`, `montoAcumulado`, `sinDatos`): monto vigente acumulado entre compras vigentes; una compra anulada no cuenta y una devolución parcial aporta lo que quedó. Sin compras vigentes, `valor` es nulo y `sinDatos` verdadero. Igual que el historial, usa el parámetro repetible `identificador` (`ORIGEN:idCliente`) |
 
+## Categorías más consumidas (SCRUM-18)
+
+Criterio de ranking y tratamiento de devoluciones en `docs/compra/categorias-mas-consumidas.md`. Igual que los indicadores, se calcula al consultar.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/categorias` | `INDICADORES_CONSULTAR` | Categorías del cliente de mayor a menor consumo, con `compras`, `unidades` y `monto` vigentes de cada una. Ordena por monto y, a igual monto, por compras. Una compra anulada no cuenta y una devolución parcial descuenta lo devuelto de su categoría. Parámetros: `identificador` (repetible, `ORIGEN:idCliente`) y `limite` (opcional, mínimo 1). Sin compras vigentes responde una lista vacía |
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ. Con Docker:
