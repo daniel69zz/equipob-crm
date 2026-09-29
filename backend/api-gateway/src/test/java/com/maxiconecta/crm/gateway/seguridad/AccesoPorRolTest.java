@@ -176,6 +176,29 @@ class AccesoPorRolTest {
                 .andExpect(pasaElControlDeAcceso());
     }
 
+    // --- Historial de compras (SCRUM-16): accesible solo con INDICADORES_CONSULTAR ---
+
+    @Test
+    void elAgenteElGerenteYElAdministradorPuedenConsultarElHistorialDeCompras() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/compras";
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void sinIndicadoresConsultarSeDeniegaElHistorialDeComprasYQuedaAuditado() throws Exception {
+        String sinPermiso = bearer("carla", "SIN_INDICADORES", List.of("CLIENTE_CONSULTAR"));
+
+        mvc.perform(get("/api/comportamiento/clientes/42/compras").header("Authorization", sinPermiso))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/compras"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test

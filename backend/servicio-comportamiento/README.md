@@ -43,6 +43,15 @@ La anulación se guarda en `anulacion` (y sus ítems devueltos en `anulacion_ite
 
 Si ni siquiera se puede escribir en la bitácora, el mensaje pasa a `crm.comportamiento.anulaciones.respaldo` y se reinyecta con `POST /api/comportamiento/eventos/respaldo/reinyectar?cola=anulaciones`.
 
+## Historial de compras (SCRUM-16)
+
+Ver diseño en `docs/compra/historial-compras.md` y el formato de la respuesta en
+`docs/compra/formato-historial-compras.md`.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/compras` | `INDICADORES_CONSULTAR` | Compras del cliente, de la más reciente a la más antigua. `{clienteId}` solo identifica al cliente para la auditoría del Gateway; la búsqueda usa los pares por canal de `identificador` (repetible, formato `ORIGEN:idCliente`, tal como los devuelve `identificadoresOrigen` en `GET /api/perfil/clientes/{clienteId}`). Sin identificadores, o si ninguno tiene compras, responde una página vacía. `pagina`, `tamanio` (por defecto 20, máx. 100) |
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ. Con Docker:
