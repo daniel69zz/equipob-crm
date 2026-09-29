@@ -42,8 +42,8 @@ Si más adelante el volumen exige guardarlo, la agregación (`AgregadoComprasCli
 
 ```
 GET /api/comportamiento/clientes/{clienteId}/indicadores
-      ?identificador=MARKETPLACE:mp-user-3307
-      &identificador=VENTAS:CLI-5521
+      ?identificador=mp-user-3307
+      &identificador=CLI-5521
 ```
 
 Sigue la misma composición que el historial: el frontend obtiene `identificadoresOrigen` del perfil y los pasa como `identificador` repetible. `{clienteId}` solo identifica al cliente para la auditoría del Gateway. El permiso es `INDICADORES_CONSULTAR`, el mismo del historial.
@@ -67,4 +67,4 @@ Sin compras vigentes:
 }
 ```
 
-Ya se agregaron como campos hermanos de `ticketPromedio`: la recencia (`docs/compra/recencia-compra.md`, SCRUM-19) y el valor acumulado (`docs/compra/valor-acumulado.md`, SCRUM-33). La frecuencia de compra se agregará de la misma forma.
+Ya se agregaron como campos hermanos de `ticketPromedio`: la recencia (`docs/compra/recencia-compra.md`, SCRUM-19), la frecuencia de compra (`docs/compra/frecuencia-compra.md`, SCRUM-37) y el valor acumulado (`docs/compra/valor-acumulado.md`, SCRUM-33).

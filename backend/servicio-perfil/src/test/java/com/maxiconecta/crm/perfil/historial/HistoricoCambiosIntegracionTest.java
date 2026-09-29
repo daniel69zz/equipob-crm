@@ -90,7 +90,7 @@ class HistoricoCambiosIntegracionTest {
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
-                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil_detalle, perfil.cambio_perfil, "
+                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.cambio_perfil_detalle, perfil.cambio_perfil, "
                 + "perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, perfil.cliente, "
                 + "perfil.evento_cliente RESTART IDENTITY; SET session_replication_role = DEFAULT");
     }
@@ -118,7 +118,7 @@ class HistoricoCambiosIntegracionTest {
     void unEventoQueNoCambiaNadaNoGeneraRegistro() {
         Long idAna = alta();
         publicar(parcialDeVentas("\"contacto\": {\"email\": \"ANA.PEREZ@correo.com\"}", "2026-09-27T09:00:00-04:00"));
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
         esperar(3);
 
         assertThat(registros(idAna)).isEqualTo(1);
@@ -135,7 +135,7 @@ class HistoricoCambiosIntegracionTest {
         transaccion.executeWithoutResult(t -> {
             CambioPerfil cambio = ultimo(idAna);
             assertThat(cambio.getTipo()).isEqualTo(TipoCambio.ACTUALIZACION);
-            assertThat(cambio.getOrigen()).isEqualTo(Origen.VENTAS);
+            assertThat(cambio.getOrigen()).isEqualTo(Origen.MARKETPLACE_VENTAS);
             assertThat(cambio.getFecha()).isNotNull();
             assertThat(cambio.getDetalles()).singleElement().satisfies(d -> {
                 assertThat(d.getCampo()).isEqualTo("email");
@@ -145,22 +145,22 @@ class HistoricoCambiosIntegracionTest {
         });
     }
 
-    // --- Criterio 2: el origen distingue Marketplace, Ventas y las acciones hechas en el CRM ---
+    // --- Criterio 2: el origen distingue a Marketplace y Ventas de las acciones hechas en el CRM ---
 
     @Test
     void elOrigenDistingueVentasMarketplaceYElCrm() {
         Long idAna = alta();
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        publicar(ejemplo("cliente-carlos-alta.json"));
         Long idCarlos = esperar(2).get(1).getIdCliente();
-        publicar(ejemplo("cliente-marketplace-ana.json"));
+        publicar(ejemplo("cliente-ana-otra-cuenta.json"));
         esperar(3);
-        vinculacion.vincular(idAna, Origen.MARKETPLACE, "mp-user-9001", "admin").forEach(sincronizacion::procesar);
+        vinculacion.vincular(idAna, "mp-user-9001", "admin").forEach(sincronizacion::procesar);
         consolidacion.consolidar(idCarlos, idAna, "supervisor");
 
         assertThat(cambios.findByIdClienteOrderByFechaAscIdAsc(idAna))
                 .extracting(c -> c.getTipo() + " " + c.getOrigen() + " " + c.getResponsable())
-                .containsExactly("CREACION VENTAS vendedor.jperez", "VINCULACION CRM admin",
-                        "ACTUALIZACION MARKETPLACE sincronizacion-automatica", "UNIFICACION CRM supervisor");
+                .containsExactly("CREACION MARKETPLACE_VENTAS vendedor.jperez", "VINCULACION CRM admin",
+                        "ACTUALIZACION MARKETPLACE_VENTAS sincronizacion-automatica", "UNIFICACION CRM supervisor");
         assertThat(cambios.findByIdClienteOrderByFechaAscIdAsc(idCarlos)).extracting(CambioPerfil::getTipo)
                 .containsExactly(TipoCambio.CREACION, TipoCambio.UNIFICACION);
     }
@@ -182,7 +182,7 @@ class HistoricoCambiosIntegracionTest {
                 .andExpect(jsonPath("$.cambios[0].campos[0].nuevo").value("dos@correo.com"))
                 .andExpect(jsonPath("$.cambios[1].campos[0].nuevo").value("uno@correo.com"))
                 .andExpect(jsonPath("$.cambios[2].tipo").value("CREACION"))
-                .andExpect(jsonPath("$.cambios[2].origen").value("VENTAS"))
+                .andExpect(jsonPath("$.cambios[2].origen").value("MARKETPLACE_VENTAS"))
                 .andExpect(jsonPath("$.cambios[2].responsable").value("vendedor.jperez"));
     }
 
@@ -191,14 +191,14 @@ class HistoricoCambiosIntegracionTest {
         Long idAna = alta();
         publicar(parcialDeVentas("\"contacto\": {\"email\": \"uno@correo.com\"}", "2026-09-27T09:00:00-04:00"));
         esperar(2);
-        publicar(ejemplo("cliente-marketplace-ana.json"));
+        publicar(ejemplo("cliente-ana-otra-cuenta.json"));
         esperar(3);
-        vinculacion.vincular(idAna, Origen.MARKETPLACE, "mp-user-9001", "admin").forEach(sincronizacion::procesar);
+        vinculacion.vincular(idAna, "mp-user-9001", "admin").forEach(sincronizacion::procesar);
         String hoy = LocalDate.now().toString();
 
-        // El correo de Marketplace era más antiguo que el de Ventas: se conservó y no es un cambio.
+        // Alta, cambio de correo y el correo que trajo la otra cuenta de Ana al vincularse.
         mvc.perform(get("/api/perfil/clientes/{id}/historial-cambios", idAna).param("campo", "email"))
-                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.total").value(3))
                 .andExpect(jsonPath("$.cambios[0].campos.length()").value(1))
                 .andExpect(jsonPath("$.cambios[0].campos[0].campo").value("email"));
         mvc.perform(get("/api/perfil/clientes/{id}/historial-cambios", idAna).param("campo", "direcciones"))
@@ -206,7 +206,7 @@ class HistoricoCambiosIntegracionTest {
         mvc.perform(get("/api/perfil/clientes/{id}/historial-cambios", idAna).param("origen", "CRM"))
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.cambios[0].tipo").value("VINCULACION"))
-                .andExpect(jsonPath("$.cambios[0].campos[0].nuevo").value("MARKETPLACE/mp-user-9001"));
+                .andExpect(jsonPath("$.cambios[0].campos[0].nuevo").value("mp-user-9001"));
         mvc.perform(get("/api/perfil/clientes/{id}/historial-cambios", idAna).param("desde", hoy).param("hasta", hoy))
                 .andExpect(jsonPath("$.total").value(4));
         mvc.perform(get("/api/perfil/clientes/{id}/historial-cambios", idAna).param("hasta", "2026-01-01"))
@@ -239,7 +239,7 @@ class HistoricoCambiosIntegracionTest {
     // --- Utilidades ---
 
     private Long alta() {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
         return esperar(1).get(0).getIdCliente();
     }
 
@@ -258,7 +258,7 @@ class HistoricoCambiosIntegracionTest {
 
     private static String parcialDeVentas(String campos, String fecha) {
         return """
-                {"idEvento": "%s", "tipoEvento": "CLIENTE_ACTUALIZADO", "origen": "VENTAS", "fechaEmision": "%s",
+                {"idEvento": "%s", "tipoEvento": "CLIENTE_ACTUALIZADO", "fechaEmision": "%s",
                  "responsable": "cajero.mlopez",
                  "cliente": {"idCliente": "CLI-5521", "fechaActualizacion": "%s", %s}}
                 """.formatted(UUID.randomUUID(), fecha, fecha, campos);

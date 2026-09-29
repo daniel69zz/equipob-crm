@@ -20,7 +20,7 @@ cliente 1 ──── 0..1 consentimiento 1 ──── N consentimiento_alcan
 |---|---|
 | `id_cliente` | Perfil del cliente (clave primaria) |
 | `estado` | `OTORGADO` o `REVOCADO` |
-| `canal` | Por dónde lo dio el cliente: `MARKETPLACE`, `VENTAS`, `PRESENCIAL`, `TELEFONICO` o `CORREO` |
+| `canal` | Por dónde lo dio el cliente: `MARKETPLACE_VENTAS` (a través del módulo Marketplace y Ventas), `PRESENCIAL`, `TELEFONICO` o `CORREO` |
 | `fecha_otorgamiento` | Momento en que el cliente otorgó el consentimiento |
 | `vigencia_desde` | Primer día de vigencia |
 | `vigencia_hasta` | Último día de vigencia; vacío si no vence |

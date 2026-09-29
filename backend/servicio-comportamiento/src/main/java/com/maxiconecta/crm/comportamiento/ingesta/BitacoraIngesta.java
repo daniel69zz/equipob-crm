@@ -22,7 +22,7 @@ public class BitacoraIngesta {
     public Long registrarRecepcion(String contenido) {
         LectorEventos.Cabecera cabecera = lector.cabecera(contenido);
         return repository.save(new EventoRecibido(contenido, cabecera.idEvento(), cabecera.tipoEvento(),
-                cabecera.origen(), cabecera.idTransaccion())).getId();
+                cabecera.idTransaccion())).getId();
     }
 
     /** Tipo de evento que declaraba el mensaje al recibirlo, o null si no se pudo leer. */

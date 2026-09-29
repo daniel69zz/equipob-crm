@@ -35,8 +35,7 @@ const NOMBRES_DE_TIPO: Record<CambioHistorial['tipo'], string> = {
 };
 
 const NOMBRES_DE_ORIGEN: Record<CambioHistorial['origen'], string> = {
-  VENTAS: 'Ventas',
-  MARKETPLACE: 'Marketplace',
+  MARKETPLACE_VENTAS: 'Marketplace y Ventas',
   CRM: 'CRM (manual)',
 };
 
@@ -70,8 +69,7 @@ const NOMBRES_DE_ORIGEN: Record<CambioHistorial['origen'], string> = {
         <label for="origen">Origen</label>
         <select id="origen" name="origen" [(ngModel)]="filtro.origen">
           <option value="">Todos</option>
-          <option value="VENTAS">Ventas</option>
-          <option value="MARKETPLACE">Marketplace</option>
+          <option value="MARKETPLACE_VENTAS">Marketplace y Ventas</option>
           <option value="CRM">CRM (manual)</option>
         </select>
       </div>
@@ -150,8 +148,7 @@ const NOMBRES_DE_ORIGEN: Record<CambioHistorial['origen'], string> = {
     .fecha { font-family: monospace; }
     .responsable { color: var(--color-texto-suave); }
     .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef2f7; }
-    .origen-VENTAS { color: #1f3864; background: #dae8fc; }
-    .origen-MARKETPLACE { color: #6b3fa0; background: #efe6fb; }
+    .origen-MARKETPLACE_VENTAS { color: #1f3864; background: #dae8fc; }
     .origen-CRM { color: #9a6700; background: #fff4e0; }
     .valor { word-break: break-word; }
     .anterior { color: var(--color-texto-suave); text-decoration: line-through; }

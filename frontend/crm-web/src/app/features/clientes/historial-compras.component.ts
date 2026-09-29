@@ -3,14 +3,16 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ClientesService, IdentificadorOrigen, PerfilCliente } from './clientes.service';
-import { Compra, ComprasService, PaginaCompras, TicketPromedio, ValorAcumulado } from './compras.service';
+import {
+  Compra,
+  ComprasService,
+  PaginaCompras,
+  RecenciaCompra,
+  TicketPromedio,
+  ValorAcumulado,
+} from './compras.service';
 
 const TAMANIO_PAGINA = 20;
-
-const NOMBRES_DE_ORIGEN: Record<Compra['origen'], string> = {
-  VENTAS: 'Ventas',
-  MARKETPLACE: 'Marketplace',
-};
 
 const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
   CONFIRMADA: 'Confirmada',
@@ -20,7 +22,8 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
 
 /**
  * Historial de compras de un cliente, de la más reciente a la más antigua (SCRUM-16). Combina
- * los identificadores por canal del perfil (GET /api/perfil/clientes/{id}) con la consulta de
+ * los identificadores del cliente en Marketplace y Ventas que guarda el perfil
+ * (GET /api/perfil/clientes/{id}) con la consulta de
  * servicio-comportamiento, tal como lo describe docs/compra/historial-compras.md.
  */
 @Component({
@@ -75,6 +78,33 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
           <small>Calculando…</small>
         }
       </div>
+      <div class="indicador">
+        <span class="nombre-indicador">Recencia</span>
+        @if (recencia(); as dato) {
+          @if (dato.sinDatos) {
+            <strong class="sin-datos">Sin datos</strong>
+            <small>El cliente no tiene compras vigentes.</small>
+          } @else {
+            <strong>{{ describirDuracion(dato.tiempoTranscurrido) }}</strong>
+            <small>Última compra: {{ dato.ultimaCompra | date: 'dd/MM/yyyy HH:mm' }}</small>
+          }
+        } @else if (errorIndicadores()) {
+          <small class="error" role="status">{{ errorIndicadores() }}</small>
+        } @else {
+          <small>Calculando…</small>
+        }
+      </div>
+      <div class="indicador">
+        <span class="nombre-indicador">Frecuencia</span>
+        @if (frecuencia() !== null) {
+          <strong>{{ frecuencia() }}</strong>
+          <small>{{ frecuencia() === 1 ? 'compra vigente' : 'compras vigentes' }}</small>
+        } @else if (errorIndicadores()) {
+          <small class="error" role="status">{{ errorIndicadores() }}</small>
+        } @else {
+          <small>Calculando…</small>
+        }
+      </div>
     </section>
 
     @if (historial(); as datos) {
@@ -83,7 +113,6 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
           <header>
             <span class="fecha">{{ compra.fecha | date: 'dd/MM/yyyy HH:mm' }}</span>
             <span class="referencia">{{ compra.referencia }}</span>
-            <span class="etiqueta" [class]="'origen-' + compra.origen">{{ nombreOrigen(compra.origen) }}</span>
             <span class="etiqueta" [class]="'estado-' + compra.estado">{{ nombreEstado(compra.estado) }}</span>
             <strong class="monto">{{ compra.montoTotal | number: '1.2-2' }}</strong>
           </header>
@@ -137,8 +166,6 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
     .referencia { color: var(--color-texto-suave); font-family: monospace; }
     .monto { margin-left: auto; }
     .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef2f7; }
-    .origen-VENTAS { color: #1f3864; background: #dae8fc; }
-    .origen-MARKETPLACE { color: #6b3fa0; background: #efe6fb; }
     .estado-CONFIRMADA { color: #0b6e4f; background: #e3f6ee; }
     .estado-DEVOLUCION_PARCIAL { color: #9a6700; background: #fff4e0; }
     .estado-ANULADA { color: var(--color-error); background: #fdeceb; }
@@ -158,6 +185,8 @@ export class HistorialComprasComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly ticketPromedio = signal<TicketPromedio | null>(null);
   readonly valorAcumulado = signal<ValorAcumulado | null>(null);
+  readonly recencia = signal<RecenciaCompra | null>(null);
+  readonly frecuencia = signal<number | null>(null);
   readonly errorIndicadores = signal<string | null>(null);
 
   readonly desdeRegistro = computed(() => (this.historial()?.pagina ?? 0) * TAMANIO_PAGINA + 1);
@@ -172,8 +201,7 @@ export class HistorialComprasComponent implements OnInit {
     this.clientes.obtener(this.idCliente()).subscribe({
       next: (perfil) => {
         this.perfil.set(perfil);
-        // El servicio de comportamiento solo conoce los identificadores de Marketplace y Ventas.
-        this.identificadores = perfil.identificadoresOrigen.filter((id) => id.origen !== 'CRM');
+        this.identificadores = perfil.identificadoresOrigen;
         this.buscar(0);
         this.cargarIndicadores();
       },
@@ -202,15 +230,36 @@ export class HistorialComprasComponent implements OnInit {
       next: (indicadores) => {
         this.ticketPromedio.set(indicadores.ticketPromedio);
         this.valorAcumulado.set(indicadores.valorAcumulado);
+        this.recencia.set(indicadores.recencia);
+        this.frecuencia.set(indicadores.frecuencia);
       },
       error: (e: HttpErrorResponse) =>
-        this.errorIndicadores.set(e.error?.mensaje ?? 'No se pudo calcular el ticket promedio.'),
+        this.errorIndicadores.set(e.error?.mensaje ?? 'No se pudieron calcular los indicadores.'),
     });
   }
 
-  nombreOrigen(origen: Compra['origen']): string {
-    return NOMBRES_DE_ORIGEN[origen] ?? origen;
+  describirDuracion(duracion: string | null): string {
+    if (!duracion) {
+      return 'Sin datos';
+    }
+    const partes = /^(-)?PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)(?:\.\d+)?S)?$/.exec(duracion);
+    if (!partes) {
+      return duracion;
+    }
+    const horasTotales = Number(partes[2] ?? 0);
+    const dias = Math.floor(horasTotales / 24);
+    const horas = horasTotales % 24;
+    const minutos = Number(partes[3] ?? 0);
+    const segundos = Number(partes[4] ?? 0);
+    const unidades = [
+      dias > 0 ? `${dias} ${dias === 1 ? 'día' : 'días'}` : '',
+      horas > 0 ? `${horas} h` : '',
+      minutos > 0 ? `${minutos} min` : '',
+      dias === 0 && horas === 0 && minutos === 0 ? `${segundos} s` : '',
+    ].filter(Boolean);
+    return `${partes[1] ? 'Dentro de' : 'Hace'} ${unidades.join(' ')}`;
   }
+
 
   nombreEstado(estado: Compra['estado']): string {
     return NOMBRES_DE_ESTADO[estado] ?? estado;

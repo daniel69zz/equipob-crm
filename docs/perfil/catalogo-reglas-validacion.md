@@ -29,7 +29,7 @@ Un perfil queda **inconsistente** cuando sus datos están presentes y cumplen su
 | El formato de `numeroDocumento` no corresponde al `tipoDocumento` declarado (p. ej. letras en un `NIT`, que es solo numérico) | `numeroDocumento: no coincide con el formato de {tipoDocumento}` |
 | El cliente tiene direcciones activas pero ninguna está marcada como `principal` | `direcciones: ninguna dirección principal` |
 
-Esta lista se amplía cuando el motor de detección (SCRUM-166) lo requiera. No incluye la detección de perfiles duplicados entre `origen` (mismo `tipoDocumento` y `numeroDocumento` en más de un perfil): esa comparación es de la unificación de duplicados (SCRUM-13).
+Esta lista se amplía cuando el motor de detección (SCRUM-166) lo requiera. No incluye la detección de perfiles duplicados (mismo `tipoDocumento` y `numeroDocumento` en más de un perfil): esa comparación es de la unificación de duplicados (SCRUM-13).
 
 ## Evaluación
 

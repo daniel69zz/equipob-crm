@@ -34,10 +34,6 @@ public class Compra {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Origen origen;
-
     @Column(nullable = false)
     private String idCompraOrigen;
 
@@ -75,9 +71,8 @@ public class Compra {
     protected Compra() {
     }
 
-    public Compra(Origen origen, String idCompraOrigen, String idClienteOrigen, OffsetDateTime fecha,
+    public Compra(String idCompraOrigen, String idClienteOrigen, OffsetDateTime fecha,
                   BigDecimal montoTotal, Long idEvento) {
-        this.origen = origen;
         this.idCompraOrigen = idCompraOrigen;
         this.idClienteOrigen = idClienteOrigen;
         this.fecha = fecha;
@@ -129,10 +124,6 @@ public class Compra {
 
     public Long getId() {
         return id;
-    }
-
-    public Origen getOrigen() {
-        return origen;
     }
 
     public String getIdCompraOrigen() {

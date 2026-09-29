@@ -12,7 +12,6 @@ export interface ItemCompra {
 export interface Compra {
   fecha: string;
   referencia: string;
-  origen: 'MARKETPLACE' | 'VENTAS';
   montoTotal: number;
   estado: 'CONFIRMADA' | 'DEVOLUCION_PARCIAL' | 'ANULADA';
   items: ItemCompra[];
@@ -33,6 +32,13 @@ export interface TicketPromedio {
   sinDatos: boolean;
 }
 
+/** SCRUM-19 · Duración exacta ISO-8601 desde la última compra vigente. */
+export interface RecenciaCompra {
+  ultimaCompra: string | null;
+  tiempoTranscurrido: string | null;
+  sinDatos: boolean;
+}
+
 /** Sin compras vigentes `valor` es 0 (una suma sí está definida) y `sinDatos` verdadero (docs/compra/valor-acumulado.md). */
 export interface ValorAcumulado {
   valor: number;
@@ -42,12 +48,14 @@ export interface ValorAcumulado {
 
 export interface IndicadoresCliente {
   ticketPromedio: TicketPromedio;
+  recencia: RecenciaCompra;
+  frecuencia: number;
   valorAcumulado: ValorAcumulado;
 }
 
 /**
  * Historial de compras (SCRUM-16, GET /api/comportamiento/clientes/{clienteId}/compras) e
- * indicadores (SCRUM-17, .../indicadores) de un cliente.
+ * indicadores (SCRUM-17, SCRUM-19 y SCRUM-37, .../indicadores) de un cliente.
  */
 @Injectable({ providedIn: 'root' })
 export class ComprasService {
@@ -74,5 +82,5 @@ export class ComprasService {
 }
 
 function parametrosDeIdentificadores(params: HttpParams, identificadores: IdentificadorOrigen[]): HttpParams {
-  return identificadores.reduce((acumulado, id) => acumulado.append('identificador', `${id.origen}:${id.idCliente}`), params);
+  return identificadores.reduce((acumulado, id) => acumulado.append('identificador', id.idCliente), params);
 }

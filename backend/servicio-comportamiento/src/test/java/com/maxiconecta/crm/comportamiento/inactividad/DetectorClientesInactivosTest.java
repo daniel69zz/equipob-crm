@@ -1,7 +1,6 @@
 package com.maxiconecta.crm.comportamiento.inactividad;
 
 import com.maxiconecta.crm.comportamiento.compra.AgregadoComprasCliente;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.compra.UltimaCompraCliente;
 import org.junit.jupiter.api.Test;
 
@@ -33,8 +32,8 @@ class DetectorClientesInactivosTest {
         when(criterio.fechaCorte()).thenReturn(CORTE);
         OffsetDateTime ultimaCompra = OffsetDateTime.parse("2026-05-01T10:00:00Z");
         when(agregado.ultimaCompraVigentePorClienteAnteriorA(CORTE))
-                .thenReturn(List.of(new UltimaCompraCliente(Origen.VENTAS, "CLI-5521", ultimaCompra)));
-        when(repositorio.findByOrigenAndIdClienteOrigen(Origen.VENTAS, "CLI-5521")).thenReturn(Optional.empty());
+                .thenReturn(List.of(new UltimaCompraCliente("CLI-5521", ultimaCompra)));
+        when(repositorio.findByIdClienteOrigen("CLI-5521")).thenReturn(Optional.empty());
         when(repositorio.findAll()).thenReturn(List.of());
 
         int total = detector.detectar();
@@ -48,10 +47,9 @@ class DetectorClientesInactivosTest {
         when(criterio.fechaCorte()).thenReturn(CORTE);
         OffsetDateTime ultimaCompra = OffsetDateTime.parse("2026-05-15T10:00:00Z");
         when(agregado.ultimaCompraVigentePorClienteAnteriorA(CORTE))
-                .thenReturn(List.of(new UltimaCompraCliente(Origen.VENTAS, "CLI-5521", ultimaCompra)));
-        ClienteInactivo existente = new ClienteInactivo(Origen.VENTAS, "CLI-5521",
-                OffsetDateTime.parse("2026-04-01T10:00:00Z"));
-        when(repositorio.findByOrigenAndIdClienteOrigen(Origen.VENTAS, "CLI-5521")).thenReturn(Optional.of(existente));
+                .thenReturn(List.of(new UltimaCompraCliente("CLI-5521", ultimaCompra)));
+        ClienteInactivo existente = new ClienteInactivo("CLI-5521", OffsetDateTime.parse("2026-04-01T10:00:00Z"));
+        when(repositorio.findByIdClienteOrigen("CLI-5521")).thenReturn(Optional.of(existente));
         when(repositorio.findAll()).thenReturn(List.of(existente));
 
         detector.detectar();
@@ -64,8 +62,7 @@ class DetectorClientesInactivosTest {
     void quitaAUnClienteQueYaNoCumpleElCriterioAunqueSigaPersistido() {
         when(criterio.fechaCorte()).thenReturn(CORTE);
         when(agregado.ultimaCompraVigentePorClienteAnteriorA(CORTE)).thenReturn(List.of());
-        ClienteInactivo yaNoInactivo = new ClienteInactivo(Origen.MARKETPLACE, "mp-user-1",
-                OffsetDateTime.parse("2026-04-01T10:00:00Z"));
+        ClienteInactivo yaNoInactivo = new ClienteInactivo("mp-user-1", OffsetDateTime.parse("2026-04-01T10:00:00Z"));
         when(repositorio.findAll()).thenReturn(List.of(yaNoInactivo));
 
         int total = detector.detectar();
@@ -76,8 +73,8 @@ class DetectorClientesInactivosTest {
 
     @Test
     void reactivarQuitaAlClienteSinEsperarLaProximaEjecucion() {
-        detector.reactivar(Origen.VENTAS, "CLI-5521");
+        detector.reactivar("CLI-5521");
 
-        verify(repositorio).deleteByOrigenAndIdClienteOrigen(Origen.VENTAS, "CLI-5521");
+        verify(repositorio).deleteByIdClienteOrigen("CLI-5521");
     }
 }

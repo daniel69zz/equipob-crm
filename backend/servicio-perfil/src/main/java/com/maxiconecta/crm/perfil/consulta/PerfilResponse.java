@@ -31,20 +31,20 @@ public record PerfilResponse(Long id, String nombres, String apellidos, String t
                 cliente.getDireccionesActivas().stream().map(DireccionResponse::de).toList());
     }
 
-    public record IdentificadorOrigen(Origen origen, String idCliente, String motivoVinculacion,
+    public record IdentificadorOrigen(String idCliente, String motivoVinculacion,
                                       String vinculadoPor, OffsetDateTime fechaVinculacion) {
 
         static IdentificadorOrigen de(ClienteOrigen vinculo) {
-            return new IdentificadorOrigen(vinculo.getOrigen(), vinculo.getIdClienteOrigen(),
+            return new IdentificadorOrigen(vinculo.getIdClienteOrigen(),
                     vinculo.getMotivoVinculacion(), vinculo.getVinculadoPor(), vinculo.getFechaVinculacion());
         }
     }
 
-    public record DireccionResponse(Origen origen, String idDireccion, TipoDireccion tipo, String calle, String numero,
+    public record DireccionResponse(String idDireccion, TipoDireccion tipo, String calle, String numero,
                                     String zona, String ciudad, String referencia, boolean principal) {
 
         static DireccionResponse de(Direccion direccion) {
-            return new DireccionResponse(direccion.getOrigen(), direccion.getIdDireccionOrigen(), direccion.getTipo(),
+            return new DireccionResponse(direccion.getIdDireccionOrigen(), direccion.getTipo(),
                     direccion.getCalle(), direccion.getNumero(), direccion.getZona(), direccion.getCiudad(),
                     direccion.getReferencia(), direccion.isPrincipal());
         }

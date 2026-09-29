@@ -25,8 +25,7 @@ const ALCANCES: { codigo: AlcanceConsentimiento; nombre: string }[] = [
 
 const CANALES: { codigo: CanalConsentimiento; nombre: string }[] = [
   { codigo: 'PRESENCIAL', nombre: 'Presencial' },
-  { codigo: 'MARKETPLACE', nombre: 'Marketplace' },
-  { codigo: 'VENTAS', nombre: 'Ventas' },
+  { codigo: 'MARKETPLACE_VENTAS', nombre: 'Marketplace y Ventas' },
   { codigo: 'TELEFONICO', nombre: 'Telefónico' },
   { codigo: 'CORREO', nombre: 'Correo' },
 ];

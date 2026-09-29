@@ -58,19 +58,10 @@ class DetectorIncidenciasPerfilTest {
     @Test
     void soloLasDireccionesActivasNecesitanUnaPrincipal() {
         Cliente cliente = valido();
-        cliente.sincronizarDirecciones(Origen.VENTAS, List.of(direccion(false)));
+        cliente.sincronizarDirecciones(List.of(direccion(false)));
         assertThat(detector.evaluar(cliente).inconsistencias())
                 .containsExactly("direcciones: ninguna dirección principal");
-        cliente.sincronizarDirecciones(Origen.VENTAS, List.of());
-        assertThat(detector.evaluar(cliente).inconsistencias()).isEmpty();
-    }
-
-    @Test
-    void direccionesDeDistintosOrigenesPuedenCompartirIdentificador() {
-        Cliente cliente = valido();
-        cliente.sincronizarDirecciones(Origen.VENTAS, List.of(direccion(true)));
-        cliente.sincronizarDirecciones(Origen.MARKETPLACE, List.of(direccion(false)));
-        assertThat(detector.evaluar(cliente).incompleto()).isEmpty();
+        cliente.sincronizarDirecciones(List.of());
         assertThat(detector.evaluar(cliente).inconsistencias()).isEmpty();
     }
 
@@ -92,11 +83,11 @@ class DetectorIncidenciasPerfilTest {
     }
 
     @Test
-    void identificaElOrigenDeUnaDireccionIncompleta() {
+    void identificaLaDireccionIncompleta() {
         Cliente cliente = valido();
-        cliente.sincronizarDirecciones(Origen.VENTAS, List.of(new Direccion.DatosDireccion("D-1",
+        cliente.sincronizarDirecciones(List.of(new Direccion.DatosDireccion("D-1",
                 TipoDireccion.ENTREGA, "", null, null, "La Paz", null, true)));
-        assertThat(detector.evaluar(cliente).incompleto()).containsExactly("VENTAS: direcciones[D-1].calle: vacío");
+        assertThat(detector.evaluar(cliente).incompleto()).containsExactly("direcciones[D-1].calle: vacío");
     }
 
     private static Cliente valido() {

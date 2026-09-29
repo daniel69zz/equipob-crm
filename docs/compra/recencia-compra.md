@@ -7,7 +7,7 @@ del cliente. Se calcula al consultar los indicadores; no se guarda en el perfil 
 
 - La fuente es `comportamiento.compra.fecha`, que RIO-CRM-02 define como el momento en que se
   confirmó la compra. `registrada_en` no se usa porque solo indica cuándo la recibió el CRM.
-- Se combinan los pares `ORIGEN:idCliente` del perfil, igual que en el historial y el ticket promedio.
+- Se combinan los identificadores del cliente en Marketplace y Ventas que guarda el perfil, igual que en el historial y el ticket promedio.
 - La base obtiene `MAX(fecha)` entre las compras vigentes. Una devolución parcial sigue vigente y
   una compra anulada por completo queda fuera, conforme a RIO-CRM-05.
 - Sin identificadores o sin compras vigentes, la recencia queda sin datos.
@@ -31,8 +31,8 @@ Se amplía el endpoint existente:
 
 ```http
 GET /api/comportamiento/clientes/{clienteId}/indicadores
-    ?identificador=MARKETPLACE:mp-user-3307
-    &identificador=VENTAS:CLI-5521
+    ?identificador=mp-user-3307
+    &identificador=CLI-5521
 ```
 
 Ejemplo:

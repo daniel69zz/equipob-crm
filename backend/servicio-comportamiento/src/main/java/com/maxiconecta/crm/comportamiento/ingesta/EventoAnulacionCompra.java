@@ -12,7 +12,7 @@ import java.util.List;
  * de una compra. Los campos desconocidos se ignoran.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record EventoAnulacionCompra(String idEvento, String tipoEvento, String origen,
+public record EventoAnulacionCompra(String idEvento, String tipoEvento,
                                     @JsonFormat(shape = JsonFormat.Shape.STRING) OffsetDateTime fechaEmision,
                                     DatosAnulacion anulacion) {
 

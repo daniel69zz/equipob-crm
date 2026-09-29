@@ -14,6 +14,12 @@ import {
 const TAMANIO_PAGINA = 50;
 const DURACION_ALERTA_MS = 8_000;
 
+/** Nombre visible de cada tipo de evento que envía Marketplace y Ventas. */
+const NOMBRES_DE_TIPO: Record<string, string> = {
+  COMPRA_CONFIRMADA: 'Compra',
+  COMPRA_ANULADA: 'Anulación',
+};
+
 /** Estados en el orden en que se muestran, con su nombre visible. */
 const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
   { codigo: 'RECIBIDO', nombre: 'Recibidos' },
@@ -46,14 +52,6 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
           @for (estado of estados; track estado.codigo) {
             <option [value]="estado.codigo">{{ estado.nombre }}</option>
           }
-        </select>
-      </div>
-      <div>
-        <label for="origen">Origen</label>
-        <select id="origen" name="origen" [(ngModel)]="filtro.origen">
-          <option value="">Todos</option>
-          <option value="MARKETPLACE">Marketplace</option>
-          <option value="VENTAS">Ventas</option>
         </select>
       </div>
       <div>
@@ -100,7 +98,7 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
           <thead>
             <tr>
               <th>Recibido</th>
-              <th>Origen</th>
+              <th>Tipo</th>
               <th>Transacción</th>
               <th>Evento</th>
               <th>Estado</th>
@@ -112,7 +110,7 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
             @for (evento of datos.eventos; track evento.id) {
               <tr>
                 <td class="fecha">{{ evento.recibidoEn | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
-                <td>{{ evento.origen ?? '—' }}</td>
+                <td>{{ nombreTipo(evento.tipoEvento) }}</td>
                 <td class="id">{{ evento.idTransaccion ?? '—' }}</td>
                 <td class="id">{{ evento.idEventoOrigen ?? 'sin identificador' }}</td>
                 <td><span class="etiqueta" [class]="'estado-' + evento.estado">{{ nombreEstado(evento.estado) }}</span></td>
@@ -283,6 +281,10 @@ export class BitacoraIngestaComponent implements OnInit, OnDestroy {
     this.buscar(0);
   }
 
+  nombreTipo(tipo: string | null): string {
+    return tipo ? (NOMBRES_DE_TIPO[tipo] ?? tipo) : '—';
+  }
+
   nombreEstado(estado: EstadoEvento): string {
     return ESTADOS.find((e) => e.codigo === estado)?.nombre.replace(/s$/, '') ?? estado;
   }
@@ -387,6 +389,6 @@ export class BitacoraIngestaComponent implements OnInit, OnDestroy {
   }
 
   private static filtroVacio(): FiltroBitacora {
-    return { desde: '', hasta: '', estado: '', origen: '', transaccion: '' };
+    return { desde: '', hasta: '', estado: '', transaccion: '' };
   }
 }

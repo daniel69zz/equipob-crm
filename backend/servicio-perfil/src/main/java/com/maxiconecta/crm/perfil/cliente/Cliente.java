@@ -95,11 +95,10 @@ public class Cliente {
     }
 
     /**
-     * Sincroniza las direcciones informadas por un sistema de origen: agrega las nuevas, actualiza
-     * las existentes y desactiva las que ese sistema ya no informa. Las de otros sistemas no se tocan.
-     * Devuelve los cambios aplicados.
+     * Sincroniza las direcciones informadas por Marketplace y Ventas: agrega las nuevas, actualiza las
+     * existentes y desactiva las que ya no informa. Devuelve los cambios aplicados.
      */
-    public List<CambioCampo> sincronizarDirecciones(Origen origen, List<Direccion.DatosDireccion> recibidas) {
+    public List<CambioCampo> sincronizarDirecciones(List<Direccion.DatosDireccion> recibidas) {
         List<CambioCampo> cambios = new ArrayList<>();
         Set<String> informadas = new HashSet<>();
         boolean hayPrincipal = false;
@@ -112,17 +111,17 @@ public class Cliente {
             Direccion.DatosDireccion normalizada = new Direccion.DatosDireccion(datos.idDireccionOrigen(), datos.tipo(),
                     datos.calle(), datos.numero(), datos.zona(), datos.ciudad(), datos.referencia(), principal);
             Direccion direccion = direcciones.stream()
-                    .filter(d -> d.getOrigen() == origen && d.getIdDireccionOrigen().equals(datos.idDireccionOrigen()))
+                    .filter(d -> d.getIdDireccionOrigen().equals(datos.idDireccionOrigen()))
                     .findFirst()
                     .orElseGet(() -> {
-                        Direccion nueva = new Direccion(this, origen, datos.idDireccionOrigen());
+                        Direccion nueva = new Direccion(this, datos.idDireccionOrigen());
                         direcciones.add(nueva);
                         return nueva;
                     });
             cambios.addAll(direccion.actualizar(normalizada));
         }
         direcciones.stream()
-                .filter(d -> d.getOrigen() == origen && !informadas.contains(d.getIdDireccionOrigen()))
+                .filter(d -> !informadas.contains(d.getIdDireccionOrigen()))
                 .forEach(d -> cambios.addAll(d.desactivar()));
         return cambios;
     }

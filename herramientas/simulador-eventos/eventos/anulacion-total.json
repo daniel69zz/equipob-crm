@@ -1,7 +1,6 @@
 {
   "idEvento": "3a9c7e1f-5d2b-4f8a-b6c4-7e8f9a0b1c2d",
   "tipoEvento": "COMPRA_ANULADA",
-  "origen": "VENTAS",
   "fechaEmision": "2026-09-29T09:15:00-04:00",
   "anulacion": {
     "idAnulacion": "V-100234-A1",

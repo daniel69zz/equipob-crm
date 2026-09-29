@@ -6,55 +6,37 @@ Diseño de la consulta que usa el Agente de Atención al Cliente para ver, en or
 
 | Servicio | Tabla / dato | Qué aporta |
 |---|---|---|
-| `servicio-comportamiento` | `comportamiento.compra` + `comportamiento.compra_item` | Las compras confirmadas (fecha, monto, canal, ítems por categoría), ya registradas por la ingesta de SCRUM-20. Índice `idx_compra_cliente (origen, id_cliente_origen, fecha DESC)`: ya está pensado para listarse en orden cronológico por identificador de origen |
-| `servicio-perfil` | `GET /api/perfil/clientes/{clienteId}` → `identificadoresOrigen` | Los pares `(origen, idCliente)` de Marketplace y Ventas vinculados al perfil único del cliente (RF-62, ver `docs/perfil/identificadores-origen.md`) |
+| `servicio-comportamiento` | `comportamiento.compra` + `comportamiento.compra_item` | Las compras confirmadas (fecha, monto, ítems por categoría), ya registradas por la ingesta de SCRUM-20. Índice `idx_compra_cliente (id_cliente_origen, fecha DESC)`: pensado para listarlas en orden cronológico por identificador del cliente |
+| `servicio-perfil` | `GET /api/perfil/clientes/{clienteId}` → `identificadoresOrigen` | Los identificadores del cliente en Marketplace y Ventas vinculados a su perfil único (RF-62, ver `docs/perfil/identificadores-origen.md`) |
 
 ## El problema: `compra` no conoce el perfil unificado
 
-`comportamiento.compra` identifica al cliente por `(origen, id_cliente_origen)` — el identificador crudo del canal — porque `servicio-comportamiento` ingiere sus eventos de forma independiente de `servicio-perfil` (cada uno consume su propia cola de RabbitMQ; **no hay llamadas sincrónicas entre microservicios en este proyecto**). Un mismo cliente puede tener compras bajo dos identificadores distintos (uno de Marketplace, otro de Ventas) que hay que combinar.
+`comportamiento.compra` identifica al cliente por `id_cliente_origen` —el identificador que usa Marketplace y Ventas— porque `servicio-comportamiento` ingiere sus eventos de forma independiente de `servicio-perfil` (cada uno consume su propia cola de RabbitMQ). Un mismo cliente puede tener compras bajo más de un identificador (por ejemplo, si se unificaron dos perfiles duplicados), y hay que combinarlas.
 
-## Estrategia de consulta propuesta
+## Estrategia de consulta
 
-Componer la consulta en dos pasos, sin acoplar los servicios entre sí (mantiene la arquitectura actual, donde la composición entre servicios ya ocurre en el front, por ejemplo en la ficha del cliente):
+La consulta se compone en dos pasos, sin acoplar los servicios entre sí:
 
 ```
 1. GET /api/perfil/clientes/{clienteId}
-   → identificadoresOrigen: [(MARKETPLACE, mp-user-3307), (VENTAS, CLI-5521)]
+   → identificadoresOrigen: [CLI-5521, mp-user-9001]
 
 2. GET /api/comportamiento/clientes/{clienteId}/compras
-     ?identificador=MARKETPLACE:mp-user-3307
-     &identificador=VENTAS:CLI-5521
+     ?identificador=CLI-5521
+     &identificador=mp-user-9001
      &pagina=0&tamanio=20
-   → compras de ambos identificadores, ordenadas por fecha desc, paginadas
+   → compras de todos los identificadores, ordenadas por fecha desc, paginadas
 ```
 
-El paso 1 ya existe. El paso 2 es el endpoint que desarrolla SCRUM-194. `{clienteId}` va en la ruta porque `docs/seguridad/convencion-rutas-clientes.md` lo exige para toda ruta de datos de un cliente (así lo audita el Gateway), pero `servicio-comportamiento` no lo usa para consultar: no conoce el perfil unificado (ver el problema de arriba), así que la búsqueda real se hace con los `identificador=ORIGEN:idCliente` de la query.
+`{clienteId}` va en la ruta porque `docs/seguridad/convencion-rutas-clientes.md` lo exige para toda ruta de datos de un cliente (así lo audita el Gateway), pero `servicio-comportamiento` no lo usa para consultar: la búsqueda real se hace con los `identificador` de la query.
 
-Se pasa `identificador=ORIGEN:idCliente` como un único parámetro repetible (en vez de dos listas paralelas `origen=`/`idCliente=`) para no arriesgar un desalineamiento entre listas al combinarlas en el backend.
+## Consulta en `servicio-comportamiento` (SCRUM-194)
 
-## Consulta en `servicio-comportamiento` (para SCRUM-194)
+`ComprasDelCliente.deIdentificadores` arma una `Specification` con `idClienteOrigen IN (...)`, compartida por el historial y los indicadores. Paginación y orden con el mismo patrón que `ConsultaBitacora`: `PageRequest.of(pagina, tamanio, Sort.by(Sort.Order.desc("fecha")))`, con el tope `TAMANIO_MAXIMO_PAGINA` (100).
 
-`CompraRepository` hoy solo tiene `findByOrigenAndIdCompraOrigen` (para la idempotencia de la ingesta). Para el historial hace falta una consulta por **múltiples pares** `(origen, idClienteOrigen)`, no por el producto cruzado de dos `IN` (un `origen IN (...) AND idClienteOrigen IN (...)` mezclaría pares que no corresponden al mismo cliente si dos clientes distintos comparten un identificador de canal).
+## Qué devuelve (SCRUM-197)
 
-Se recomienda seguir el mismo patrón que `FiltroBitacora.comoEspecificacion()` (`Specification` con una condición OR por cada par):
-
-```java
-Specification<Compra> deIdentificadores(List<Identificador> identificadores) {
-    return (compra, consulta, cb) -> {
-        List<Predicate> pares = identificadores.stream()
-                .map(id -> cb.and(cb.equal(compra.get("origen"), id.origen()),
-                                   cb.equal(compra.get("idClienteOrigen"), id.idCliente())))
-                .toList();
-        return cb.or(pares.toArray(Predicate[]::new));
-    };
-}
-```
-
-Paginación y orden con el mismo patrón que `ConsultaBitacora`: `PageRequest.of(pagina, tamanio, Sort.by(Sort.Order.desc("fecha")))`, con el mismo tope `TAMANIO_MAXIMO_PAGINA` (100) — cubre el criterio de aceptación de paginación.
-
-## Qué devuelve (para SCRUM-197)
-
-Con los datos que ya tiene el modelo, cada compra puede responder con: `fecha`, `referencia` (el `idCompraOrigen`), `origen` (canal), `montoTotal`, `estado` y sus `items` (`categoria`, `cantidad`, `monto`) — cubre el criterio de aceptación 1 (fecha, monto, canal y productos) y los campos que pide SCRUM-197 (fecha, productos, importe, estado y referencia de compra). El contrato final de la respuesta queda en `docs/compra/formato-historial-compras.md`.
+Cada compra responde con `fecha`, `referencia` (el `idCompraOrigen`), `montoTotal`, `estado` y sus `items` (`categoria`, `cantidad`, `monto`). El contrato final de la respuesta está en `docs/compra/formato-historial-compras.md`.
 
 ## Cliente sin compras
 
@@ -69,7 +51,7 @@ No hace falta agregar nada nuevo: el permiso `INDICADORES_CONSULTAR` ("Consultar
 | Subtarea | Estado tras este análisis |
 |---|---|
 | SCRUM-192 Backend: orden cronológico | Ya resuelto por el índice `idx_compra_cliente`; se concreta al implementar la `Specification` + `Sort` de arriba |
-| SCRUM-193 Backend: habilitar la consulta para el cliente | No existe ningún actor "Cliente" (portal de autoservicio) en el proyecto: la matriz de permisos solo define Administrador, Agente y Gerente, todos con JWT del Gateway. El mismo endpoint de SCRUM-194 ya es agnóstico del canal (no distingue "agente" de "cliente", solo exige `INDICADORES_CONSULTAR`); cuando exista un portal de autoservicio con su propio actor, reutiliza este endpoint con un permiso propio para ese rol. Sin cambios de código |
+| SCRUM-193 Backend: habilitar la consulta para el cliente | No existe ningún actor "Cliente" (portal de autoservicio) en el proyecto: la matriz de permisos solo define Administrador, Agente y Gerente, todos con JWT del Gateway. El mismo endpoint de SCRUM-194 ya es agnóstico de quién consulta (no distingue "agente" de "cliente", solo exige `INDICADORES_CONSULTAR`); cuando exista un portal de autoservicio con su propio actor, reutiliza este endpoint con un permiso propio para ese rol. Sin cambios de código |
 | SCRUM-194 Backend: endpoint | Implementado: `HistorialComprasController` + `ConsultaHistorialCompras` + `Identificador` en `servicio-comportamiento` |
 | SCRUM-195 Frontend: vista | Implementada: `historial-compras.component.ts` en `frontend/crm-web`, ruta `/clientes/:id/compras` |
 | SCRUM-196 Backend: restricción por rol | Ya cubierto por la configuración existente del Gateway, sin cambios |

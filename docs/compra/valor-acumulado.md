@@ -45,18 +45,19 @@ ya ocurre en cada consulta, sin necesidad de guardarlo ni de un job de recálcul
 ## Consulta (SCRUM-309)
 
 Se agrega como un campo hermano más de `IndicadoresCliente`, sobre el mismo endpoint que ya usan
-el ticket promedio y la recencia:
+el ticket promedio, la recencia y la frecuencia:
 
 ```
 GET /api/comportamiento/clientes/{clienteId}/indicadores
-      ?identificador=MARKETPLACE:mp-user-3307
-      &identificador=VENTAS:CLI-5521
+      ?identificador=mp-user-3307
+      &identificador=CLI-5521
 ```
 
 ```json
 {
   "ticketPromedio": { "valor": 240.25, "compras": 2, "montoAcumulado": 480.50, "sinDatos": false },
   "recencia": { "ultimaCompra": "2026-09-27T19:28:10Z", "tiempoTranscurrido": "PT49H30M", "sinDatos": false },
+  "frecuencia": 5,
   "valorAcumulado": { "valor": 480.50, "compras": 2, "sinDatos": false }
 }
 ```

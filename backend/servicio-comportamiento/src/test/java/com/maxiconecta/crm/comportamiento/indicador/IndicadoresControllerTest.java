@@ -2,7 +2,6 @@ package com.maxiconecta.crm.comportamiento.indicador;
 
 import com.maxiconecta.crm.comportamiento.comun.ManejadorDeErrores;
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * SCRUM-205 · Forma de la respuesta de indicadores y lectura de los identificadores por canal.
+ * SCRUM-205 · Forma de la respuesta de indicadores y lectura de los identificadores del cliente.
  */
 class IndicadoresControllerTest {
 
@@ -39,19 +38,21 @@ class IndicadoresControllerTest {
 
     @Test
     void devuelveElTicketPromedioYLosDatosConLosQueSeCalculo() throws Exception {
-        when(consulta.ticketPromedio(List.of(new Identificador(Origen.VENTAS, "CLI-5521"),
-                new Identificador(Origen.MARKETPLACE, "mp-user-3307"))))
+        when(consulta.ticketPromedio(List.of(new Identificador("CLI-5521"),
+                new Identificador("mp-user-3307"))))
                 .thenReturn(new TicketPromedio(new BigDecimal("240.25"), 2, new BigDecimal("480.50"), false));
-        when(consulta.recencia(List.of(new Identificador(Origen.VENTAS, "CLI-5521"),
-                new Identificador(Origen.MARKETPLACE, "mp-user-3307"))))
+        when(consulta.recencia(List.of(new Identificador("CLI-5521"),
+                new Identificador("mp-user-3307"))))
                 .thenReturn(new RecenciaCompra(OffsetDateTime.parse("2026-09-27T15:28:10-04:00"),
                         Duration.ofHours(49).plusMinutes(30), false));
-        when(consulta.valorAcumulado(List.of(new Identificador(Origen.VENTAS, "CLI-5521"),
-                new Identificador(Origen.MARKETPLACE, "mp-user-3307"))))
+        when(consulta.frecuencia(List.of(new Identificador("CLI-5521"),
+                new Identificador("mp-user-3307")))).thenReturn(5L);
+        when(consulta.valorAcumulado(List.of(new Identificador("CLI-5521"),
+                new Identificador("mp-user-3307"))))
                 .thenReturn(new ValorAcumulado(new BigDecimal("480.50"), 2, false));
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores")
-                        .param("identificador", "VENTAS:CLI-5521", "MARKETPLACE:mp-user-3307"))
+                        .param("identificador", "CLI-5521", "mp-user-3307"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticketPromedio.valor").value(240.25))
                 .andExpect(jsonPath("$.ticketPromedio.compras").value(2))
@@ -60,6 +61,7 @@ class IndicadoresControllerTest {
                 .andExpect(jsonPath("$.recencia.ultimaCompra").value("2026-09-27T15:28:10-04:00"))
                 .andExpect(jsonPath("$.recencia.tiempoTranscurrido").value("PT49H30M"))
                 .andExpect(jsonPath("$.recencia.sinDatos").value(false))
+                .andExpect(jsonPath("$.frecuencia").value(5))
                 .andExpect(jsonPath("$.valorAcumulado.valor").value(480.50))
                 .andExpect(jsonPath("$.valorAcumulado.compras").value(2))
                 .andExpect(jsonPath("$.valorAcumulado.sinDatos").value(false));
@@ -70,6 +72,7 @@ class IndicadoresControllerTest {
         when(consulta.ticketPromedio(List.of()))
                 .thenReturn(new TicketPromedio(null, 0, BigDecimal.ZERO, true));
         when(consulta.recencia(List.of())).thenReturn(new RecenciaCompra(null, null, true));
+        when(consulta.frecuencia(List.of())).thenReturn(0L);
         when(consulta.valorAcumulado(List.of())).thenReturn(new ValorAcumulado(BigDecimal.ZERO, 0, true));
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores"))
@@ -80,19 +83,21 @@ class IndicadoresControllerTest {
                 .andExpect(jsonPath("$.recencia.ultimaCompra").doesNotExist())
                 .andExpect(jsonPath("$.recencia.tiempoTranscurrido").doesNotExist())
                 .andExpect(jsonPath("$.recencia.sinDatos").value(true))
+                .andExpect(jsonPath("$.frecuencia").value(0))
                 .andExpect(jsonPath("$.valorAcumulado.valor").value(0))
                 .andExpect(jsonPath("$.valorAcumulado.sinDatos").value(true));
 
         verify(consulta).ticketPromedio(List.of());
         verify(consulta).recencia(List.of());
+        verify(consulta).frecuencia(List.of());
         verify(consulta).valorAcumulado(List.of());
     }
 
     @Test
     void unIdentificadorMalFormadoSeRechazaConUn400SinConsultar() throws Exception {
-        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").param("identificador", "CLI-5521"))
+        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").param("identificador", " "))
                 .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").param("identificador", "PUNTOS:CLI-5521"))
+        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").param("identificador", "x".repeat(65)))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(consulta);

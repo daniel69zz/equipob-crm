@@ -1,7 +1,6 @@
 {
   "idEvento": "8d2e3f4a-5b6c-4d7e-9f8a-0b1c2d3e4f5a",
   "tipoEvento": "CLIENTE_ACTUALIZADO",
-  "origen": "VENTAS",
   "fechaEmision": "2026-09-25T16:40:11-04:00",
   "responsable": "cajero.mlopez",
   "cliente": {

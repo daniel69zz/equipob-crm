@@ -15,7 +15,8 @@ import java.util.List;
  * Historial de compras de un cliente (SCRUM-194, SCRUM-16). El API Gateway exige el permiso
  * INDICADORES_CONSULTAR para /api/comportamiento/** y audita el acceso tomando {clienteId} de
  * la ruta (docs/seguridad/convencion-rutas-clientes.md). Este servicio no usa {clienteId} para
- * consultar -no conoce el perfil unificado-, sino los identificadores por canal de la query
+ * consultar -no conoce el perfil unificado-, sino los identificadores del cliente en Marketplace y
+ * Ventas que llegan en la query
  * (docs/compra/historial-compras.md).
  */
 @RestController
@@ -42,11 +43,11 @@ public class HistorialComprasController {
     public record HistorialCompras(List<CompraResponse> content, int pagina, int tamanio, long total) {
     }
 
-    public record CompraResponse(OffsetDateTime fecha, String referencia, Origen origen, BigDecimal montoTotal,
+    public record CompraResponse(OffsetDateTime fecha, String referencia, BigDecimal montoTotal,
                                  String estado, List<ItemResponse> items) {
 
         static CompraResponse de(Compra compra) {
-            return new CompraResponse(compra.getFecha(), compra.getIdCompraOrigen(), compra.getOrigen(),
+            return new CompraResponse(compra.getFecha(), compra.getIdCompraOrigen(),
                     compra.getMontoTotal(), compra.getEstado(), compra.getItems().stream().map(ItemResponse::de).toList());
         }
     }

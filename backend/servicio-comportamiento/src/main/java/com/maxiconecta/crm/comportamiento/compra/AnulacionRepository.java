@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface AnulacionRepository extends JpaRepository<Anulacion, Long> {
 
-    Optional<Anulacion> findByOrigenAndIdAnulacionOrigen(Origen origen, String idAnulacionOrigen);
+    Optional<Anulacion> findByIdAnulacionOrigen(String idAnulacionOrigen);
 
     List<Anulacion> findByCompraIdOrderByFechaAscIdAsc(Long idCompra);
 

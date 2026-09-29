@@ -31,10 +31,6 @@ public class Anulacion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Origen origen;
-
     @Column(nullable = false)
     private String idAnulacionOrigen;
 
@@ -68,9 +64,8 @@ public class Anulacion {
     protected Anulacion() {
     }
 
-    public Anulacion(Origen origen, String idAnulacionOrigen, Compra compra, TipoAnulacion tipo, OffsetDateTime fecha,
+    public Anulacion(String idAnulacionOrigen, Compra compra, TipoAnulacion tipo, OffsetDateTime fecha,
                      BigDecimal montoRevertido, String motivo, Long idEvento) {
-        this.origen = origen;
         this.idAnulacionOrigen = idAnulacionOrigen;
         this.compra = compra;
         this.tipo = tipo;
@@ -86,10 +81,6 @@ public class Anulacion {
 
     public Long getId() {
         return id;
-    }
-
-    public Origen getOrigen() {
-        return origen;
     }
 
     public String getIdAnulacionOrigen() {
