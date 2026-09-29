@@ -4,6 +4,7 @@ import com.maxiconecta.crm.comportamiento.compra.AgregadoComprasCliente;
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.util.List;
 
 /**
@@ -14,12 +15,18 @@ import java.util.List;
 public class ConsultaIndicadores {
 
     private final AgregadoComprasCliente agregado;
+    private final Clock reloj;
 
-    public ConsultaIndicadores(AgregadoComprasCliente agregado) {
+    public ConsultaIndicadores(AgregadoComprasCliente agregado, Clock reloj) {
         this.agregado = agregado;
+        this.reloj = reloj;
     }
 
     public TicketPromedio ticketPromedio(List<Identificador> identificadores) {
         return TicketPromedio.de(agregado.resumir(identificadores));
+    }
+
+    public RecenciaCompra recencia(List<Identificador> identificadores) {
+        return RecenciaCompra.calcular(agregado.ultimaCompraVigente(identificadores), reloj.instant());
     }
 }

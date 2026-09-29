@@ -9,6 +9,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -40,6 +42,10 @@ class IndicadoresControllerTest {
         when(consulta.ticketPromedio(List.of(new Identificador(Origen.VENTAS, "CLI-5521"),
                 new Identificador(Origen.MARKETPLACE, "mp-user-3307"))))
                 .thenReturn(new TicketPromedio(new BigDecimal("240.25"), 2, new BigDecimal("480.50"), false));
+        when(consulta.recencia(List.of(new Identificador(Origen.VENTAS, "CLI-5521"),
+                new Identificador(Origen.MARKETPLACE, "mp-user-3307"))))
+                .thenReturn(new RecenciaCompra(OffsetDateTime.parse("2026-09-27T15:28:10-04:00"),
+                        Duration.ofHours(49).plusMinutes(30), false));
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores")
                         .param("identificador", "VENTAS:CLI-5521", "MARKETPLACE:mp-user-3307"))
@@ -47,21 +53,29 @@ class IndicadoresControllerTest {
                 .andExpect(jsonPath("$.ticketPromedio.valor").value(240.25))
                 .andExpect(jsonPath("$.ticketPromedio.compras").value(2))
                 .andExpect(jsonPath("$.ticketPromedio.montoAcumulado").value(480.50))
-                .andExpect(jsonPath("$.ticketPromedio.sinDatos").value(false));
+                .andExpect(jsonPath("$.ticketPromedio.sinDatos").value(false))
+                .andExpect(jsonPath("$.recencia.ultimaCompra").value("2026-09-27T15:28:10-04:00"))
+                .andExpect(jsonPath("$.recencia.tiempoTranscurrido").value("PT49H30M"))
+                .andExpect(jsonPath("$.recencia.sinDatos").value(false));
     }
 
     @Test
     void sinIdentificadoresResponde200ConElTicketSinDatos() throws Exception {
         when(consulta.ticketPromedio(List.of()))
                 .thenReturn(new TicketPromedio(null, 0, BigDecimal.ZERO, true));
+        when(consulta.recencia(List.of())).thenReturn(new RecenciaCompra(null, null, true));
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticketPromedio.valor").doesNotExist())
                 .andExpect(jsonPath("$.ticketPromedio.sinDatos").value(true))
-                .andExpect(jsonPath("$.ticketPromedio.compras").value(0));
+                .andExpect(jsonPath("$.ticketPromedio.compras").value(0))
+                .andExpect(jsonPath("$.recencia.ultimaCompra").doesNotExist())
+                .andExpect(jsonPath("$.recencia.tiempoTranscurrido").doesNotExist())
+                .andExpect(jsonPath("$.recencia.sinDatos").value(true));
 
         verify(consulta).ticketPromedio(List.of());
+        verify(consulta).recencia(List.of());
     }
 
     @Test
