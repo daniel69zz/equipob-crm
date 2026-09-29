@@ -4,8 +4,6 @@ import com.maxiconecta.crm.perfil.cliente.CambioPerfil;
 import com.maxiconecta.crm.perfil.cliente.CambioPerfilRepository;
 import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.ClienteRepository;
-import com.maxiconecta.crm.perfil.cliente.ConflictoPerfil;
-import com.maxiconecta.crm.perfil.cliente.ConflictoPerfilRepository;
 import com.maxiconecta.crm.perfil.cliente.Direccion;
 import com.maxiconecta.crm.perfil.cliente.EstadoPerfil;
 import com.maxiconecta.crm.perfil.cliente.Origen;
@@ -67,9 +65,6 @@ class ActualizacionAnteCambiosIntegracionTest {
     private CambioPerfilRepository cambios;
 
     @Autowired
-    private ConflictoPerfilRepository conflictos;
-
-    @Autowired
     private VinculacionIdentificadores vinculacion;
 
     @Autowired
@@ -87,7 +82,7 @@ class ActualizacionAnteCambiosIntegracionTest {
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
-                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil_detalle, perfil.cambio_perfil, perfil.direccion, "
+                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.cambio_perfil_detalle, perfil.cambio_perfil, perfil.direccion, "
                 + "perfil.vinculacion_pendiente, perfil.cliente_origen, perfil.cliente, perfil.evento_cliente "
                 + "RESTART IDENTITY; SET session_replication_role = DEFAULT");
     }
@@ -96,8 +91,8 @@ class ActualizacionAnteCambiosIntegracionTest {
 
     @Test
     void unaNotificacionConSoloElCorreoCambiaSoloElCorreo() {
-        Long idAna = alta("cliente-ventas-alta.json");
-        publicar(ejemplo("cliente-ventas-cambio-correo.json"));
+        Long idAna = alta("cliente-ana-alta.json");
+        publicar(ejemplo("cliente-ana-cambio-correo.json"));
 
         EventoCliente evento = esperar(2).get(1);
         assertThat(evento.getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
@@ -116,8 +111,8 @@ class ActualizacionAnteCambiosIntegracionTest {
 
     @Test
     void unCampoQueLlegaNuloSeBorraYElPerfilQuedaIncompleto() {
-        Long idAna = alta("cliente-ventas-alta.json");
-        publicar(parcialDeVentas("\"apellidos\": null"));
+        Long idAna = alta("cliente-ana-alta.json");
+        publicar(parcialDeCliente("\"apellidos\": null"));
 
         EventoCliente evento = esperar(2).get(1);
         assertThat(evento.getEstado()).isEqualTo(EstadoEventoCliente.INCOMPLETO);
@@ -129,10 +124,10 @@ class ActualizacionAnteCambiosIntegracionTest {
 
     @Test
     void lasDireccionesSoloCambianSiLaNotificacionLasTrae() {
-        Long idAna = alta("cliente-ventas-alta.json");
-        publicar(parcialDeVentas("\"nombres\": \"Ana María\""));
+        Long idAna = alta("cliente-ana-alta.json");
+        publicar(parcialDeCliente("\"nombres\": \"Ana María\""));
         esperar(2);
-        publicar(parcialDeVentas("\"direcciones\": [{\"idDireccion\": \"D-7\", \"calle\": \"Av. Arce\", "
+        publicar(parcialDeCliente("\"direcciones\": [{\"idDireccion\": \"D-7\", \"calle\": \"Av. Arce\", "
                 + "\"ciudad\": \"la paz\"}]", "2026-09-28T09:00:00-04:00"));
         esperar(3);
 
@@ -142,8 +137,8 @@ class ActualizacionAnteCambiosIntegracionTest {
 
     @Test
     void unCambioQueSoloEsDeFormatoNoCuentaComoCambio() {
-        Long idAna = alta("cliente-ventas-alta.json");
-        publicar(parcialDeVentas("\"nombres\": \"  ANA   MARÍA \", \"contacto\": {\"telefono\": \"+591 700-12345\"}"));
+        Long idAna = alta("cliente-ana-alta.json");
+        publicar(parcialDeCliente("\"nombres\": \"  ANA   MARÍA \", \"contacto\": {\"telefono\": \"+591 700-12345\"}"));
 
         EventoCliente evento = esperar(2).get(1);
         assertThat(evento.getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
@@ -151,63 +146,40 @@ class ActualizacionAnteCambiosIntegracionTest {
         assertThat(cambios.findByIdClienteOrderByFechaAscIdAsc(idAna)).hasSize(1);
     }
 
-    // --- Criterio 3: valores distintos de dos sistemas se resuelven con la regla de prioridad y queda la traza ---
+    // --- Criterio 3: las notificaciones de cualquier identificador vinculado actualizan el mismo perfil ---
 
     @Test
-    void unConflictoEntreSistemasSeResuelveConLaReglaYQuedaLaTraza() throws Exception {
-        Long idAna = anaEnVentasYMarketplace();
-        publicar(ejemplo("cliente-marketplace-ana-cambios.json"));
+    void unaNotificacionDeOtroIdentificadorVinculadoActualizaElMismoPerfil() {
+        Long idAna = anaConDosIdentificadores();
+        publicar(ejemplo("cliente-ana-otra-cuenta-cambios.json"));
 
         EventoCliente evento = esperar(3).get(2);
         assertThat(evento.getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
-        assertThat(evento.getCausa()).startsWith("2 conflicto(s) resuelto(s)")
-                .contains("nombres: CONSERVADO (PRIORIDAD_SISTEMA)", "telefono: APLICADO (MAS_RECIENTE)");
+        assertThat(evento.getIdCliente()).isEqualTo(idAna);
 
         Cliente ana = clientes.findById(idAna).orElseThrow();
-        assertThat(ana.getNombres()).isEqualTo("Ana María");
+        assertThat(ana.getNombres()).isEqualTo("Anita");
         assertThat(ana.getTelefono()).isEqualTo("+59171122333");
-
-        List<ConflictoPerfil> traza = conflictos.findByIdClienteOrderByFechaDescIdDesc(idAna);
-        assertThat(traza).extracting(c -> c.getCampo() + " " + c.getOrigenActual() + "→" + c.getOrigenRecibido() + " "
-                        + c.getDecision())
-                .containsExactlyInAnyOrder("nombres VENTAS→MARKETPLACE CONSERVADO", "telefono VENTAS→MARKETPLACE APLICADO");
-        assertThat(traza).allMatch(c -> evento.getId().equals(c.getIdEvento()));
-
-        mvc.perform(get("/api/perfil/clientes/{id}/conflictos", idAna))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[?(@.campo == 'nombres')].valorRecibido").value("Anita"));
+        assertThat(clientes.count()).isEqualTo(1);
     }
 
     @Test
-    void siVentasCorrigeElNombreLuegoGanaVentas() {
-        Long idAna = anaEnVentasYMarketplace();
-        publicar(parcialDeMarketplace("\"nombres\": \"Anita\"", "2026-09-28T08:00:00-04:00"));
+    void cadaIdentificadorDescartaSusNotificacionesObsoletas() {
+        Long idAna = anaConDosIdentificadores();
+        publicar(parcial("mp-user-9001", "\"nombres\": \"Anita\"", "2026-09-28T09:00:00-04:00"));
         esperar(3);
-        publicar(parcialDeVentas("\"nombres\": \"Ana Lucía\"", "2026-09-28T09:00:00-04:00"));
+        publicar(parcial("mp-user-9001", "\"nombres\": \"Ana Lucía\"", "2026-09-28T08:00:00-04:00"));
 
-        assertThat(esperar(4).get(3).getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
-        assertThat(clientes.findById(idAna).orElseThrow().getNombres()).isEqualTo("Ana Lucía");
-    }
-
-    @Test
-    void unCambioDeContactoMasAntiguoQueElActualSeConserva() {
-        Long idAna = anaEnVentasYMarketplace();
-        publicar(parcialDeVentas("\"contacto\": {\"email\": \"reciente@correo.com\"}", "2026-09-28T12:00:00-04:00"));
-        esperar(3);
-        publicar(parcialDeMarketplace("\"contacto\": {\"email\": \"anterior@correo.com\"}", "2026-09-28T08:00:00-04:00"));
-
-        EventoCliente evento = esperar(4).get(3);
-        assertThat(evento.getCausa()).contains("email: CONSERVADO (MAS_RECIENTE)");
-        assertThat(clientes.findById(idAna).orElseThrow().getEmail()).isEqualTo("reciente@correo.com");
+        assertThat(esperar(4).get(3).getEstado()).isEqualTo(EstadoEventoCliente.DESCARTADO);
+        assertThat(clientes.findById(idAna).orElseThrow().getNombres()).isEqualTo("Anita");
     }
 
     // --- Criterio 4 y trazabilidad: el resultado final de cada notificación queda registrado ---
 
     @Test
     void laTrazaDeSincronizacionMuestraCadaNotificacionConSuResultadoEIntentos() throws Exception {
-        Long idAna = alta("cliente-ventas-alta.json");
-        publicar(ejemplo("cliente-ventas-cambio-correo.json"));
+        Long idAna = alta("cliente-ana-alta.json");
+        publicar(ejemplo("cliente-ana-cambio-correo.json"));
         esperar(2);
 
         mvc.perform(get("/api/perfil/clientes/{id}/sincronizaciones", idAna))
@@ -227,34 +199,30 @@ class ActualizacionAnteCambiosIntegracionTest {
     }
 
     /**
-     * Ana dada de alta en Ventas y su identificador de Marketplace vinculado por un administrador,
-     * con el alta de Marketplace (mismos datos, sin conflictos) ya aplicada.
+     * Ana dada de alta con CLI-5521 y su otra cuenta del módulo (mp-user-9001) vinculada por un
+     * administrador, con el alta de esa cuenta (mismos datos) ya aplicada.
      */
-    private Long anaEnVentasYMarketplace() {
-        Long idAna = alta("cliente-ventas-alta.json");
-        publicar(ejemplo("cliente-marketplace-ana.json").replace("anita.perez@correo.com", "ana.perez@correo.com"));
+    private Long anaConDosIdentificadores() {
+        Long idAna = alta("cliente-ana-alta.json");
+        publicar(ejemplo("cliente-ana-otra-cuenta.json").replace("anita.perez@correo.com", "ana.perez@correo.com"));
         esperar(2);
-        vinculacion.vincular(idAna, Origen.MARKETPLACE, "mp-user-9001", "admin").forEach(sincronizacion::procesar);
+        vinculacion.vincular(idAna, "mp-user-9001", "admin").forEach(sincronizacion::procesar);
         return idAna;
     }
 
-    private static String parcialDeVentas(String campos) {
-        return parcialDeVentas(campos, "2026-09-27T09:00:00-04:00");
+    private static String parcialDeCliente(String campos) {
+        return parcialDeCliente(campos, "2026-09-27T09:00:00-04:00");
     }
 
-    private static String parcialDeVentas(String campos, String fecha) {
-        return parcial("VENTAS", "CLI-5521", campos, fecha);
+    private static String parcialDeCliente(String campos, String fecha) {
+        return parcial("CLI-5521", campos, fecha);
     }
 
-    private static String parcialDeMarketplace(String campos, String fecha) {
-        return parcial("MARKETPLACE", "mp-user-9001", campos, fecha);
-    }
-
-    private static String parcial(String origen, String idCliente, String campos, String fecha) {
+    private static String parcial(String idCliente, String campos, String fecha) {
         return """
-                {"idEvento": "%s", "tipoEvento": "CLIENTE_ACTUALIZADO", "origen": "%s", "fechaEmision": "%s",
+                {"idEvento": "%s", "tipoEvento": "CLIENTE_ACTUALIZADO", "fechaEmision": "%s",
                  "cliente": {"idCliente": "%s", "fechaActualizacion": "%s", %s}}
-                """.formatted(java.util.UUID.randomUUID(), origen, fecha, idCliente, fecha, campos);
+                """.formatted(java.util.UUID.randomUUID(), fecha, idCliente, fecha, campos);
     }
 
     private CambioPerfil ultimoCambio(Long idCliente) {

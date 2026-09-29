@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Historial de compras de un cliente, combinando sus identificadores en cada canal
+ * Historial de compras de un cliente, combinando sus identificadores en Marketplace y Ventas
  * (docs/compra/historial-compras.md).
  */
 @Service

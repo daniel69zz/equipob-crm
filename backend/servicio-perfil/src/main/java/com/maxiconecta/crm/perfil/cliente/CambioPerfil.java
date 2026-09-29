@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Una operación del histórico del perfil: fecha, tipo, sistema de origen, responsable y los campos
+ * Una operación del histórico del perfil: fecha, tipo, origen (Marketplace y Ventas o CRM), responsable y los campos
  * cambiados, uno por fila en {@link CambioPerfilDetalle} (el JSON de {@code cambios} es su resumen).
  * Es inmutable: la base rechaza UPDATE y DELETE. Ver docs/perfil/historico-cambios.md.
  */

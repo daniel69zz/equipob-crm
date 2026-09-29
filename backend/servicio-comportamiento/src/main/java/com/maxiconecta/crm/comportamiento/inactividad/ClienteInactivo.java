@@ -1,10 +1,7 @@
 package com.maxiconecta.crm.comportamiento.inactividad;
 
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,10 +22,6 @@ public class ClienteInactivo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Origen origen;
-
     @Column(nullable = false)
     private String idClienteOrigen;
 
@@ -41,8 +34,7 @@ public class ClienteInactivo {
     protected ClienteInactivo() {
     }
 
-    public ClienteInactivo(Origen origen, String idClienteOrigen, OffsetDateTime ultimaCompra) {
-        this.origen = origen;
+    public ClienteInactivo(String idClienteOrigen, OffsetDateTime ultimaCompra) {
         this.idClienteOrigen = idClienteOrigen;
         this.ultimaCompra = ultimaCompra;
     }
@@ -55,10 +47,6 @@ public class ClienteInactivo {
 
     public Long getId() {
         return id;
-    }
-
-    public Origen getOrigen() {
-        return origen;
     }
 
     public String getIdClienteOrigen() {

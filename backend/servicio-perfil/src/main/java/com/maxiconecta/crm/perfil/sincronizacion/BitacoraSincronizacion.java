@@ -22,7 +22,7 @@ public class BitacoraSincronizacion {
     public Long registrarRecepcion(String contenido) {
         LectorEventosCliente.Cabecera cabecera = lector.cabecera(contenido);
         return repository.save(new EventoCliente(contenido, cabecera.idEvento(), cabecera.tipoEvento(),
-                cabecera.origen(), cabecera.idClienteOrigen())).getId();
+                cabecera.idClienteOrigen())).getId();
     }
 
     @Transactional

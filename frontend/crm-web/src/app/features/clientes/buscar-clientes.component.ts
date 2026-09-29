@@ -10,7 +10,7 @@ import { ClientesService, ResumenCliente } from './clientes.service';
   imports: [FormsModule, RouterLink],
   template: `
     <h1>Clientes</h1>
-    <p class="subtitulo">Busque un cliente por su documento o por su identificador en Marketplace o Ventas.</p>
+    <p class="subtitulo">Busque un cliente por su documento o por su identificador en Marketplace y Ventas.</p>
 
     <form class="tarjeta filtros" (ngSubmit)="buscar()">
       <div>
@@ -28,15 +28,7 @@ import { ClientesService, ResumenCliente } from './clientes.service';
         <input id="numeroDocumento" name="numeroDocumento" [(ngModel)]="filtro.numeroDocumento" placeholder="4455667" />
       </div>
       <div>
-        <label for="origen">Sistema</label>
-        <select id="origen" name="origen" [(ngModel)]="filtro.origen">
-          <option value="">—</option>
-          <option value="VENTAS">Ventas</option>
-          <option value="MARKETPLACE">Marketplace</option>
-        </select>
-      </div>
-      <div>
-        <label for="idClienteOrigen">Identificador en ese sistema</label>
+        <label for="idClienteOrigen">Identificador en Marketplace y Ventas</label>
         <input id="idClienteOrigen" name="idClienteOrigen" [(ngModel)]="filtro.idClienteOrigen" placeholder="CLI-5521" />
       </div>
       <div class="acciones">
@@ -90,7 +82,7 @@ import { ClientesService, ResumenCliente } from './clientes.service';
 export class BuscarClientesComponent {
   private readonly servicio = inject(ClientesService);
 
-  filtro = { tipoDocumento: '', numeroDocumento: '', origen: '', idClienteOrigen: '' };
+  filtro = { tipoDocumento: '', numeroDocumento: '', idClienteOrigen: '' };
 
   readonly clientes = signal<ResumenCliente[] | null>(null);
   readonly cargando = signal(false);

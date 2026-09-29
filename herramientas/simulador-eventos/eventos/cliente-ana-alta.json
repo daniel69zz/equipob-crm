@@ -1,7 +1,6 @@
 {
   "idEvento": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
   "tipoEvento": "CLIENTE_REGISTRADO",
-  "origen": "VENTAS",
   "fechaEmision": "2026-09-20T10:15:02-04:00",
   "responsable": "vendedor.jperez",
   "cliente": {

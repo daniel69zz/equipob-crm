@@ -64,8 +64,8 @@ public class AgregadoComprasCliente {
     }
 
     /**
-     * Última compra vigente de cada cliente (agrupado por canal e identificador de origen) cuya
-     * última compra es anterior a {@code corte}: candidatos a inactivos
+     * Última compra vigente de cada cliente (agrupado por {@code idClienteOrigen}) cuya última
+     * compra es anterior a {@code corte}: candidatos a inactivos
      * (docs/compra/clientes-inactivos.md). A diferencia de {@link #ultimaCompraVigente}, recorre a
      * todos los clientes en vez de a uno solo, por eso se agrupa en la base en lugar de recibir
      * identificadores.
@@ -76,10 +76,9 @@ public class AgregadoComprasCliente {
         CriteriaQuery<UltimaCompraCliente> consulta = criterios.createQuery(UltimaCompraCliente.class);
         Root<Compra> compra = consulta.from(Compra.class);
         Expression<OffsetDateTime> ultimaFecha = criterios.greatest(compra.<OffsetDateTime>get("fecha"));
-        consulta.select(criterios.construct(UltimaCompraCliente.class,
-                compra.get("origen"), compra.get("idClienteOrigen"), ultimaFecha));
+        consulta.select(criterios.construct(UltimaCompraCliente.class, compra.get("idClienteOrigen"), ultimaFecha));
         consulta.where(ComprasDelCliente.vigente(compra, criterios));
-        consulta.groupBy(compra.get("origen"), compra.get("idClienteOrigen"));
+        consulta.groupBy(compra.get("idClienteOrigen"));
         consulta.having(criterios.lessThan(ultimaFecha, corte));
         return entityManager.createQuery(consulta).getResultList();
     }

@@ -2,7 +2,6 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -74,24 +73,23 @@ class IngestaIntegracionTest {
 
     @BeforeEach
     void limpiarBase() {
-        jdbc.execute("TRUNCATE comportamiento.intento_reproceso, comportamiento.evento_procesado, comportamiento.anulacion_item, "
+        jdbc.execute("TRUNCATE comportamiento.frecuencia_compra, comportamiento.intento_reproceso, comportamiento.evento_procesado, comportamiento.anulacion_item, "
                 + "comportamiento.anulacion, "
                 + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
     }
 
-    // --- Criterio 1: el evento queda almacenado con cliente, fecha, monto, ítems y origen ---
+    // --- Criterio 1: el evento queda almacenado con cliente, fecha, monto e ítems ---
 
     @Test
-    void unaCompraDeVentasQuedaAlmacenadaConTodosSusDatos() {
-        publicar(ejemplo("compra-ventas.json"));
+    void unaCompraQuedaAlmacenadaConTodosSusDatos() {
+        publicar(ejemplo("compra-ana.json"));
 
         EventoRecibido recibido = esperarEstado(1).get(0);
         assertThat(recibido.getEstado()).isEqualTo(EstadoEvento.PROCESADO);
-        assertThat(recibido.getOrigen()).isEqualTo("VENTAS");
         assertThat(recibido.getProcesadoEn()).isNotNull();
 
         transaccion.executeWithoutResult(estado -> {
-            Compra compra = compras.findByOrigenAndIdCompraOrigen(Origen.VENTAS, "V-100234").orElseThrow();
+            Compra compra = compras.findByIdCompraOrigen("V-100234").orElseThrow();
             assertThat(compra.getIdClienteOrigen()).isEqualTo("CLI-5521");
             assertThat(compra.getFecha()).isNotNull();
             assertThat(compra.getMontoTotal()).isEqualByComparingTo(new BigDecimal("350.50"));
@@ -102,20 +100,20 @@ class IngestaIntegracionTest {
     }
 
     @Test
-    void unaCompraDeMarketplaceQuedaAlmacenada() {
-        publicar(ejemplo("compra-marketplace.json"));
+    void otraCompraQuedaAlmacenada() {
+        publicar(ejemplo("compra-carlos.json"));
 
         assertThat(esperarEstado(1).get(0).getEstado()).isEqualTo(EstadoEvento.PROCESADO);
-        assertThat(compras.findByOrigenAndIdCompraOrigen(Origen.MARKETPLACE, "MP-88120")).isPresent();
+        assertThat(compras.findByIdCompraOrigen("MP-88120")).isPresent();
     }
 
     // --- Criterio 2: una transacción repetida no se duplica y deja traza del descarte ---
 
     @Test
     void unaCompraRepetidaNoSeDuplicaYQuedaDescartada() {
-        publicar(ejemplo("compra-ventas.json"));
+        publicar(ejemplo("compra-ana.json"));
         esperarEstado(1);
-        publicar(ejemplo("compra-ventas.json"));
+        publicar(ejemplo("compra-ana.json"));
 
         List<EventoRecibido> recibidos = esperarEstado(2);
         assertThat(recibidos).extracting(EventoRecibido::getEstado)
@@ -152,7 +150,7 @@ class IngestaIntegracionTest {
 
     @Test
     void unEventoQueNoPasaLasReglasDeValidacionNoSeAlmacena() {
-        publicar(ejemplo("compra-ventas.json")
+        publicar(ejemplo("compra-ana.json")
                 .replace("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c", "id-no-es-uuid"));
 
         EventoRecibido recibido = esperarEstado(1).get(0);
@@ -166,8 +164,8 @@ class IngestaIntegracionTest {
 
     @Test
     void laBitacoraMuestraLosEventosDelPeriodoConSuResumen() throws Exception {
-        publicar(ejemplo("compra-ventas.json"));
-        publicar(ejemplo("compra-marketplace.json"));
+        publicar(ejemplo("compra-ana.json"));
+        publicar(ejemplo("compra-carlos.json"));
         publicar(ejemplo("compra-sin-cliente.json"));
         esperarEstado(3);
         String hoy = LocalDate.now().toString();
@@ -184,7 +182,7 @@ class IngestaIntegracionTest {
                 .andExpect(jsonPath("$.eventos.length()").value(1))
                 .andExpect(jsonPath("$.eventos[0].causa").value(org.hamcrest.Matchers.containsString("compra.idCliente")));
 
-        mvc.perform(get("/api/comportamiento/eventos").param("origen", "marketplace"))
+        mvc.perform(get("/api/comportamiento/eventos").param("transaccion", "MP-88120"))
                 .andExpect(jsonPath("$.total").value(1));
 
         String ayer = LocalDate.now().minusDays(1).toString();

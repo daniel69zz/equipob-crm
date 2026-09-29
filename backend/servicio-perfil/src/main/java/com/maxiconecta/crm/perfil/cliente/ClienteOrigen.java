@@ -2,40 +2,32 @@ package com.maxiconecta.crm.perfil.cliente;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.IdClass;
+import jakarta.persistence.Id;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import org.springframework.data.domain.Persistable;
 
-import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.Objects;
 
 /**
- * Identificador del cliente en Marketplace o Ventas, vinculado a un perfil del CRM (RF-62).
+ * Identificador del cliente en el módulo Marketplace y Ventas, vinculado a un perfil del CRM (RF-62).
+ * Varios identificadores pueden apuntar al mismo perfil (por ejemplo, después de unificar duplicados).
  * <p>
  * Implementa {@link Persistable} para que vincular un identificador nuevo sea siempre un INSERT:
  * si otro mensaje ya lo vinculó, la llave primaria lo rechaza.
  */
 @Entity
-@IdClass(ClienteOrigen.Clave.class)
 @Table(schema = "perfil", name = "cliente_origen")
-public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
+public class ClienteOrigen implements Persistable<String> {
 
     public static final String ALTA_AUTOMATICA = "ALTA_AUTOMATICA";
     public static final String VINCULACION_MANUAL = "VINCULACION_MANUAL";
     public static final String UNIFICACION = "UNIFICACION";
     public static final String SINCRONIZACION_AUTOMATICA = "sincronizacion-automatica";
 
-    @jakarta.persistence.Id
-    @Enumerated(EnumType.STRING)
-    private Origen origen;
-
-    @jakarta.persistence.Id
+    @Id
     private String idClienteOrigen;
 
     @Column(nullable = false)
@@ -58,17 +50,16 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
     protected ClienteOrigen() {
     }
 
-    public ClienteOrigen(Origen origen, String idClienteOrigen, Long idCliente, OffsetDateTime ultimaActualizacionOrigen) {
-        this.origen = origen;
+    public ClienteOrigen(String idClienteOrigen, Long idCliente, OffsetDateTime ultimaActualizacionOrigen) {
         this.idClienteOrigen = idClienteOrigen;
         this.idCliente = idCliente;
         this.ultimaActualizacionOrigen = ultimaActualizacionOrigen;
     }
 
     /** Vínculo hecho por una persona, no por la llegada de un evento. */
-    public static ClienteOrigen vincular(Origen origen, String idClienteOrigen, Long idCliente, String motivo,
-                                         String vinculadoPor, OffsetDateTime ultimaActualizacionOrigen) {
-        ClienteOrigen vinculo = new ClienteOrigen(origen, idClienteOrigen, idCliente, ultimaActualizacionOrigen);
+    public static ClienteOrigen vincular(String idClienteOrigen, Long idCliente, String motivo, String vinculadoPor,
+                                         OffsetDateTime ultimaActualizacionOrigen) {
+        ClienteOrigen vinculo = new ClienteOrigen(idClienteOrigen, idCliente, ultimaActualizacionOrigen);
         vinculo.motivoVinculacion = motivo;
         vinculo.vinculadoPor = vinculadoPor;
         return vinculo;
@@ -87,8 +78,8 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
     }
 
     @Override
-    public Clave getId() {
-        return new Clave(origen, idClienteOrigen);
+    public String getId() {
+        return idClienteOrigen;
     }
 
     @Override
@@ -100,10 +91,6 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
     @PostPersist
     void marcarExistente() {
         nuevo = false;
-    }
-
-    public Origen getOrigen() {
-        return origen;
     }
 
     public String getIdClienteOrigen() {
@@ -128,44 +115,5 @@ public class ClienteOrigen implements Persistable<ClienteOrigen.Clave> {
 
     public String getVinculadoPor() {
         return vinculadoPor;
-    }
-
-    /** Llave primaria: canal e identificador del cliente en ese canal. */
-    public static class Clave implements Serializable {
-
-        private Origen origen;
-        private String idClienteOrigen;
-
-        protected Clave() {
-        }
-
-        public Clave(Origen origen, String idClienteOrigen) {
-            this.origen = origen;
-            this.idClienteOrigen = idClienteOrigen;
-        }
-
-        public Origen origen() {
-            return origen;
-        }
-
-        public String idClienteOrigen() {
-            return idClienteOrigen;
-        }
-
-        @Override
-        public boolean equals(Object otro) {
-            return otro instanceof Clave clave && origen == clave.origen
-                    && Objects.equals(idClienteOrigen, clave.idClienteOrigen);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(origen, idClienteOrigen);
-        }
-
-        @Override
-        public String toString() {
-            return origen + "/" + idClienteOrigen;
-        }
     }
 }

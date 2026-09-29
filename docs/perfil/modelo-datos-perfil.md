@@ -23,7 +23,7 @@ evento_cliente                       (bitácora de sincronización)
 | `motivos_incompleto` | varchar(1000) | Qué falta o está mal formado, por ejemplo `numeroDocumento: vacío; email: formato inválido` |
 | `motivos_inconsistencia` | text | Reglas de coherencia incumplidas, aunque el perfil también esté incompleto |
 | `creado_en`, `actualizado_en` | timestamptz | Alta y último cambio |
-| `actualizado_por_origen` | varchar(15) | Sistema del último cambio (`MARKETPLACE`, `VENTAS` o `CRM` cuando lo origina una acción interna, incluida la detección de SCRUM-170) |
+| `actualizado_por_origen` | varchar(20) | Origen del último cambio: `MARKETPLACE_VENTAS` (el módulo) o `CRM` cuando lo origina una acción interna, incluida la detección de SCRUM-170 |
 | `actualizado_por` | varchar(100) | Responsable del último cambio |
 | `id_cliente_consolidado` | FK → `cliente` | Si el perfil fue absorbido en una unificación, el perfil que se conserva |
 
@@ -35,7 +35,7 @@ La migración V5 incorpora el estado `INCONSISTENTE` y el tipo de auditoría `DE
 
 | Columna | Tipo | Descripción |
 |---|---|---|
-| `origen`, `id_cliente_origen` | PK | Canal e identificador del cliente en ese canal |
+| `id_cliente_origen` | PK | Identificador del cliente en Marketplace y Ventas |
 | `id_cliente` | FK → `cliente` | Perfil al que apunta |
 | `fecha_vinculacion` | timestamptz | Cuándo se vinculó |
 | `motivo_vinculacion` | varchar(30) | `ALTA_AUTOMATICA`, `VINCULACION_MANUAL` o `UNIFICACION` |
@@ -50,11 +50,11 @@ Varios identificadores pueden apuntar al mismo perfil. Cómo se resuelve el perf
 |---|---|---|
 | `id` | bigint, PK | |
 | `id_cliente` | FK → `cliente` | |
-| `origen`, `id_direccion_origen` | varchar | Identificador de la dirección en el sistema de origen. Único por cliente |
+| `id_direccion_origen` | varchar | Identificador de la dirección en Marketplace y Ventas. Único por cliente |
 | `tipo` | varchar(15) | `ENTREGA`, `FACTURACION` u `OTRA` |
 | `calle`, `numero`, `zona`, `ciudad`, `referencia` | varchar | Datos de la dirección, tal como llegan |
 | `principal` | boolean | Dirección principal |
-| `activa` | boolean | `false` cuando el sistema de origen deja de informarla; no se borra |
+| `activa` | boolean | `false` cuando Marketplace y Ventas deja de informarla; no se borra |
 | `actualizada_en` | timestamptz | |
 
 La zona y la ciudad se guardan como texto: el catálogo de zonas y ciudades del diseño original queda para cuando el CRM capture direcciones por su cuenta.
@@ -67,8 +67,8 @@ La zona y la ciudad se guardan como texto: el catálogo de zonas y ciudades del 
 | `id_cliente` | FK → `cliente` | |
 | `fecha` | timestamptz | Momento del cambio |
 | `tipo` | varchar(15) | `CREACION`, `ACTUALIZACION`, `VINCULACION`, `UNIFICACION` o `DETECCION` |
-| `origen` | varchar(15) | Sistema que originó el cambio (`MARKETPLACE`, `VENTAS`, `CRM` para las acciones de un administrador y las detecciones) |
-| `responsable` | varchar(100) | Usuario del sistema de origen, `sincronizacion-automatica` o `deteccion-automatica` |
+| `origen` | varchar(20) | Quién originó el cambio: `MARKETPLACE_VENTAS` (el módulo) o `CRM` (acciones de un administrador y detecciones) |
+| `responsable` | varchar(100) | Usuario de Marketplace y Ventas, `sincronizacion-automatica` o `deteccion-automatica` |
 | `cambios` | text (JSON) | Lista de `{campo, anterior, nuevo}` |
 | `id_evento` | FK → `evento_cliente`, opcional | Evento que produjo el cambio; vacío en detecciones y acciones del CRM |
 
@@ -76,4 +76,4 @@ Es de **solo inserción**: un trigger rechaza `UPDATE`, `DELETE` y `TRUNCATE`. E
 
 ## `evento_cliente` — bitácora de sincronización
 
-Cada mensaje recibido, con su contenido original: `id_evento_origen`, `tipo_evento`, `origen`, `id_cliente_origen`, `id_cliente` (perfil afectado), `estado` (`RECIBIDO`, `PROCESADO`, `INCOMPLETO`, `PENDIENTE`, `DESCARTADO`, `FALLIDO`), `causa`, `recibido_en`, `procesado_en`.
+Cada mensaje recibido, con su contenido original: `id_evento_origen`, `tipo_evento`, `id_cliente_origen`, `id_cliente` (perfil afectado), `estado` (`RECIBIDO`, `PROCESADO`, `INCOMPLETO`, `PENDIENTE`, `DESCARTADO`, `FALLIDO`), `causa`, `recibido_en`, `procesado_en`.

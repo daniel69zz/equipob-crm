@@ -19,7 +19,7 @@ class ClientePerfilesTest {
     private final RestClient.Builder builder = RestClient.builder().baseUrl("http://perfil");
     private final MockRestServiceServer servidor = MockRestServiceServer.bindTo(builder).build();
     private final ClientePerfiles perfiles = new ClientePerfiles(builder.build());
-    private static final String CONSULTA = "http://perfil/api/perfil/clientes?origen=VENTAS&idClienteOrigen=CLI-5521";
+    private static final String CONSULTA = "http://perfil/api/perfil/clientes?idClienteOrigen=CLI-5521";
 
     @AfterEach
     void verificarSolicitudes() {
@@ -27,21 +27,21 @@ class ClientePerfilesTest {
     }
 
     @Test
-    void buscaPorCanalEIdentificadorYLeeElContratoDePerfil() {
+    void buscaPorIdentificadorYLeeElContratoDePerfil() {
         servidor.expect(requestTo(CONSULTA)).andRespond(withSuccess("""
                 {"clientes":[{"id":42,"nombres":"Ana","estado":"COMPLETO"}],
                  "pagina":0,"tamanio":50,"total":1}
                 """, MediaType.APPLICATION_JSON));
 
-        assertThat(perfiles.buscar(Origen.VENTAS, "CLI-5521")).contains(42L);
+        assertThat(perfiles.buscar("CLI-5521")).contains(42L);
     }
 
     @Test
     void codificaElIdentificadorSinInterpretarloComoParametros() {
-        servidor.expect(requestTo("http://perfil/api/perfil/clientes?origen=MARKETPLACE&idClienteOrigen=A%2BB%26C%2F1"))
+        servidor.expect(requestTo("http://perfil/api/perfil/clientes?idClienteOrigen=A%2BB%26C%2F1"))
                 .andRespond(withSuccess("{\"clientes\":[],\"total\":0}", MediaType.APPLICATION_JSON));
 
-        assertThat(perfiles.buscar(Origen.MARKETPLACE, "A+B&C/1")).isEmpty();
+        assertThat(perfiles.buscar("A+B&C/1")).isEmpty();
     }
 
     @ParameterizedTest
@@ -56,20 +56,20 @@ class ClientePerfilesTest {
     void sinUnPerfilInequivocoLaVinculacionQuedaPendiente(String respuesta) {
         servidor.expect(requestTo(CONSULTA)).andRespond(withSuccess(respuesta, MediaType.APPLICATION_JSON));
 
-        assertThat(perfiles.buscar(Origen.VENTAS, "CLI-5521")).isEmpty();
+        assertThat(perfiles.buscar("CLI-5521")).isEmpty();
     }
 
     @Test
     void unErrorDelServicioNoImpideGuardarLaCompra() {
         servidor.expect(requestTo(CONSULTA)).andRespond(withServerError());
 
-        assertThat(perfiles.buscar(Origen.VENTAS, "CLI-5521")).isEmpty();
+        assertThat(perfiles.buscar("CLI-5521")).isEmpty();
     }
 
     @Test
     void unTiempoDeEsperaAgotadoDejaLaVinculacionPendiente() {
         servidor.expect(requestTo(CONSULTA)).andRespond(withException(new SocketTimeoutException("tiempo agotado")));
 
-        assertThat(perfiles.buscar(Origen.VENTAS, "CLI-5521")).isEmpty();
+        assertThat(perfiles.buscar("CLI-5521")).isEmpty();
     }
 }

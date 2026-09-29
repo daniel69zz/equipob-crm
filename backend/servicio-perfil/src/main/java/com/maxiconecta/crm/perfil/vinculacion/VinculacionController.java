@@ -1,12 +1,10 @@
 package com.maxiconecta.crm.perfil.vinculacion;
 
 import com.maxiconecta.crm.perfil.cliente.EstadoVinculacion;
-import com.maxiconecta.crm.perfil.cliente.Origen;
 import com.maxiconecta.crm.perfil.sincronizacion.EstadoEventoCliente;
 import com.maxiconecta.crm.perfil.sincronizacion.SincronizacionClientes;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,17 +45,17 @@ public class VinculacionController {
     @ResponseStatus(HttpStatus.CREATED)
     public ResultadoVinculacion vincular(@PathVariable Long clienteId, @Valid @RequestBody IdentificadorRequest solicitud,
                                          @RequestHeader(value = CABECERA_USUARIO, required = false) String usuario) {
-        List<Long> pendientes = vinculacion.vincular(clienteId, solicitud.origen(), solicitud.idCliente(),
+        List<Long> pendientes = vinculacion.vincular(clienteId, solicitud.idCliente(),
                 responsable(usuario));
-        return new ResultadoVinculacion(solicitud.origen(), solicitud.idCliente().trim(), clienteId, aplicar(pendientes));
+        return new ResultadoVinculacion(solicitud.idCliente().trim(), clienteId, aplicar(pendientes));
     }
 
     @PostMapping("/api/perfil/vinculaciones/nuevo-perfil")
     public ResultadoVinculacion declararNuevoPerfil(@Valid @RequestBody IdentificadorRequest solicitud,
                                                     @RequestHeader(value = CABECERA_USUARIO, required = false) String usuario) {
-        List<Long> pendientes = vinculacion.declararNuevoPerfil(solicitud.origen(), solicitud.idCliente(),
+        List<Long> pendientes = vinculacion.declararNuevoPerfil(solicitud.idCliente(),
                 responsable(usuario));
-        return new ResultadoVinculacion(solicitud.origen(), solicitud.idCliente().trim(), null, aplicar(pendientes));
+        return new ResultadoVinculacion(solicitud.idCliente().trim(), null, aplicar(pendientes));
     }
 
     /** Los eventos pendientes se aplican en el orden en que llegaron, cada uno en su propia transacción. */
@@ -69,13 +67,13 @@ public class VinculacionController {
         return usuario != null && !usuario.isBlank() ? usuario.trim() : USUARIO_DESCONOCIDO;
     }
 
-    public record IdentificadorRequest(@NotNull Origen origen, @NotBlank @Size(max = 64) String idCliente) {
+    public record IdentificadorRequest(@NotBlank @Size(max = 64) String idCliente) {
     }
 
     public record EventoAplicado(Long idEvento, EstadoEventoCliente estado) {
     }
 
-    public record ResultadoVinculacion(Origen origen, String idCliente, Long idClienteVinculado,
+    public record ResultadoVinculacion(String idCliente, Long idClienteVinculado,
                                        List<EventoAplicado> eventosAplicados) {
     }
 }

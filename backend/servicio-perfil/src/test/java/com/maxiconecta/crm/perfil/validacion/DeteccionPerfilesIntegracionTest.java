@@ -102,7 +102,7 @@ class DeteccionPerfilesIntegracionTest {
     @Test
     void laSincronizacionDetectaInconsistenciasYUnaActualizacionParcialNoLasBorra() {
         String origen = UUID.randomUUID().toString();
-        String evento = ejemplo("cliente-ventas-alta.json")
+        String evento = ejemplo("cliente-ana-alta.json")
                 .replace("\"tipoDocumento\": \"CI\"", "\"tipoDocumento\": \"NIT\"")
                 .replace("\"numeroDocumento\": \"4455667\"", "\"numeroDocumento\": \"ZX987654\"");
         // Cambia identificadores sin depender de los demás casos de integración.
@@ -113,7 +113,7 @@ class DeteccionPerfilesIntegracionTest {
                 Long.class, origen);
         assertThat(clientes.findById(id).orElseThrow().getEstado()).isEqualTo(EstadoPerfil.INCONSISTENTE);
         sincronizacion.recibir("""
-                {"idEvento":"%s","tipoEvento":"CLIENTE_ACTUALIZADO","origen":"VENTAS",
+                {"idEvento":"%s","tipoEvento":"CLIENTE_ACTUALIZADO",
                  "fechaEmision":"2026-10-01T10:00:00-04:00","cliente":{
                  "idCliente":"%s","contacto":{"email":"nuevo@correo.com"}}}
                 """.formatted(UUID.randomUUID(), origen));

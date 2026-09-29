@@ -2,7 +2,6 @@ package com.maxiconecta.crm.comportamiento.ingesta;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
@@ -29,9 +28,6 @@ public class EventoProcesado implements Persistable<EventoProcesado.Id> {
     private String tipoEvento;
 
     @jakarta.persistence.Id
-    private String origen;
-
-    @jakarta.persistence.Id
     private String idTransaccion;
 
     @Column(nullable = false)
@@ -48,7 +44,6 @@ public class EventoProcesado implements Persistable<EventoProcesado.Id> {
 
     public EventoProcesado(ClaveIdempotencia clave, Long idEventoRecibido) {
         this.tipoEvento = clave.tipoEvento();
-        this.origen = clave.origen();
         this.idTransaccion = clave.idTransaccion();
         this.idEventoRecibido = idEventoRecibido;
     }
@@ -70,7 +65,7 @@ public class EventoProcesado implements Persistable<EventoProcesado.Id> {
     }
 
     public ClaveIdempotencia getClave() {
-        return new ClaveIdempotencia(tipoEvento, origen, idTransaccion);
+        return new ClaveIdempotencia(tipoEvento, idTransaccion);
     }
 
     public Long getIdEventoRecibido() {
@@ -85,7 +80,6 @@ public class EventoProcesado implements Persistable<EventoProcesado.Id> {
     public static class Id implements Serializable {
 
         private String tipoEvento;
-        private String origen;
         private String idTransaccion;
 
         protected Id() {
@@ -93,19 +87,18 @@ public class EventoProcesado implements Persistable<EventoProcesado.Id> {
 
         public Id(ClaveIdempotencia clave) {
             this.tipoEvento = clave.tipoEvento();
-            this.origen = clave.origen();
             this.idTransaccion = clave.idTransaccion();
         }
 
         @Override
         public boolean equals(Object otro) {
             return otro instanceof Id id && Objects.equals(tipoEvento, id.tipoEvento)
-                    && Objects.equals(origen, id.origen) && Objects.equals(idTransaccion, id.idTransaccion);
+                    && Objects.equals(idTransaccion, id.idTransaccion);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(tipoEvento, origen, idTransaccion);
+            return Objects.hash(tipoEvento, idTransaccion);
         }
     }
 }

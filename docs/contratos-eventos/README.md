@@ -1,6 +1,6 @@
 # Contratos de eventos
 
-Definición de los mensajes que intercambian el CRM y Marketplace y Ventas.
+Definición de los mensajes que intercambian el CRM y el módulo **Marketplace y Ventas** del ERP, su única integración. Todos los eventos vienen de ese módulo, por eso no llevan un campo de origen: los clientes, compras y anulaciones se identifican por su identificador en Marketplace y Ventas.
 
 | Contrato | Tipo | Descripción |
 |---|---|---|

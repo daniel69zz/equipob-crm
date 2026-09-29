@@ -1,7 +1,6 @@
 {
   "idEvento": "b4e1c9d2-7a3f-4e6b-8c5d-1f2e3a4b5c6d",
   "tipoEvento": "COMPRA_ANULADA",
-  "origen": "MARKETPLACE",
   "fechaEmision": "2026-09-28T18:40:00-04:00",
   "anulacion": {
     "idAnulacion": "MP-88120-A1",

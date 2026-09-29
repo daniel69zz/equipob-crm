@@ -4,7 +4,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
@@ -18,13 +17,8 @@ import java.time.OffsetDateTime;
  * un administrador confirma el vínculo o decide que es otra persona (docs/perfil/identificadores-origen.md).
  */
 @Entity
-@IdClass(ClienteOrigen.Clave.class)
 @Table(schema = "perfil", name = "vinculacion_pendiente")
-public class VinculacionPendiente implements Persistable<ClienteOrigen.Clave> {
-
-    @jakarta.persistence.Id
-    @Enumerated(EnumType.STRING)
-    private Origen origen;
+public class VinculacionPendiente implements Persistable<String> {
 
     @jakarta.persistence.Id
     private String idClienteOrigen;
@@ -51,8 +45,7 @@ public class VinculacionPendiente implements Persistable<ClienteOrigen.Clave> {
     protected VinculacionPendiente() {
     }
 
-    public VinculacionPendiente(Origen origen, String idClienteOrigen, Long idClienteSugerido, String motivo) {
-        this.origen = origen;
+    public VinculacionPendiente(String idClienteOrigen, Long idClienteSugerido, String motivo) {
         this.idClienteOrigen = idClienteOrigen;
         this.idClienteSugerido = idClienteSugerido;
         this.motivo = motivo;
@@ -69,8 +62,8 @@ public class VinculacionPendiente implements Persistable<ClienteOrigen.Clave> {
     }
 
     @Override
-    public ClienteOrigen.Clave getId() {
-        return new ClienteOrigen.Clave(origen, idClienteOrigen);
+    public String getId() {
+        return idClienteOrigen;
     }
 
     @Override
@@ -82,10 +75,6 @@ public class VinculacionPendiente implements Persistable<ClienteOrigen.Clave> {
     @PostPersist
     void marcarExistente() {
         nuevo = false;
-    }
-
-    public Origen getOrigen() {
-        return origen;
     }
 
     public String getIdClienteOrigen() {

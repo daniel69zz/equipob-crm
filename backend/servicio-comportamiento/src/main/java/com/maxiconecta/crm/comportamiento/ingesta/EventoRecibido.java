@@ -28,8 +28,6 @@ public class EventoRecibido {
 
     private String tipoEvento;
 
-    private String origen;
-
     private String idTransaccion;
 
     @Enumerated(EnumType.STRING)
@@ -49,12 +47,10 @@ public class EventoRecibido {
     protected EventoRecibido() {
     }
 
-    public EventoRecibido(String contenido, String idEventoOrigen, String tipoEvento, String origen,
-                          String idTransaccion) {
+    public EventoRecibido(String contenido, String idEventoOrigen, String tipoEvento, String idTransaccion) {
         this.contenido = contenido;
         this.idEventoOrigen = idEventoOrigen;
         this.tipoEvento = tipoEvento;
-        this.origen = origen;
         this.idTransaccion = idTransaccion;
     }
 
@@ -88,10 +84,6 @@ public class EventoRecibido {
 
     public String getTipoEvento() {
         return tipoEvento;
-    }
-
-    public String getOrigen() {
-        return origen;
     }
 
     public String getIdTransaccion() {

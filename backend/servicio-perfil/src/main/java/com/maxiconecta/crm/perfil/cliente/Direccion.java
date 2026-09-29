@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Dirección del cliente, identificada por su código en el sistema de origen.
+ * Dirección del cliente, identificada por su código en Marketplace y Ventas.
  */
 @Entity
 @Table(schema = "perfil", name = "direccion")
@@ -30,10 +30,6 @@ public class Direccion {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_cliente")
     private Cliente cliente;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Origen origen;
 
     @Column(nullable = false)
     private String idDireccionOrigen;
@@ -66,9 +62,8 @@ public class Direccion {
     protected Direccion() {
     }
 
-    Direccion(Cliente cliente, Origen origen, String idDireccionOrigen) {
+    Direccion(Cliente cliente, String idDireccionOrigen) {
         this.cliente = cliente;
-        this.origen = origen;
         this.idDireccionOrigen = idDireccionOrigen;
     }
 
@@ -100,7 +95,7 @@ public class Direccion {
         return cambios;
     }
 
-    /** El sistema de origen dejó de informarla: se desactiva, no se borra. Si era la principal, deja de serlo. */
+    /** Marketplace y Ventas dejó de informarla: se desactiva, no se borra. Si era la principal, deja de serlo. */
     List<CambioCampo> desactivar() {
         if (!activa) {
             return List.of();
@@ -119,10 +114,6 @@ public class Direccion {
 
     public Long getId() {
         return id;
-    }
-
-    public Origen getOrigen() {
-        return origen;
     }
 
     public String getIdDireccionOrigen() {

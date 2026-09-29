@@ -1,7 +1,6 @@
 {
   "idEvento": "c3d4e5f6-7a8b-4c9d-8e1f-a2b3c4d5e6f7",
   "tipoEvento": "COMPRA_CONFIRMADA",
-  "origen": "MARKETPLACE",
   "fechaEmision": "2026-09-27T16:02:41-04:00",
   "compra": {
     "idCompra": "MP-88120",

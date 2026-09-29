@@ -1,7 +1,6 @@
 package com.maxiconecta.crm.comportamiento.inactividad;
 
 import com.maxiconecta.crm.comportamiento.compra.AgregadoComprasCliente;
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import com.maxiconecta.crm.comportamiento.compra.UltimaCompraCliente;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,14 +41,14 @@ public class DetectorClientesInactivos {
         List<UltimaCompraCliente> candidatos = agregado.ultimaCompraVigentePorClienteAnteriorA(criterio.fechaCorte());
         Set<String> vigentes = new HashSet<>();
         for (UltimaCompraCliente candidato : candidatos) {
-            vigentes.add(clave(candidato.origen(), candidato.idClienteOrigen()));
-            inactivos.findByOrigenAndIdClienteOrigen(candidato.origen(), candidato.idClienteOrigen())
+            vigentes.add(candidato.idClienteOrigen());
+            inactivos.findByIdClienteOrigen(candidato.idClienteOrigen())
                     .ifPresentOrElse(existente -> existente.actualizar(candidato.ultimaCompra()),
-                            () -> inactivos.save(new ClienteInactivo(candidato.origen(), candidato.idClienteOrigen(),
+                            () -> inactivos.save(new ClienteInactivo(candidato.idClienteOrigen(),
                                     candidato.ultimaCompra())));
         }
         for (ClienteInactivo registrado : inactivos.findAll()) {
-            if (!vigentes.contains(clave(registrado.getOrigen(), registrado.getIdClienteOrigen()))) {
+            if (!vigentes.contains(registrado.getIdClienteOrigen())) {
                 inactivos.delete(registrado);
             }
         }
@@ -58,11 +57,7 @@ public class DetectorClientesInactivos {
 
     /** Quita a un cliente del listado en cuanto se procesa una compra suya. */
     @Transactional
-    public void reactivar(Origen origen, String idClienteOrigen) {
-        inactivos.deleteByOrigenAndIdClienteOrigen(origen, idClienteOrigen);
-    }
-
-    private static String clave(Origen origen, String idClienteOrigen) {
-        return origen + ":" + idClienteOrigen;
+    public void reactivar(String idClienteOrigen) {
+        inactivos.deleteByIdClienteOrigen(idClienteOrigen);
     }
 }

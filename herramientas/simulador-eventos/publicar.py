@@ -6,11 +6,11 @@ Usa la API HTTP del plugin de administración de RabbitMQ (puerto 15672), así q
 librerías adicionales: solo Python 3.
 
 Ejemplos:
-    python3 publicar.py eventos/compra-ventas.json
-    python3 publicar.py eventos/compra-ventas.json --veces 2        # el segundo queda DESCARTADO
-    python3 publicar.py eventos/compra-marketplace.json --nuevo     # idEvento e idCompra nuevos
-    python3 publicar.py eventos/cliente-ventas-alta.json --nuevo    # otro cliente con los mismos datos
-    python3 publicar.py eventos/cliente-ventas-alta.json --ahora    # mismo cliente, cambio con fecha actual
+    python3 publicar.py eventos/compra-ana.json
+    python3 publicar.py eventos/compra-ana.json --veces 2        # el segundo queda DESCARTADO
+    python3 publicar.py eventos/compra-carlos.json --nuevo     # idEvento e idCompra nuevos
+    python3 publicar.py eventos/cliente-ana-alta.json --nuevo    # otro cliente con los mismos datos
+    python3 publicar.py eventos/cliente-ana-alta.json --ahora    # mismo cliente, cambio con fecha actual
     python3 publicar.py eventos/*.json eventos/mensaje-ilegible.txt # todos los ejemplos
 """
 import argparse

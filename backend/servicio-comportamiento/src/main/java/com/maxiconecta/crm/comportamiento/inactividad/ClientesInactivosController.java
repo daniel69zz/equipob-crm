@@ -1,6 +1,5 @@
 package com.maxiconecta.crm.comportamiento.inactividad;
 
-import com.maxiconecta.crm.comportamiento.compra.Origen;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,13 +49,12 @@ public class ClientesInactivosController {
                                     long total) {
     }
 
-    public record ClienteInactivoResponse(Origen origen, String idClienteOrigen, OffsetDateTime ultimaCompra,
+    public record ClienteInactivoResponse(String idClienteOrigen, OffsetDateTime ultimaCompra,
                                           long diasTranscurridos) {
 
         static ClienteInactivoResponse de(ClienteInactivo cliente, OffsetDateTime ahora) {
             long dias = ChronoUnit.DAYS.between(cliente.getUltimaCompra(), ahora);
-            return new ClienteInactivoResponse(cliente.getOrigen(), cliente.getIdClienteOrigen(),
-                    cliente.getUltimaCompra(), dias);
+            return new ClienteInactivoResponse(cliente.getIdClienteOrigen(), cliente.getUltimaCompra(), dias);
         }
     }
 }

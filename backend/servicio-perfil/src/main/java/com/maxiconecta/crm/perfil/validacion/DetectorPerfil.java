@@ -3,7 +3,6 @@ package com.maxiconecta.crm.perfil.validacion;
 import com.maxiconecta.crm.perfil.cliente.Cliente;
 import com.maxiconecta.crm.perfil.cliente.CambioCampo;
 import com.maxiconecta.crm.perfil.cliente.Direccion;
-import com.maxiconecta.crm.perfil.cliente.Origen;
 import com.maxiconecta.crm.perfil.sincronizacion.EventoClienteRecibido;
 import org.springframework.stereotype.Component;
 
@@ -31,18 +30,13 @@ public class DetectorPerfil {
         List<Direccion> activas = cliente.getDireccionesActivas();
         PerfilValidado datos = validador.validar(datos(cliente, List.of()));
         Set<String> incompleto = new LinkedHashSet<>(datos.motivos());
-        // Los identificadores de dirección son únicos dentro de cada sistema de origen.
-        for (Origen origen : Origen.values()) {
-            List<EventoClienteRecibido.DatosDireccion> direcciones = activas.stream()
-                    .filter(d -> d.getOrigen() == origen)
-                    .map(d -> new EventoClienteRecibido.DatosDireccion(d.getIdDireccionOrigen(), d.getTipo().name(),
-                            d.getCalle(), d.getNumero(), d.getZona(), d.getCiudad(), d.getReferencia(), d.isPrincipal()))
-                    .toList();
-            validador.validar(datos(cliente, direcciones)).motivos().stream()
-                    .filter(m -> m.startsWith("direcciones["))
-                    .map(m -> origen + ": " + m)
-                    .forEach(incompleto::add);
-        }
+        List<EventoClienteRecibido.DatosDireccion> direcciones = activas.stream()
+                .map(d -> new EventoClienteRecibido.DatosDireccion(d.getIdDireccionOrigen(), d.getTipo().name(),
+                        d.getCalle(), d.getNumero(), d.getZona(), d.getCiudad(), d.getReferencia(), d.isPrincipal()))
+                .toList();
+        validador.validar(datos(cliente, direcciones)).motivos().stream()
+                .filter(m -> m.startsWith("direcciones["))
+                .forEach(incompleto::add);
         List<String> inconsistencias = new ArrayList<>();
         if ("NIT".equals(datos.tipoDocumento()) && datos.numeroDocumento() != null
                 && !datos.numeroDocumento().matches("[0-9]+")) {

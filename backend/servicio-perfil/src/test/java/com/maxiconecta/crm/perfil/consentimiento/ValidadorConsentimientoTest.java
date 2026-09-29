@@ -139,7 +139,7 @@ class ValidadorConsentimientoTest {
     }
 
     private static Consentimiento otorgado(OffsetDateTime otorgamiento, LocalDate desde) {
-        return Consentimiento.otorgar(1L, new DatosConsentimiento(CanalConsentimiento.VENTAS, Set.of(GESTION_CLIENTE),
+        return Consentimiento.otorgar(1L, new DatosConsentimiento(CanalConsentimiento.MARKETPLACE_VENTAS, Set.of(GESTION_CLIENTE),
                 otorgamiento, desde, null), "admin");
     }
 }
