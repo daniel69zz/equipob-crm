@@ -1,7 +1,8 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { EstadoPerfil, PaginaPerfiles, PerfilesService, ResumenPerfil } from './perfiles.service';
+import { FormsModule } from '@angular/forms';
+import { EstadoPerfil, FiltroPerfiles, PaginaPerfiles, PerfilesService, ResumenPerfil } from './perfiles.service';
 
 const TAMANIO_PAGINA = 50;
 
@@ -11,6 +12,8 @@ const ESTADOS_CON_INCIDENCIA: { codigo: EstadoPerfil; nombre: string }[] = [
   { codigo: 'INCONSISTENTE', nombre: 'Inconsistentes' },
 ];
 
+const TIPOS_DOCUMENTO = ['CI', 'NIT', 'PASAPORTE', 'CE'];
+
 /**
  * Vista de revisión para personal autorizado (SCRUM-169): perfiles que el motor de detección
  * (SCRUM-166) marcó incompletos o inconsistentes, con el motivo de cada uno.
@@ -18,7 +21,7 @@ const ESTADOS_CON_INCIDENCIA: { codigo: EstadoPerfil; nombre: string }[] = [
 @Component({
   selector: 'app-revision-perfiles',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, FormsModule],
   template: `
     <h1>Revisión de perfiles</h1>
     <p class="subtitulo">
@@ -40,6 +43,38 @@ const ESTADOS_CON_INCIDENCIA: { codigo: EstadoPerfil; nombre: string }[] = [
         </button>
       }
     </div>
+
+    <form class="tarjeta filtros" (ngSubmit)="buscar(0)">
+      <div>
+        <label for="tipoDocumento">Tipo de documento</label>
+        <select id="tipoDocumento" name="tipoDocumento" [(ngModel)]="filtro.tipoDocumento">
+          <option value="">Todos</option>
+          @for (tipo of tiposDocumento; track tipo) {
+            <option [value]="tipo">{{ tipo }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label for="numeroDocumento">Número de documento</label>
+        <input id="numeroDocumento" name="numeroDocumento" [(ngModel)]="filtro.numeroDocumento" placeholder="4455667" />
+      </div>
+      <div>
+        <label for="motivo">Motivo</label>
+        <input id="motivo" name="motivo" [(ngModel)]="filtro.motivo" placeholder="dirección principal" />
+      </div>
+      <div>
+        <label for="desde">Desde</label>
+        <input id="desde" name="desde" type="date" [(ngModel)]="filtro.desde" />
+      </div>
+      <div>
+        <label for="hasta">Hasta</label>
+        <input id="hasta" name="hasta" type="date" [(ngModel)]="filtro.hasta" />
+      </div>
+      <div class="acciones">
+        <button type="submit" [disabled]="cargando()">Buscar</button>
+        <button type="button" class="secundario" (click)="limpiar()">Limpiar</button>
+      </div>
+    </form>
 
     @if (error()) {
       <p class="error" role="status">{{ error() }}</p>
@@ -86,6 +121,11 @@ const ESTADOS_CON_INCIDENCIA: { codigo: EstadoPerfil; nombre: string }[] = [
     .subtitulo { color: var(--color-texto-suave); margin-top: 0; }
     .pestanias { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
     .pestanias button.activa { background: var(--color-primario); color: #fff; }
+    .filtros {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 1rem; align-items: end; margin-bottom: 1rem;
+    }
+    .acciones { display: flex; gap: 0.5rem; }
     .id { font-family: monospace; font-size: 0.85rem; white-space: nowrap; }
     .motivo { color: var(--color-texto-suave); font-size: 0.9rem; }
     .fecha { white-space: nowrap; }
@@ -96,7 +136,10 @@ export class RevisionPerfilesComponent implements OnInit {
   private readonly perfilesService = inject(PerfilesService);
 
   readonly estados = ESTADOS_CON_INCIDENCIA;
+  readonly tiposDocumento = TIPOS_DOCUMENTO;
   readonly estado = signal<EstadoPerfil>('INCOMPLETO');
+  filtro: FiltroPerfiles = RevisionPerfilesComponent.filtroVacio();
+
   readonly perfiles = signal<ResumenPerfil[]>([]);
   readonly pagina = signal(0);
   readonly total = signal(0);
@@ -119,7 +162,7 @@ export class RevisionPerfilesComponent implements OnInit {
   buscar(pagina: number): void {
     this.cargando.set(true);
     this.error.set(null);
-    this.perfilesService.buscarPorEstado(this.estado(), pagina, TAMANIO_PAGINA).subscribe({
+    this.perfilesService.buscar(this.estado(), this.filtro, pagina, TAMANIO_PAGINA).subscribe({
       next: (resultado: PaginaPerfiles) => {
         this.perfiles.set(resultado.clientes);
         this.pagina.set(resultado.pagina);
@@ -133,7 +176,16 @@ export class RevisionPerfilesComponent implements OnInit {
     });
   }
 
+  limpiar(): void {
+    this.filtro = RevisionPerfilesComponent.filtroVacio();
+    this.buscar(0);
+  }
+
   nombreCompleto(perfil: ResumenPerfil): string {
     return [perfil.nombres, perfil.apellidos].filter(Boolean).join(' ') || '(sin nombre)';
+  }
+
+  private static filtroVacio(): FiltroPerfiles {
+    return { tipoDocumento: '', numeroDocumento: '', motivo: '', desde: '', hasta: '' };
   }
 }

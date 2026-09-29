@@ -22,13 +22,27 @@ export interface PaginaPerfiles {
   total: number;
 }
 
+/** Filtros de la consulta (SCRUM-167). Las fechas van en formato AAAA-MM-DD. */
+export interface FiltroPerfiles {
+  tipoDocumento: string;
+  numeroDocumento: string;
+  motivo: string;
+  desde: string;
+  hasta: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PerfilesService {
   private readonly http = inject(HttpClient);
 
   /** Perfiles en un estado dado (SCRUM-12): INCOMPLETO o INCONSISTENTE para la revisión. */
-  buscarPorEstado(estado: EstadoPerfil, pagina: number, tamanio: number): Observable<PaginaPerfiles> {
-    const params = new HttpParams().set('estado', estado).set('pagina', pagina).set('tamanio', tamanio);
+  buscar(estado: EstadoPerfil, filtro: FiltroPerfiles, pagina: number, tamanio: number): Observable<PaginaPerfiles> {
+    let params = new HttpParams().set('estado', estado).set('pagina', pagina).set('tamanio', tamanio);
+    for (const [clave, valor] of Object.entries(filtro)) {
+      if (valor.trim()) {
+        params = params.set(clave, valor.trim());
+      }
+    }
     return this.http.get<PaginaPerfiles>('/api/perfil/clientes', { params });
   }
 }
