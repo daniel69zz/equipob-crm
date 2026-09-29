@@ -52,13 +52,13 @@ Ver diseño en `docs/compra/historial-compras.md` y el formato de la respuesta e
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/compras` | `INDICADORES_CONSULTAR` | Compras del cliente, de la más reciente a la más antigua. `{clienteId}` solo identifica al cliente para la auditoría del Gateway; la búsqueda usa los pares por canal de `identificador` (repetible, formato `ORIGEN:idCliente`, tal como los devuelve `identificadoresOrigen` en `GET /api/perfil/clientes/{clienteId}`). Sin identificadores, o si ninguno tiene compras, responde una página vacía. `pagina`, `tamanio` (por defecto 20, máx. 100) |
 
-## Indicadores del cliente (SCRUM-17, SCRUM-19)
+## Indicadores del cliente (SCRUM-17, SCRUM-19, SCRUM-33)
 
-Reglas de cálculo en `docs/compra/ticket-promedio.md` y `docs/compra/recencia-compra.md`. Los indicadores se calculan al consultarlos sobre el historial, así que reflejan de inmediato las compras nuevas, devoluciones y anulaciones.
+Reglas de cálculo en `docs/compra/ticket-promedio.md`, `docs/compra/recencia-compra.md` y `docs/compra/valor-acumulado.md`. Los indicadores se calculan al consultarlos sobre el historial, así que reflejan de inmediato las compras nuevas, devoluciones y anulaciones.
 
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
-| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio` y `recencia`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; se calcula al consultar, sin persistirla. Igual que el historial, usa el parámetro repetible `identificador` (`ORIGEN:idCliente`) |
+| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia` y `valorAcumulado`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`). Ninguno se persiste, se calculan al consultar. Igual que el historial, usa el parámetro repetible `identificador` (`ORIGEN:idCliente`) |
 
 ## Clientes inactivos (SCRUM-31)
 
