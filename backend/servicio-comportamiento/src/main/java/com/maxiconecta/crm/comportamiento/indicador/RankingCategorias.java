@@ -12,8 +12,13 @@ import java.util.Map;
  * Agrupa por categoría lo comprado por un cliente, descontando lo devuelto, y lo ordena de mayor
  * a menor consumo: monto, luego compras y por último nombre (docs/compra/categorias-mas-consumidas.md).
  * No consulta la base: trabaja sobre las filas que le entrega {@code AgregadoCategoriasCliente}.
+ * <p>
+ * Tolera datos incompletos sin fallar: una categoría nula o en blanco se agrupa como
+ * {@link #SIN_CATEGORIA} y un monto nulo cuenta como cero.
  */
 public final class RankingCategorias {
+
+    public static final String SIN_CATEGORIA = "Sin categoría";
 
     private static final Comparator<CategoriaConsumida> DE_MAYOR_A_MENOR_CONSUMO = Comparator
             .comparing(CategoriaConsumida::monto, Comparator.reverseOrder())
@@ -32,26 +37,29 @@ public final class RankingCategorias {
         Map<String, Acumulado> porCategoria = new LinkedHashMap<>();
         vigente.forEach((clave, consumo) -> {
             if (consumo.sigueVigente()) {
-                porCategoria.computeIfAbsent(clave.categoria(), c -> new Acumulado()).sumar(consumo);
+                Acumulado acumulado = porCategoria.computeIfAbsent(clave.categoria(), c -> new Acumulado());
+                acumulado.sumar(consumo);
+                acumulado.sinCategoria |= clave.sinCategoria();
             }
         });
 
         return porCategoria.entrySet().stream()
                 .map(e -> new CategoriaConsumida(e.getKey(), e.getValue().compras, e.getValue().unidades,
-                        e.getValue().monto, false))
+                        e.getValue().monto, e.getValue().sinCategoria))
                 .sorted(DE_MAYOR_A_MENOR_CONSUMO)
                 .toList();
     }
 
     private static ClaveLinea clave(LineaCategoria linea) {
-        return new ClaveLinea(linea.idCompra(), linea.categoria());
+        boolean sinCategoria = linea.categoria() == null || linea.categoria().isBlank();
+        return new ClaveLinea(linea.idCompra(), sinCategoria ? SIN_CATEGORIA : linea.categoria().strip(), sinCategoria);
     }
 
     private static Consumo consumo(LineaCategoria linea) {
-        return new Consumo(linea.unidades(), linea.monto());
+        return new Consumo(linea.unidades(), linea.monto() == null ? BigDecimal.ZERO : linea.monto());
     }
 
-    private record ClaveLinea(long idCompra, String categoria) {
+    private record ClaveLinea(long idCompra, String categoria, boolean sinCategoria) {
     }
 
     private record Consumo(long unidades, BigDecimal monto) {
@@ -74,6 +82,7 @@ public final class RankingCategorias {
         private long compras;
         private long unidades;
         private BigDecimal monto = BigDecimal.ZERO;
+        private boolean sinCategoria;
 
         void sumar(Consumo consumo) {
             compras++;
