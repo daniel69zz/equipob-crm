@@ -1,80 +1,344 @@
+/* ===========================================================
+   CRM MaxiConecta · estilos globales
+   Tokens de diseño y componentes base que comparten todas las pantallas.
+   =========================================================== */
+
 :root {
-  --color-primario: #1f3864;
-  --color-primario-claro: #dae8fc;
-  --color-texto: #1f2933;
-  --color-texto-suave: #52606d;
-  --color-borde: #d9e2ec;
-  --color-fondo: #f5f7fa;
-  --color-error: #b42318;
-  --radio: 8px;
+  /* Marca */
+  --color-primario: #2447b8;
+  --color-primario-oscuro: #17307f;
+  --color-primario-claro: #e6ecfc;
+  --color-acento: #0ea5a4;
+
+  /* Texto y superficies */
+  --color-texto: #16213a;
+  --color-texto-suave: #5b6682;
+  --color-borde: #e1e6f0;
+  --color-borde-fuerte: #c9d2e3;
+  --color-fondo: #f4f6fb;
+  --color-superficie: #ffffff;
+  --color-superficie-suave: #f8faff;
+  --color-barra: #111a33;
+
+  /* Estados */
+  --color-exito: #13795b;
+  --color-exito-claro: #e4f5ee;
+  --color-aviso: #9a6200;
+  --color-aviso-claro: #fff4df;
+  --color-error: #c0362c;
+  --color-error-claro: #fdecea;
+  --color-info: #2447b8;
+  --color-info-claro: #e6ecfc;
+
+  /* Forma */
+  --radio: 10px;
+  --radio-chico: 6px;
+  --radio-pildora: 999px;
+  --sombra-1: 0 1px 2px rgba(17, 26, 51, 0.06), 0 1px 3px rgba(17, 26, 51, 0.04);
+  --sombra-2: 0 4px 16px rgba(17, 26, 51, 0.08);
+  --foco: 0 0 0 3px rgba(36, 71, 184, 0.22);
+
+  --fuente: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fuente-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--fuente);
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--color-texto);
   background: var(--color-fondo);
+  -webkit-font-smoothing: antialiased;
 }
+
+/* ---------- Tipografía ---------- */
+
+h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 1.1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--color-primario);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.subtitulo {
+  color: var(--color-texto-suave);
+  margin: 0 0 1.25rem;
+}
+
+code,
+.fecha,
+.id {
+  font-family: var(--fuente-mono);
+  font-size: 0.85em;
+}
+
+/* ---------- Botones ---------- */
 
 button {
   font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
   cursor: pointer;
-  border: none;
-  border-radius: var(--radio);
-  padding: 0.55rem 1rem;
+  border: 1px solid var(--color-primario);
+  border-radius: var(--radio-chico);
+  padding: 0.55rem 1.05rem;
   background: var(--color-primario);
   color: #fff;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-primario-oscuro);
+  border-color: var(--color-primario-oscuro);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--foco);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 button.secundario {
-  background: transparent;
+  background: var(--color-superficie);
   color: var(--color-primario);
-  border: 1px solid var(--color-primario);
+  border-color: var(--color-borde-fuerte);
 }
 
+button.secundario:hover:not(:disabled) {
+  background: var(--color-primario-claro);
+  border-color: var(--color-primario);
+  color: var(--color-primario-oscuro);
+}
+
+button.peligro {
+  background: var(--color-error);
+  border-color: var(--color-error);
+}
+
+button.peligro:hover:not(:disabled) {
+  background: #a02b22;
+  border-color: #a02b22;
+}
+
+/* ---------- Formularios ---------- */
+
 input,
-select {
+select,
+textarea {
   font: inherit;
+  font-size: 0.93rem;
   width: 100%;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
+  padding: 0.55rem 0.75rem;
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-chico);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:not([type='checkbox']):not([type='radio']),
+select {
+  height: 40px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: var(--foco);
+}
+
+input::placeholder {
+  color: #9aa3b8;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: auto;
+  accent-color: var(--color-primario);
 }
 
 label {
   display: block;
   margin-bottom: 0.3rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  color: var(--color-texto-suave);
 }
 
-.tarjeta {
-  background: #fff;
+fieldset {
   border: 1px solid var(--color-borde);
   border-radius: var(--radio);
-  padding: 1.5rem;
+  padding: 0.75rem 1rem 1rem;
+}
+
+legend {
+  padding: 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+}
+
+/* ---------- Tarjetas ---------- */
+
+.tarjeta {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 1.35rem 1.5rem;
+  box-shadow: var(--sombra-1);
+}
+
+/* Formularios de filtro: se ven como una barra de búsqueda */
+form.filtros {
+  background: var(--color-superficie);
+}
+
+/* ---------- Tablas ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--color-borde);
+  vertical-align: top;
+}
+
+thead th {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde-fuerte);
+}
+
+tbody tr:hover > td {
+  background: #fafbff;
+}
+
+tbody tr:last-child > td {
+  border-bottom: none;
+}
+
+.tarjeta > table {
+  margin: -0.35rem 0;
+}
+
+/* ---------- Etiquetas ---------- */
+
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.16rem 0.6rem;
+  border-radius: var(--radio-pildora);
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--color-texto-suave);
+  background: #eef1f7;
+}
+
+/* ---------- Mensajes ---------- */
+
+.error,
+.exito {
+  font-size: 0.9rem;
+}
+
+p.error,
+p.exito {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radio-chico);
+  border: 1px solid;
 }
 
 .error {
   color: var(--color-error);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
+p.error {
+  background: var(--color-error-claro);
+  border-color: #f5c2bd;
 }
 
-th,
-td {
-  text-align: left;
-  padding: 0.6rem;
-  border-bottom: 1px solid var(--color-borde);
+.exito {
+  color: var(--color-exito);
+}
+
+p.exito {
+  background: var(--color-exito-claro);
+  border-color: #b7e3d1;
+}
+
+small.error {
+  font-size: 0.8rem;
+}
+
+/* ---------- Paginación ---------- */
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  color: var(--color-texto-suave);
+  font-size: 0.88rem;
+}
+
+/* ---------- Adaptación a pantallas chicas ---------- */
+
+@media (max-width: 720px) {
+  body {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 1.35rem;
+  }
+
+  .tarjeta {
+    padding: 1rem;
+    overflow-x: auto;
+  }
 }

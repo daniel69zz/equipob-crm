@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { PestaniasClienteComponent } from './pestanias-cliente.component';
 import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.directive';
 import { Permisos } from '../../core/auth/sesion';
 import { ClientesService, PerfilCliente } from './clientes.service';
@@ -50,9 +51,9 @@ interface Formulario {
 @Component({
   selector: 'app-consentimiento',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink, SiTienePermisoDirective],
+  imports: [FormsModule, DatePipe, RouterLink, SiTienePermisoDirective, PestaniasClienteComponent],
   template: `
-    <p><a routerLink="/clientes">← Clientes</a></p>
+    <app-pestanias-cliente [id]="id()" />
     <h1>Consentimiento de datos</h1>
     @if (perfil(); as p) {
       <p class="subtitulo">{{ p.nombres }} {{ p.apellidos }} · {{ p.tipoDocumento }} {{ p.numeroDocumento }} · cliente {{ p.id }}</p>
@@ -177,8 +178,8 @@ interface Formulario {
     dt { color: var(--color-texto-suave); }
     dd { margin: 0; }
     .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
-    .vigente { color: #1e6b34; background: #ddf4e4; }
-    .no-vigente { color: var(--color-error); background: #fde8e7; }
+    .vigente { color: var(--color-exito); background: var(--color-exito-claro); }
+    .no-vigente { color: var(--color-error); background: var(--color-error-claro); }
     .campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
     fieldset { border: 1px solid var(--color-borde); border-radius: 6px; margin: 1rem 0; }
     .opcion { display: flex; align-items: center; gap: 0.5rem; font-weight: normal; }
@@ -186,7 +187,7 @@ interface Formulario {
     .revocar { display: flex; flex-wrap: wrap; align-items: end; gap: 0.75rem; }
     .revocar input { flex: 1 1 240px; }
     button.peligro { background: var(--color-error); border-color: var(--color-error); }
-    .exito { color: #1e6b34; }
+    .exito { color: var(--color-exito); }
     .fecha { font-family: monospace; }
     .motivo { color: var(--color-texto-suave); font-size: 0.85rem; }
   `,
