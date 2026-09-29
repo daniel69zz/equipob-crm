@@ -47,8 +47,7 @@ public class VinculacionIdentificadores {
     }
 
     @Transactional
-    public List<Long> vincular(Long idCliente, Origen origen, String idClienteOrigen, String responsable) {
-        exigirSistemaExterno(origen);
+    public List<Long> vincular(Long idCliente, String idClienteOrigen, String responsable) {
         String identificador = idClienteOrigen.trim();
         Cliente cliente = clientes.findById(idCliente)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No existe el cliente " + idCliente));
@@ -56,34 +55,33 @@ public class VinculacionIdentificadores {
             throw new ReglaNegocioException("El cliente " + idCliente + " fue unificado en el cliente "
                     + cliente.getIdClienteConsolidado() + "; vincule el identificador a ese perfil");
         }
-        ClienteOrigen.Clave clave = new ClienteOrigen.Clave(origen, identificador);
-        origenes.findById(clave).ifPresent(existente -> {
+        origenes.findById(identificador).ifPresent(existente -> {
             throw new ConflictoException(existente.getIdCliente().equals(idCliente)
-                    ? "El identificador " + clave + " ya está vinculado a este cliente"
-                    : "El identificador " + clave + " ya está vinculado al cliente " + existente.getIdCliente()
+                    ? "El identificador " + identificador + " ya está vinculado a este cliente"
+                    : "El identificador " + identificador + " ya está vinculado al cliente " + existente.getIdCliente()
                     + "; para juntarlos, unifique los perfiles");
         });
 
-        origenes.saveAndFlush(ClienteOrigen.vincular(origen, identificador, idCliente, ClienteOrigen.VINCULACION_MANUAL,
+        origenes.saveAndFlush(ClienteOrigen.vincular(identificador, idCliente, ClienteOrigen.VINCULACION_MANUAL,
                 responsable, null));
-        vinculaciones.findById(clave).ifPresent(v -> v.resolver(EstadoVinculacion.VINCULADO, responsable));
+        vinculaciones.findById(identificador).ifPresent(v -> v.resolver(EstadoVinculacion.VINCULADO, responsable));
         historial.registrar(idCliente, TipoCambio.VINCULACION, Origen.CRM, responsable,
-                List.of(new CambioCampo("identificadoresOrigen", null, clave.toString())), null);
+                List.of(new CambioCampo("identificadoresOrigen", null, identificador)), null);
         cliente.registrarActualizacion(Origen.CRM, responsable);
-        return eventosPendientes(clave);
+        return eventosPendientes(identificador);
     }
 
     @Transactional
-    public List<Long> declararNuevoPerfil(Origen origen, String idClienteOrigen, String responsable) {
-        exigirSistemaExterno(origen);
-        ClienteOrigen.Clave clave = new ClienteOrigen.Clave(origen, idClienteOrigen.trim());
-        VinculacionPendiente vinculacion = vinculaciones.findById(clave)
-                .orElseThrow(() -> new RecursoNoEncontradoException("No hay una vinculación pendiente para " + clave));
+    public List<Long> declararNuevoPerfil(String idClienteOrigen, String responsable) {
+        String identificador = idClienteOrigen.trim();
+        VinculacionPendiente vinculacion = vinculaciones.findById(identificador)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No hay una vinculación pendiente para " + identificador));
         if (vinculacion.getEstado() != EstadoVinculacion.PENDIENTE) {
-            throw new ConflictoException("La vinculación de " + clave + " ya fue resuelta (" + vinculacion.getEstado() + ")");
+            throw new ConflictoException("La vinculación de " + identificador + " ya fue resuelta ("
+                    + vinculacion.getEstado() + ")");
         }
         vinculacion.resolver(EstadoVinculacion.NUEVO_PERFIL, responsable);
-        return eventosPendientes(clave);
+        return eventosPendientes(identificador);
     }
 
     @Transactional(readOnly = true)
@@ -93,17 +91,9 @@ public class VinculacionIdentificadores {
                 .toList();
     }
 
-
-    private List<Long> eventosPendientes(ClienteOrigen.Clave clave) {
-        return eventos.findByOrigenAndIdClienteOrigenAndEstadoOrderByIdAsc(clave.origen().name(),
-                        clave.idClienteOrigen(), EstadoEventoCliente.PENDIENTE).stream()
+    private List<Long> eventosPendientes(String identificador) {
+        return eventos.findByIdClienteOrigenAndEstadoOrderByIdAsc(identificador, EstadoEventoCliente.PENDIENTE).stream()
                 .map(EventoCliente::getId)
                 .toList();
-    }
-
-    private static void exigirSistemaExterno(Origen origen) {
-        if (!origen.esSistemaExterno()) {
-            throw new ReglaNegocioException("Solo se vinculan identificadores de MARKETPLACE o VENTAS");
-        }
     }
 }

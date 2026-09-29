@@ -39,7 +39,7 @@ public class HistorialCambios {
 
     /**
      * El origen tiene que distinguir de dónde vino el cambio: las altas y actualizaciones vienen de
-     * Marketplace o Ventas; las vinculaciones, unificaciones y detecciones son acciones del CRM.
+     * el módulo Marketplace y Ventas; las vinculaciones, unificaciones y detecciones son acciones del CRM.
      */
     private static void exigirOrigenCoherente(TipoCambio tipo, Origen origen, String responsable) {
         boolean esAccionDelCrm = tipo == TipoCambio.VINCULACION || tipo == TipoCambio.UNIFICACION

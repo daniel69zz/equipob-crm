@@ -38,11 +38,6 @@ public class ValidadorAnulaciones {
             rechazar("El campo 'tipoEvento' debe ser " + EventoAnulacionCompra.TIPO);
         }
 
-        String origen = exigir(evento.origen(), "origen");
-        if (!ReglaContratoCompraConfirmada.ORIGENES_PERMITIDOS.contains(origen)) {
-            rechazar("El campo 'origen' debe ser MARKETPLACE o VENTAS");
-        }
-
         exigir(evento.fechaEmision(), "fechaEmision");
         EventoAnulacionCompra.DatosAnulacion anulacion = exigir(evento.anulacion(), "anulacion");
         exigirTexto(anulacion.idAnulacion(), "anulacion.idAnulacion", LARGO_MAXIMO_ID);

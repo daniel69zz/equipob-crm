@@ -9,33 +9,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class IdentificadorTest {
 
     @Test
-    void parseaOrigenYClienteSeparadosPorDosPuntos() {
-        Identificador identificador = Identificador.parsear("VENTAS:CLI-5521");
-
-        assertThat(identificador.origen()).isEqualTo(Origen.VENTAS);
-        assertThat(identificador.idClienteOrigen()).isEqualTo("CLI-5521");
+    void tomaElIdentificadorDelClienteEnMarketplaceYVentas() {
+        assertThat(Identificador.parsear("CLI-5521").idClienteOrigen()).isEqualTo("CLI-5521");
     }
 
     @Test
-    void elOrigenNoDistingueMayusculasYSeRecortanLosEspacios() {
-        Identificador identificador = Identificador.parsear(" marketplace : mp-user-3307 ");
-
-        assertThat(identificador.origen()).isEqualTo(Origen.MARKETPLACE);
-        assertThat(identificador.idClienteOrigen()).isEqualTo("mp-user-3307");
+    void recortaLosEspacios() {
+        assertThat(Identificador.parsear(" mp-user-3307 ").idClienteOrigen()).isEqualTo("mp-user-3307");
     }
 
     @Test
-    void rechazaUnTextoSinDosPuntosOSinAlgunoDeLosDosLados() {
-        assertThatThrownBy(() -> Identificador.parsear("CLI-5521")).isInstanceOf(ReglaNegocioException.class);
-        assertThatThrownBy(() -> Identificador.parsear(":CLI-5521")).isInstanceOf(ReglaNegocioException.class);
-        assertThatThrownBy(() -> Identificador.parsear("VENTAS:")).isInstanceOf(ReglaNegocioException.class);
+    void rechazaUnIdentificadorVacioODemasiadoLargo() {
+        assertThatThrownBy(() -> Identificador.parsear("")).isInstanceOf(ReglaNegocioException.class);
+        assertThatThrownBy(() -> Identificador.parsear("   ")).isInstanceOf(ReglaNegocioException.class);
         assertThatThrownBy(() -> Identificador.parsear(null)).isInstanceOf(ReglaNegocioException.class);
-    }
-
-    @Test
-    void rechazaUnOrigenQueNoExiste() {
-        assertThatThrownBy(() -> Identificador.parsear("PUNTOS:CLI-5521"))
-                .isInstanceOf(ReglaNegocioException.class)
-                .hasMessageContaining("PUNTOS");
+        assertThatThrownBy(() -> Identificador.parsear("x".repeat(65))).isInstanceOf(ReglaNegocioException.class);
     }
 }

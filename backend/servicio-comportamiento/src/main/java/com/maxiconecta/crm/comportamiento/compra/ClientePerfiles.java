@@ -21,13 +21,12 @@ public class ClientePerfiles {
         this.http = http;
     }
 
-    public Optional<Long> buscar(Origen origen, String idClienteOrigen) {
+    public Optional<Long> buscar(String idClienteOrigen) {
         try {
             PaginaPerfiles pagina = http.get()
                     .uri(builder -> builder.path("/api/perfil/clientes")
-                            .queryParam("origen", "{origen}")
                             .queryParam("idClienteOrigen", "{cliente}")
-                            .build(origen.name(), idClienteOrigen))
+                            .build(idClienteOrigen))
                     .retrieve().body(PaginaPerfiles.class);
             if (pagina != null && pagina.total() == 1 && pagina.clientes() != null
                     && pagina.clientes().size() == 1) {

@@ -31,7 +31,7 @@ class HistorialCambiosTest {
     void unaOperacionGuardaUnRegistroConUnaFilaPorCampo() {
         when(repository.save(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
 
-        CambioPerfil registro = historial.registrar(1L, TipoCambio.ACTUALIZACION, Origen.VENTAS, "cajero.mlopez",
+        CambioPerfil registro = historial.registrar(1L, TipoCambio.ACTUALIZACION, Origen.MARKETPLACE_VENTAS, "cajero.mlopez",
                 List.of(new CambioCampo("email", "a@correo.com", "b@correo.com"), new CambioCampo("telefono", null, "+59170012345")),
                 7L);
 
@@ -43,7 +43,7 @@ class HistorialCambiosTest {
 
     @Test
     void sinCambiosNoSeRegistraNada() {
-        assertThat(historial.registrar(1L, TipoCambio.ACTUALIZACION, Origen.VENTAS, "x", List.of(), 7L)).isNull();
+        assertThat(historial.registrar(1L, TipoCambio.ACTUALIZACION, Origen.MARKETPLACE_VENTAS, "x", List.of(), 7L)).isNull();
         verify(repository, never()).save(any());
     }
 
@@ -51,11 +51,11 @@ class HistorialCambiosTest {
     void elOrigenTieneQueCorresponderAlTipoDeCambio() {
         List<CambioCampo> cambio = List.of(new CambioCampo("email", null, "a@correo.com"));
 
-        assertThatThrownBy(() -> historial.registrar(1L, TipoCambio.VINCULACION, Origen.VENTAS, "admin", cambio, null))
+        assertThatThrownBy(() -> historial.registrar(1L, TipoCambio.VINCULACION, Origen.MARKETPLACE_VENTAS, "admin", cambio, null))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> historial.registrar(1L, TipoCambio.ACTUALIZACION, Origen.CRM, "admin", cambio, null))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> historial.registrar(1L, TipoCambio.ACTUALIZACION, Origen.VENTAS, " ", cambio, null))
+        assertThatThrownBy(() -> historial.registrar(1L, TipoCambio.ACTUALIZACION, Origen.MARKETPLACE_VENTAS, " ", cambio, null))
                 .hasMessageContaining("responsable");
     }
 }

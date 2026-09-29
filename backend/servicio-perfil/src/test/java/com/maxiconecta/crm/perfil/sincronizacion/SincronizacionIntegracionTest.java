@@ -93,7 +93,7 @@ class SincronizacionIntegracionTest {
     void limpiarBase() {
         // El registro de cambios rechaza TRUNCATE: en las pruebas se desactivan los triggers solo para limpiar.
         jdbc.execute("SET session_replication_role = replica; "
-                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.conflicto_perfil, perfil.campo_origen, perfil.cambio_perfil_detalle, perfil.cambio_perfil, perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, perfil.cliente, "
+                + "TRUNCATE perfil.consentimiento_historial, perfil.consentimiento_alcance, perfil.consentimiento, perfil.cambio_perfil_detalle, perfil.cambio_perfil, perfil.direccion, perfil.vinculacion_pendiente, perfil.cliente_origen, perfil.cliente, "
                 + "perfil.evento_cliente RESTART IDENTITY; "
                 + "SET session_replication_role = DEFAULT");
     }
@@ -102,7 +102,7 @@ class SincronizacionIntegracionTest {
 
     @Test
     void unClienteNuevoDeVentasCreaSuPerfilCompleto() {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
 
         EventoCliente evento = esperar(1).get(0);
         assertThat(evento.getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
@@ -124,24 +124,24 @@ class SincronizacionIntegracionTest {
                 assertThat(d.isPrincipal()).isTrue();
             });
         });
-        assertThat(origenes.findById(new ClienteOrigen.Clave(Origen.VENTAS, "CLI-5521")))
+        assertThat(origenes.findById("CLI-5521"))
                 .hasValueSatisfying(v -> assertThat(v.getIdCliente()).isEqualTo(evento.getIdCliente()));
     }
 
     @Test
     void unClienteDeMarketplaceCreaOtroPerfil() {
-        publicar(ejemplo("cliente-ventas-alta.json"));
-        publicar(ejemplo("cliente-marketplace-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
+        publicar(ejemplo("cliente-carlos-alta.json"));
 
         List<EventoCliente> recibidos = esperar(2);
         assertThat(recibidos).allMatch(e -> e.getEstado() == EstadoEventoCliente.PROCESADO);
         assertThat(clientes.count()).isEqualTo(2);
-        assertThat(origenes.findById(new ClienteOrigen.Clave(Origen.MARKETPLACE, "mp-user-3307"))).isPresent();
+        assertThat(origenes.findById("mp-user-3307")).isPresent();
     }
 
     @Test
     void unaActualizacionDeUnClienteDesconocidoCreaSuPerfil() {
-        publicar(ejemplo("cliente-ventas-actualizacion.json"));
+        publicar(ejemplo("cliente-ana-actualizacion.json"));
 
         assertThat(esperar(1).get(0).getEstado()).isEqualTo(EstadoEventoCliente.PROCESADO);
         assertThat(clientes.count()).isEqualTo(1);
@@ -151,9 +151,9 @@ class SincronizacionIntegracionTest {
 
     @Test
     void unaActualizacionModificaElMismoPerfilSinDuplicarlo() {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
         Long idCliente = esperar(1).get(0).getIdCliente();
-        publicar(ejemplo("cliente-ventas-actualizacion.json"));
+        publicar(ejemplo("cliente-ana-actualizacion.json"));
 
         assertThat(esperar(2)).allMatch(e -> e.getEstado() == EstadoEventoCliente.PROCESADO
                 && idCliente.equals(e.getIdCliente()));
@@ -169,16 +169,16 @@ class SincronizacionIntegracionTest {
 
     @Test
     void unEventoMasAntiguoQueElUltimoAplicadoSeDescartaSinCambiarElPerfil() {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
         esperar(1);
-        publicar(ejemplo("cliente-ventas-actualizacion.json"));
+        publicar(ejemplo("cliente-ana-actualizacion.json"));
         esperar(2);
-        publicar(ejemplo("cliente-ventas-obsoleto.json"));
+        publicar(ejemplo("cliente-ana-obsoleto.json"));
 
         EventoCliente obsoleto = ultimo(esperar(3));
         assertThat(obsoleto.getEstado()).isEqualTo(EstadoEventoCliente.DESCARTADO);
         assertThat(obsoleto.getCausa()).isEqualTo("Evento obsoleto: el cambio del 2026-09-22T11:30-04:00 de "
-                + "VENTAS/CLI-5521 es anterior al último aplicado (2026-09-25T16:40-04:00)");
+                + "CLI-5521 es anterior al último aplicado (2026-09-25T16:40-04:00)");
         Cliente cliente = clientes.findAll().get(0);
         assertThat(cliente.getEmail()).isEqualTo("ana.m.perez@correo.com");
         assertThat(cambios.count()).isEqualTo(2);
@@ -186,9 +186,9 @@ class SincronizacionIntegracionTest {
 
     @Test
     void elMismoEventoReentregadoSeDescarta() {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
         esperar(1);
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
 
         EventoCliente reentrega = ultimo(esperar(2));
         assertThat(reentrega.getEstado()).isEqualTo(EstadoEventoCliente.DESCARTADO);
@@ -199,7 +199,7 @@ class SincronizacionIntegracionTest {
 
     @Test
     void diezAltasSimultaneasDelMismoClienteDejanUnSoloPerfil() {
-        String alta = ejemplo("cliente-marketplace-alta.json");
+        String alta = ejemplo("cliente-carlos-alta.json");
         IntStream.range(0, 10).parallel().forEach(i -> publicar(alta));
 
         List<EventoCliente> recibidos = esperar(10);
@@ -211,9 +211,9 @@ class SincronizacionIntegracionTest {
 
     @Test
     void unaDireccionQueElOrigenDejaDeInformarSeDesactiva() {
-        publicar(ejemplo("cliente-ventas-actualizacion.json"));
+        publicar(ejemplo("cliente-ana-actualizacion.json"));
         esperar(1);
-        publicar(ejemplo("cliente-ventas-actualizacion.json")
+        publicar(ejemplo("cliente-ana-actualizacion.json")
                 .replace("2026-09-25T16:40:00-04:00", "2026-09-26T08:00:00-04:00")
                 .replaceAll("(?s),\\s*\\{\\s*\"idDireccion\": \"D-2\".*?}", ""));
 
@@ -282,9 +282,9 @@ class SincronizacionIntegracionTest {
 
     @Test
     void cadaCreacionYModificacionQuedaRegistradaConFechaOrigenYResponsable() throws Exception {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
         esperar(1);
-        publicar(ejemplo("cliente-ventas-actualizacion.json"));
+        publicar(ejemplo("cliente-ana-actualizacion.json"));
         Long idCliente = esperar(2).get(0).getIdCliente();
 
         List<CambioPerfil> registro = cambios.findByIdClienteOrderByFechaAscIdAsc(idCliente);
@@ -292,7 +292,7 @@ class SincronizacionIntegracionTest {
                 .containsExactly(TipoCambio.CREACION, TipoCambio.ACTUALIZACION);
         assertThat(registro).allSatisfy(c -> {
             assertThat(c.getFecha()).isNotNull();
-            assertThat(c.getOrigen()).isEqualTo(Origen.VENTAS);
+            assertThat(c.getOrigen()).isEqualTo(Origen.MARKETPLACE_VENTAS);
         });
         assertThat(registro).extracting(CambioPerfil::getResponsable)
                 .containsExactly("vendedor.jperez", "cajero.mlopez");
@@ -304,13 +304,13 @@ class SincronizacionIntegracionTest {
                 .isEqualTo(new CambioCampo("email", "ana.perez@correo.com", "ana.m.perez@correo.com"));
 
         Cliente cliente = clientes.findById(idCliente).orElseThrow();
-        assertThat(cliente.getActualizadoPorOrigen()).isEqualTo(Origen.VENTAS);
+        assertThat(cliente.getActualizadoPorOrigen()).isEqualTo(Origen.MARKETPLACE_VENTAS);
         assertThat(cliente.getActualizadoPor()).isEqualTo("cajero.mlopez");
     }
 
     @Test
     void elRegistroDeCambiosNoSePuedeModificarNiBorrar() {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+        publicar(ejemplo("cliente-ana-alta.json"));
         esperar(1);
 
         assertThatThrownBy(() -> jdbc.update("UPDATE perfil.cambio_perfil SET responsable = 'otro'"))
@@ -322,8 +322,8 @@ class SincronizacionIntegracionTest {
     // --- Consulta del perfil ---
 
     @Test
-    void elPerfilSeConsultaPorSuIdentificadorYSeBuscaPorOrigenODocumento() throws Exception {
-        publicar(ejemplo("cliente-ventas-alta.json"));
+    void elPerfilSeConsultaPorSuIdentificadorYSeBuscaPorIdentificadorODocumento() throws Exception {
+        publicar(ejemplo("cliente-ana-alta.json"));
         Long idCliente = esperar(1).get(0).getIdCliente();
 
         mvc.perform(get("/api/perfil/clientes/{id}", idCliente))
@@ -332,13 +332,12 @@ class SincronizacionIntegracionTest {
                 .andExpect(jsonPath("$.estado").value("COMPLETO"))
                 .andExpect(jsonPath("$.identificadoresOrigen[0].idCliente").value("CLI-5521"))
                 .andExpect(jsonPath("$.direcciones[0].ciudad").value("La Paz"));
-        mvc.perform(get("/api/perfil/clientes").param("origen", "VENTAS").param("idClienteOrigen", "CLI-5521"))
+        mvc.perform(get("/api/perfil/clientes").param("idClienteOrigen", "CLI-5521"))
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.clientes[0].id").value(idCliente));
         mvc.perform(get("/api/perfil/clientes").param("tipoDocumento", "ci").param("numeroDocumento", "4455667"))
                 .andExpect(jsonPath("$.total").value(1));
         mvc.perform(get("/api/perfil/clientes/{id}", 999_999)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/perfil/clientes").param("idClienteOrigen", "CLI-5521")).andExpect(status().isBadRequest());
     }
 
     // --- Utilidades ---

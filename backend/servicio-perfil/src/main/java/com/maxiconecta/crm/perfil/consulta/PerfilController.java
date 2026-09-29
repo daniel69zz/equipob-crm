@@ -1,7 +1,6 @@
 package com.maxiconecta.crm.perfil.consulta;
 
 import com.maxiconecta.crm.perfil.cliente.EstadoPerfil;
-import com.maxiconecta.crm.perfil.cliente.Origen;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,8 +32,7 @@ public class PerfilController {
     }
 
     @GetMapping
-    public PaginaPerfiles buscar(@RequestParam(required = false) Origen origen,
-                                 @RequestParam(required = false) String idClienteOrigen,
+    public PaginaPerfiles buscar(@RequestParam(required = false) String idClienteOrigen,
                                  @RequestParam(required = false) String tipoDocumento,
                                  @RequestParam(required = false) String numeroDocumento,
                                  @RequestParam(required = false) EstadoPerfil estado,
@@ -43,7 +41,7 @@ public class PerfilController {
                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
                                  @RequestParam(defaultValue = "0") int pagina,
                                  @RequestParam(defaultValue = "50") int tamanio) {
-        Page<ResumenPerfil> resultado = consulta.buscar(new ConsultaPerfil.FiltroPerfiles(origen, idClienteOrigen,
+        Page<ResumenPerfil> resultado = consulta.buscar(new ConsultaPerfil.FiltroPerfiles(idClienteOrigen,
                 tipoDocumento, numeroDocumento, estado, motivo, desde, hasta), pagina, tamanio);
         return new PaginaPerfiles(resultado.getContent(), resultado.getNumber(), resultado.getSize(),
                 resultado.getTotalElements());

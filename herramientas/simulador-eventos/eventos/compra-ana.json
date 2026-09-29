@@ -1,7 +1,6 @@
 {
   "idEvento": "5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c",
   "tipoEvento": "COMPRA_CONFIRMADA",
-  "origen": "VENTAS",
   "fechaEmision": "2026-09-27T15:30:05-04:00",
   "compra": {
     "idCompra": "V-100234",

@@ -8,7 +8,7 @@ public enum TipoDireccion {
     FACTURACION,
     OTRA;
 
-    /** Tipo informado por el sistema de origen; si no viene o no se reconoce, OTRA. */
+    /** Tipo informado por Marketplace y Ventas; si no viene o no se reconoce, OTRA. */
     public static TipoDireccion de(String valor) {
         if (valor == null) {
             return OTRA;

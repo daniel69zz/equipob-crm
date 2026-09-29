@@ -10,12 +10,17 @@ import java.util.Set;
  * Evento RIO-CRM-01 ya leído. Los datos del perfil llegan tal como vinieron: su validación
  * decide si el perfil queda completo o incompleto.
  */
-public record EventoClienteRecibido(String idEvento, TipoEventoCliente tipo, Origen origen,
+public record EventoClienteRecibido(String idEvento, TipoEventoCliente tipo,
                                     OffsetDateTime fechaEmision, String responsable, DatosCliente cliente) {
 
     public static final String RESPONSABLE_POR_DEFECTO = "sincronizacion-automatica";
 
-    /** Momento del cambio en el sistema de origen; ordena los eventos de un mismo cliente. */
+    /** Todos los eventos de cliente vienen del módulo Marketplace y Ventas. */
+    public Origen origen() {
+        return Origen.MARKETPLACE_VENTAS;
+    }
+
+    /** Momento del cambio en Marketplace y Ventas; ordena los eventos de un mismo cliente. */
     public OffsetDateTime fechaCambio() {
         return cliente.fechaActualizacion() != null ? cliente.fechaActualizacion() : fechaEmision;
     }

@@ -46,21 +46,21 @@ public class ConsolidacionIdentificadores {
      * @return los identificadores que pasaron al perfil conservado
      */
     @Transactional
-    public List<ClienteOrigen.Clave> consolidar(Long idAbsorbido, Long idConservado, String responsable) {
+    public List<String> consolidar(Long idAbsorbido, Long idConservado, String responsable) {
         if (idAbsorbido.equals(idConservado)) {
             throw new ReglaNegocioException("No se puede unificar un perfil consigo mismo");
         }
         Cliente absorbido = vigente(idAbsorbido);
         Cliente conservado = vigente(idConservado);
 
-        List<ClienteOrigen.Clave> movidos = new ArrayList<>();
+        List<String> movidos = new ArrayList<>();
         List<CambioCampo> cambiosConservado = new ArrayList<>();
         List<CambioCampo> cambiosAbsorbido = new ArrayList<>();
         for (ClienteOrigen vinculo : origenes.findByIdClienteOrderByFechaVinculacion(idAbsorbido)) {
             vinculo.reasignar(idConservado, ClienteOrigen.UNIFICACION, responsable);
             movidos.add(vinculo.getId());
-            cambiosConservado.add(new CambioCampo("identificadoresOrigen", null, vinculo.getId().toString()));
-            cambiosAbsorbido.add(new CambioCampo("identificadoresOrigen", vinculo.getId().toString(), null));
+            cambiosConservado.add(new CambioCampo("identificadoresOrigen", null, vinculo.getId()));
+            cambiosAbsorbido.add(new CambioCampo("identificadoresOrigen", vinculo.getId(), null));
         }
 
         absorbido.consolidarEn(idConservado);

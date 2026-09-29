@@ -29,8 +29,6 @@ public class EventoCliente {
 
     private String tipoEvento;
 
-    private String origen;
-
     private String idClienteOrigen;
 
     private Long idCliente;
@@ -55,12 +53,10 @@ public class EventoCliente {
     protected EventoCliente() {
     }
 
-    public EventoCliente(String contenido, String idEventoOrigen, String tipoEvento, String origen,
-                         String idClienteOrigen) {
+    public EventoCliente(String contenido, String idEventoOrigen, String tipoEvento, String idClienteOrigen) {
         this.contenido = contenido;
         this.idEventoOrigen = idEventoOrigen;
         this.tipoEvento = tipoEvento;
-        this.origen = origen;
         this.idClienteOrigen = idClienteOrigen;
     }
 
@@ -86,10 +82,6 @@ public class EventoCliente {
 
     public String getTipoEvento() {
         return tipoEvento;
-    }
-
-    public String getOrigen() {
-        return origen;
     }
 
     public String getIdClienteOrigen() {

@@ -2,7 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-export type OrigenCambio = 'VENTAS' | 'MARKETPLACE' | 'CRM';
+/** De dónde vino un cambio: del módulo Marketplace y Ventas o de una acción en el CRM. */
+export type OrigenCambio = 'MARKETPLACE_VENTAS' | 'CRM';
 
 export interface ResumenCliente {
   id: number;
@@ -21,8 +22,8 @@ export interface PaginaClientes {
   total: number;
 }
 
+/** Identificador del cliente en Marketplace y Ventas vinculado al perfil. */
 export interface IdentificadorOrigen {
-  origen: OrigenCambio;
   idCliente: string;
 }
 

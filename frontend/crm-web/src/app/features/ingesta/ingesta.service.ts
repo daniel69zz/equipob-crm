@@ -8,7 +8,6 @@ export interface EventoRecibido {
   id: number;
   idEventoOrigen: string | null;
   tipoEvento: string | null;
-  origen: string | null;
   idTransaccion: string | null;
   estado: EstadoEvento;
   causa: string | null;
@@ -43,7 +42,6 @@ export interface FiltroBitacora {
   desde: string;
   hasta: string;
   estado: string;
-  origen: string;
   transaccion: string;
 }
 

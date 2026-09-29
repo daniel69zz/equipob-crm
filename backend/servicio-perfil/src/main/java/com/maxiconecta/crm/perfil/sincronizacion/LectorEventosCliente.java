@@ -3,7 +3,6 @@ package com.maxiconecta.crm.perfil.sincronizacion;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.maxiconecta.crm.perfil.cliente.Origen;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
@@ -24,7 +23,7 @@ import static com.maxiconecta.crm.perfil.sincronizacion.EventoClienteRecibido.Ca
  * <p>
  * Un alta (CLIENTE_REGISTRADO) es la foto completa del cliente. Una actualización
  * (CLIENTE_ACTUALIZADO) informa solo los campos presentes en el mensaje; un campo presente con
- * null o vacío significa que el sistema de origen borró ese dato.
+ * null o vacío significa que Marketplace y Ventas borró ese dato.
  */
 @Component
 public class LectorEventosCliente {
@@ -47,7 +46,7 @@ public class LectorEventosCliente {
                 return Cabecera.VACIA;
             }
             return new Cabecera(recortar(escalar(raiz, "idEvento"), 64), recortar(escalar(raiz, "tipoEvento"), 40),
-                    recortar(escalar(raiz, "origen"), 15), recortar(escalar(raiz.path("cliente"), "idCliente"), 64));
+                    recortar(escalar(raiz.path("cliente"), "idCliente"), 64));
         } catch (JsonProcessingException | EventoIlegibleException ex) {
             return Cabecera.VACIA;
         }
@@ -66,10 +65,6 @@ public class LectorEventosCliente {
         }
         TipoEventoCliente tipo = valorDe(TipoEventoCliente.class, escalar(raiz, "tipoEvento"), "tipoEvento",
                 "CLIENTE_REGISTRADO o CLIENTE_ACTUALIZADO");
-        Origen origen = valorDe(Origen.class, escalar(raiz, "origen"), "origen", "MARKETPLACE o VENTAS");
-        if (!origen.esSistemaExterno()) {
-            throw new EventoIlegibleException("El campo 'origen' debe ser MARKETPLACE o VENTAS (llegó " + origen + ")");
-        }
         OffsetDateTime fechaEmision = fecha(raiz, "fechaEmision", "fechaEmision");
         if (fechaEmision == null) {
             throw new EventoIlegibleException("Falta el campo obligatorio 'fechaEmision'");
@@ -94,7 +89,7 @@ public class LectorEventosCliente {
                 escalar(cliente, "tipoDocumento"), escalar(cliente, "numeroDocumento"),
                 contacto(cliente), direcciones(cliente),
                 tipo == TipoEventoCliente.CLIENTE_REGISTRADO ? Campos.TODOS : camposInformados(cliente));
-        return new EventoClienteRecibido(escalar(raiz, "idEvento"), tipo, origen, fechaEmision,
+        return new EventoClienteRecibido(escalar(raiz, "idEvento"), tipo, fechaEmision,
                 recortar(escalar(raiz, "responsable"), 100), datos);
     }
 
@@ -193,7 +188,7 @@ public class LectorEventosCliente {
         return texto != null && texto.length() > largoMaximo ? texto.substring(0, largoMaximo) : texto;
     }
 
-    public record Cabecera(String idEvento, String tipoEvento, String origen, String idClienteOrigen) {
-        static final Cabecera VACIA = new Cabecera(null, null, null, null);
+    public record Cabecera(String idEvento, String tipoEvento, String idClienteOrigen) {
+        static final Cabecera VACIA = new Cabecera(null, null, null);
     }
 }

@@ -44,11 +44,11 @@ class IngestaComprasTest {
     @Test
     void unErrorAlProcesarDejaElEventoFallidoConSuCausa() {
         when(bitacora.registrarRecepcion("{}")).thenReturn(7L);
-        when(procesador.procesar(7L)).thenThrow(new EventoIlegibleException("Falta el campo obligatorio 'origen'"));
+        when(procesador.procesar(7L)).thenThrow(new EventoIlegibleException("Falta el campo obligatorio 'compra.idCliente'"));
 
         ingesta.recibir("{}");
 
-        verify(bitacora).marcarFallido(7L, "EventoIlegibleException: Falta el campo obligatorio 'origen'");
+        verify(bitacora).marcarFallido(7L, "EventoIlegibleException: Falta el campo obligatorio 'compra.idCliente'");
     }
 
     @Test

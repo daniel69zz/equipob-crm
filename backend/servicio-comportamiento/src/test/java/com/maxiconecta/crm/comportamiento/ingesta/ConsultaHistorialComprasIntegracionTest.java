@@ -54,41 +54,39 @@ class ConsultaHistorialComprasIntegracionTest {
 
     @BeforeEach
     void limpiarBase() {
-        jdbc.execute("TRUNCATE comportamiento.intento_reproceso, comportamiento.evento_procesado, comportamiento.anulacion_item, "
+        jdbc.execute("TRUNCATE comportamiento.frecuencia_compra, comportamiento.intento_reproceso, comportamiento.evento_procesado, comportamiento.anulacion_item, "
                 + "comportamiento.anulacion, "
                 + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
     }
 
     @Test
-    void combinaLasComprasDeAmbosCanalesDeLaMasRecienteALaMasAntigua() throws Exception {
-        publicar(ejemplo("compra-ventas.json"));
-        publicar(ejemplo("compra-marketplace.json"));
+    void combinaLasComprasDeTodosLosIdentificadoresDeLaMasRecienteALaMasAntigua() throws Exception {
+        publicar(ejemplo("compra-ana.json"));
+        publicar(ejemplo("compra-carlos.json"));
         esperarEstado(2);
 
         mvc.perform(get("/api/comportamiento/clientes/CLI-INTERNO-9/compras")
-                        .param("identificador", "VENTAS:CLI-5521", "MARKETPLACE:mp-user-3307"))
+                        .param("identificador", "CLI-5521", "mp-user-3307"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(2))
-                .andExpect(jsonPath("$.content[0].origen").value("MARKETPLACE"))
                 .andExpect(jsonPath("$.content[0].referencia").value("MP-88120"))
                 .andExpect(jsonPath("$.content[0].montoTotal").value(129.90))
                 .andExpect(jsonPath("$.content[0].items.length()").value(2))
-                .andExpect(jsonPath("$.content[1].origen").value("VENTAS"))
                 .andExpect(jsonPath("$.content[1].referencia").value("V-100234"))
                 .andExpect(jsonPath("$.content[1].estado").value("CONFIRMADA"));
     }
 
     @Test
     void soloTraeLasComprasDelIdentificadorPedidoAunqueOtroClienteTengaCompras() throws Exception {
-        publicar(ejemplo("compra-ventas.json"));
-        publicar(ejemplo("compra-marketplace.json"));
+        publicar(ejemplo("compra-ana.json"));
+        publicar(ejemplo("compra-carlos.json"));
         esperarEstado(2);
 
         mvc.perform(get("/api/comportamiento/clientes/CLI-INTERNO-9/compras")
-                        .param("identificador", "VENTAS:CLI-5521"))
+                        .param("identificador", "CLI-5521"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
-                .andExpect(jsonPath("$.content[0].origen").value("VENTAS"));
+                .andExpect(jsonPath("$.content[0].referencia").value("V-100234"));
     }
 
     @Test
@@ -99,19 +97,19 @@ class ConsultaHistorialComprasIntegracionTest {
                 .andExpect(jsonPath("$.content.length()").value(0));
 
         mvc.perform(get("/api/comportamiento/clientes/CLI-SIN-COMPRAS/compras")
-                        .param("identificador", "VENTAS:CLI-NO-EXISTE"))
+                        .param("identificador", "CLI-NO-EXISTE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(0));
     }
 
     @Test
-    void rechazaUnIdentificadorMalFormadoOConOrigenDesconocido() throws Exception {
+    void rechazaUnIdentificadorVacioODemasiadoLargo() throws Exception {
         mvc.perform(get("/api/comportamiento/clientes/CLI-INTERNO-9/compras")
-                        .param("identificador", "CLI-5521"))
+                        .param("identificador", " "))
                 .andExpect(status().isBadRequest());
 
         mvc.perform(get("/api/comportamiento/clientes/CLI-INTERNO-9/compras")
-                        .param("identificador", "PUNTOS:CLI-5521"))
+                        .param("identificador", "x".repeat(65)))
                 .andExpect(status().isBadRequest());
     }
 

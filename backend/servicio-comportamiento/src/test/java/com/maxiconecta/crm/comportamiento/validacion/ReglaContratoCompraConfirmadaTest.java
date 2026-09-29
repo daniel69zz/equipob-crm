@@ -19,7 +19,6 @@ class ReglaContratoCompraConfirmadaTest {
 
     private String idEvento = "5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c";
     private String tipoEvento = EventoCompraConfirmada.TIPO;
-    private String origen = "VENTAS";
     private OffsetDateTime fechaEmision = OffsetDateTime.parse("2026-09-27T15:30:05-04:00");
     private String idCompra = "V-100234";
     private String idCliente = "CLI-5521";
@@ -64,19 +63,6 @@ class ReglaContratoCompraConfirmadaTest {
         tipoEvento = "COMPRA_ANULADA";
         assertThatThrownBy(() -> regla.validar(evento()))
                 .hasMessageContaining("tipoEvento").hasMessageContaining(EventoCompraConfirmada.TIPO);
-    }
-
-    @Test
-    void rechazaOrigenAusente() {
-        origen = null;
-        assertThatThrownBy(() -> regla.validar(evento())).hasMessageContaining("origen");
-    }
-
-    @Test
-    void rechazaOrigenNoPermitido() {
-        origen = "TIENDA";
-        assertThatThrownBy(() -> regla.validar(evento()))
-                .hasMessageContaining("origen").hasMessageContaining("MARKETPLACE").hasMessageContaining("VENTAS");
     }
 
     @Test
@@ -222,6 +208,6 @@ class ReglaContratoCompraConfirmadaTest {
     private EventoCompraConfirmada evento() {
         EventoCompraConfirmada.DatosCompra compra = compraAusente ? null
                 : new EventoCompraConfirmada.DatosCompra(idCompra, idCliente, fechaCompra, montoTotal, items);
-        return new EventoCompraConfirmada(idEvento, tipoEvento, origen, fechaEmision, compra);
+        return new EventoCompraConfirmada(idEvento, tipoEvento, fechaEmision, compra);
     }
 }

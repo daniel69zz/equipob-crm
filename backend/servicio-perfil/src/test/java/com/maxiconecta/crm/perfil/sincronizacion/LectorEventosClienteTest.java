@@ -18,11 +18,11 @@ class LectorEventosClienteTest {
     private final LectorEventosCliente lector = new LectorEventosCliente(new ObjectMapper());
 
     @Test
-    void leeElAltaDeVentasConIdentificacionContactoYDirecciones() {
-        EventoClienteRecibido evento = lector.leer(ejemplo("cliente-ventas-alta.json"));
+    void leeElAltaConIdentificacionContactoYDirecciones() {
+        EventoClienteRecibido evento = lector.leer(ejemplo("cliente-ana-alta.json"));
 
         assertThat(evento.tipo()).isEqualTo(TipoEventoCliente.CLIENTE_REGISTRADO);
-        assertThat(evento.origen()).isEqualTo(Origen.VENTAS);
+        assertThat(evento.origen()).isEqualTo(Origen.MARKETPLACE_VENTAS);
         assertThat(evento.responsableDelCambio()).isEqualTo("vendedor.jperez");
         assertThat(evento.cliente().idCliente()).isEqualTo("CLI-5521");
         assertThat(evento.cliente().nombres()).isEqualTo("Ana María");
@@ -37,15 +37,22 @@ class LectorEventosClienteTest {
 
     @Test
     void sinResponsableSeRegistraLaSincronizacionAutomatica() {
-        EventoClienteRecibido evento = lector.leer(ejemplo("cliente-marketplace-alta.json"));
+        EventoClienteRecibido evento = lector.leer(ejemplo("cliente-carlos-alta.json"));
 
-        assertThat(evento.origen()).isEqualTo(Origen.MARKETPLACE);
+        assertThat(evento.origen()).isEqualTo(Origen.MARKETPLACE_VENTAS);
         assertThat(evento.responsableDelCambio()).isEqualTo(EventoClienteRecibido.RESPONSABLE_POR_DEFECTO);
     }
 
     @Test
+    void unCampoOrigenEnElMensajeSeIgnora() {
+        String conOrigen = ejemplo("cliente-ana-alta.json").replace("\"tipoEvento\"", "\"origen\": \"VENTAS\", \"tipoEvento\"");
+
+        assertThat(lector.leer(conOrigen).origen()).isEqualTo(Origen.MARKETPLACE_VENTAS);
+    }
+
+    @Test
     void sinFechaDeActualizacionSeOrdenaPorLaFechaDeEmision() {
-        String sinFecha = ejemplo("cliente-ventas-alta.json")
+        String sinFecha = ejemplo("cliente-ana-alta.json")
                 .replace("\"fechaActualizacion\": \"2026-09-20T10:15:00-04:00\",", "");
 
         assertThat(lector.leer(sinFecha).fechaCambio()).isEqualTo(OffsetDateTime.parse("2026-09-20T10:15:02-04:00"));
@@ -61,14 +68,14 @@ class LectorEventosClienteTest {
 
     @Test
     void unDocumentoNumericoSeLeeComoTexto() {
-        String numerico = ejemplo("cliente-ventas-alta.json").replace("\"4455667\"", "4455667");
+        String numerico = ejemplo("cliente-ana-alta.json").replace("\"4455667\"", "4455667");
 
         assertThat(lector.leer(numerico).cliente().numeroDocumento()).isEqualTo("4455667");
     }
 
     @Test
     void unAltaInformaTodosLosCampos() {
-        assertThat(lector.leer(ejemplo("cliente-ventas-alta.json")).cliente().camposInformados())
+        assertThat(lector.leer(ejemplo("cliente-ana-alta.json")).cliente().camposInformados())
                 .isEqualTo(EventoClienteRecibido.Campos.TODOS);
     }
 
@@ -76,7 +83,7 @@ class LectorEventosClienteTest {
     void unaActualizacionInformaSoloLosCamposQueTrae() {
         String parcial = """
                 {"idEvento": "5e6f7a8b-9c0d-4e1f-8a2b-4c5d6e7f8a9b", "tipoEvento": "CLIENTE_ACTUALIZADO",
-                 "origen": "VENTAS", "fechaEmision": "2026-09-28T09:00:00-04:00",
+                 "fechaEmision": "2026-09-28T09:00:00-04:00",
                  "cliente": {"idCliente": "CLI-5521", "contacto": {"email": "nuevo@correo.com"}, "apellidos": null}}
                 """;
 
@@ -90,7 +97,7 @@ class LectorEventosClienteTest {
     void unContactoNuloEnUnaActualizacionBorraCorreoYTelefono() {
         String parcial = """
                 {"idEvento": "5e6f7a8b-9c0d-4e1f-8a2b-4c5d6e7f8a9b", "tipoEvento": "CLIENTE_ACTUALIZADO",
-                 "origen": "VENTAS", "fechaEmision": "2026-09-28T09:00:00-04:00",
+                 "fechaEmision": "2026-09-28T09:00:00-04:00",
                  "cliente": {"idCliente": "CLI-5521", "contacto": null}}
                 """;
 
@@ -105,17 +112,15 @@ class LectorEventosClienteTest {
     }
 
     @Test
-    void unOrigenOTipoDesconocidoEsIlegible() {
-        assertThatThrownBy(() -> lector.leer(ejemplo("cliente-ventas-alta.json").replace("\"VENTAS\"", "\"TIENDA\"")))
-                .hasMessageContaining("'origen' debe ser MARKETPLACE o VENTAS");
-        assertThatThrownBy(() -> lector.leer(ejemplo("cliente-ventas-alta.json")
+    void unTipoDesconocidoEsIlegible() {
+        assertThatThrownBy(() -> lector.leer(ejemplo("cliente-ana-alta.json")
                 .replace("CLIENTE_REGISTRADO", "CLIENTE_BORRADO")))
                 .hasMessageContaining("'tipoEvento'");
     }
 
     @Test
     void unaFechaMalEscritaOUnMensajeQueNoEsJsonSonIlegibles() {
-        assertThatThrownBy(() -> lector.leer(ejemplo("cliente-ventas-alta.json")
+        assertThatThrownBy(() -> lector.leer(ejemplo("cliente-ana-alta.json")
                 .replace("2026-09-20T10:15:00-04:00", "20/09/2026")))
                 .hasMessageContaining("'cliente.fechaActualizacion' debe ser una fecha");
         assertThatThrownBy(() -> lector.leer("no es json"))
@@ -125,7 +130,7 @@ class LectorEventosClienteTest {
 
     @Test
     void unObjetoDondeSeEsperaUnValorSimpleEsIlegible() {
-        assertThatThrownBy(() -> lector.leer(ejemplo("cliente-ventas-alta.json")
+        assertThatThrownBy(() -> lector.leer(ejemplo("cliente-ana-alta.json")
                 .replace("\"nombres\": \"Ana María\"", "\"nombres\": {\"primero\": \"Ana\"}")))
                 .hasMessageContaining("'nombres' debe ser un valor simple");
     }
@@ -135,7 +140,6 @@ class LectorEventosClienteTest {
         LectorEventosCliente.Cabecera cabecera = lector.cabecera(ejemplo("cliente-sin-id.json"));
 
         assertThat(cabecera.idEvento()).isEqualTo("3c4d5e6f-7a8b-4c9d-8e0f-2a3b4c5d6e7f");
-        assertThat(cabecera.origen()).isEqualTo("VENTAS");
         assertThat(cabecera.idClienteOrigen()).isNull();
         assertThat(lector.cabecera("no es json")).isEqualTo(LectorEventosCliente.Cabecera.VACIA);
     }

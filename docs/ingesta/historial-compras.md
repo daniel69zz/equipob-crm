@@ -9,13 +9,13 @@ Estructura con la que el CRM guarda cada compra confirmada y cómo la asocia al 
 | Columna | Contenido |
 |---|---|
 | `id` | Identificador interno |
-| `origen`, `id_compra_origen` | Canal (`MARKETPLACE` o `VENTAS`) e identificador de la compra en ese canal. Son únicos en conjunto (`uq_compra_origen`) |
-| `id_cliente_origen` | Identificador del cliente en el canal, tal como llegó en el evento |
+| `id_compra_origen` | Identificador de la compra en Marketplace y Ventas. Es único (`uq_compra_origen`) |
+| `id_cliente_origen` | Identificador del cliente en Marketplace y Ventas, tal como llegó en el evento |
 | `id_cliente` | Perfil del cliente en el CRM. `NULL` mientras la vinculación esté pendiente |
 | `estado_vinculacion` | `PENDIENTE` o `VINCULADA` |
 | `fecha` | Fecha y hora de la compra (`TIMESTAMPTZ`) |
 | `monto_total` | Monto total, mayor que cero |
-| `estado` | `CONFIRMADA` |
+| `estado` | `CONFIRMADA`, `DEVOLUCION_PARCIAL` o `ANULADA` (ver RIO-CRM-05) |
 | `id_evento` | Mensaje de la bitácora de ingesta que la originó |
 | `registrada_en` | Momento en que el CRM la registró |
 
@@ -25,10 +25,10 @@ Un ítem por categoría de producto: `id_compra`, `categoria` (no vacía), `cant
 
 ## Vinculación con el perfil
 
-Al procesar la compra se consulta `GET /api/perfil/clientes?origen=…&idClienteOrigen=…` en el servicio de Perfil.
+Al procesar la compra se consulta `GET /api/perfil/clientes?idClienteOrigen=…` en el servicio de Perfil.
 
 - Si responde **un único perfil**, la compra queda `VINCULADA` con su `id_cliente`.
-- Si no existe el perfil, hay más de uno, la respuesta no es válida, el servicio no responde o se agota el tiempo de espera (`PERFIL_TIEMPO_ESPERA`, 2 s por defecto), la compra se guarda igual como `PENDIENTE`, conservando `origen` e `id_cliente_origen` para vincularla más adelante.
+- Si no existe el perfil, hay más de uno, la respuesta no es válida, el servicio no responde o se agota el tiempo de espera (`PERFIL_TIEMPO_ESPERA`, 2 s por defecto), la compra se guarda igual como `PENDIENTE`, conservando `id_cliente_origen` para vincularla más adelante.
 
 El servicio de Comportamiento nunca crea perfiles ni escribe en el esquema de Perfil.
 

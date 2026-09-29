@@ -36,7 +36,7 @@ class ValidadorAnulacionesTest {
     @Test
     void exigeLosCamposObligatorios() {
         assertThatThrownBy(() -> validador.validar(new EventoAnulacionCompra(
-                "8d2f6a4c-1b3e-4c5d-9e7f-0a1b2c3d4e5f", "COMPRA_ANULADA", "VENTAS", FECHA, null)))
+                "8d2f6a4c-1b3e-4c5d-9e7f-0a1b2c3d4e5f", "COMPRA_ANULADA", FECHA, null)))
                 .isInstanceOf(EventoInvalidoException.class)
                 .hasMessage("Falta el campo obligatorio 'anulacion'");
         assertThatThrownBy(() -> validador.validar(conDatos(new EventoAnulacionCompra.DatosAnulacion(
@@ -48,16 +48,13 @@ class ValidadorAnulacionesTest {
     }
 
     @Test
-    void aplicaLasReglasComunesDeIdentificadorTipoYOrigen() {
-        assertThatThrownBy(() -> validador.validar(new EventoAnulacionCompra("no-es-uuid", "COMPRA_ANULADA", "VENTAS",
+    void aplicaLasReglasComunesDeIdentificadorYTipo() {
+        assertThatThrownBy(() -> validador.validar(new EventoAnulacionCompra("no-es-uuid", "COMPRA_ANULADA",
                 FECHA, total(BigDecimal.TEN).anulacion())))
                 .hasMessage("El campo 'idEvento' debe tener formato UUID");
         assertThatThrownBy(() -> validador.validar(new EventoAnulacionCompra("8d2f6a4c-1b3e-4c5d-9e7f-0a1b2c3d4e5f",
-                "COMPRA_CONFIRMADA", "VENTAS", FECHA, total(BigDecimal.TEN).anulacion())))
+                "COMPRA_CONFIRMADA", FECHA, total(BigDecimal.TEN).anulacion())))
                 .hasMessage("El campo 'tipoEvento' debe ser COMPRA_ANULADA");
-        assertThatThrownBy(() -> validador.validar(new EventoAnulacionCompra("8d2f6a4c-1b3e-4c5d-9e7f-0a1b2c3d4e5f",
-                "COMPRA_ANULADA", "TIENDA", FECHA, total(BigDecimal.TEN).anulacion())))
-                .hasMessage("El campo 'origen' debe ser MARKETPLACE o VENTAS");
     }
 
     @Test
@@ -105,7 +102,7 @@ class ValidadorAnulacionesTest {
     }
 
     private static EventoAnulacionCompra conDatos(EventoAnulacionCompra.DatosAnulacion datos) {
-        return new EventoAnulacionCompra("8d2f6a4c-1b3e-4c5d-9e7f-0a1b2c3d4e5f", "COMPRA_ANULADA", "VENTAS", FECHA,
+        return new EventoAnulacionCompra("8d2f6a4c-1b3e-4c5d-9e7f-0a1b2c3d4e5f", "COMPRA_ANULADA", FECHA,
                 datos);
     }
 
