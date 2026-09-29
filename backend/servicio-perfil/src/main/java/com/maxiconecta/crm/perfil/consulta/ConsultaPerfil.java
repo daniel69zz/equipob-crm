@@ -17,8 +17,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Consulta del perfil del cliente. Es la base de la ficha integral (SCRUM-10).
@@ -61,10 +64,10 @@ public class ConsultaPerfil {
                     .stream().toList();
             return new PageImpl<>(encontrado, solicitud, encontrado.size());
         }
-        return clientes.findAll(especificacion(filtro), solicitud).map(ResumenPerfil::de);
+        return clientes.findAll(especificacion(filtro, ZoneId.systemDefault()), solicitud).map(ResumenPerfil::de);
     }
 
-    private static Specification<Cliente> especificacion(FiltroPerfiles filtro) {
+    private static Specification<Cliente> especificacion(FiltroPerfiles filtro, ZoneId zona) {
         return (cliente, consulta, criterios) -> {
             List<Predicate> condiciones = new ArrayList<>();
             if (filtro.tipoDocumento() != null) {
@@ -76,17 +79,40 @@ public class ConsultaPerfil {
             if (filtro.estado() != null) {
                 condiciones.add(criterios.equal(cliente.get("estado"), filtro.estado()));
             }
+            if (filtro.motivo() != null) {
+                String patron = "%" + filtro.motivo().toLowerCase(Locale.ROOT) + "%";
+                condiciones.add(criterios.or(
+                        criterios.like(criterios.lower(cliente.get("motivosIncompleto")), patron),
+                        criterios.like(criterios.lower(cliente.get("motivosInconsistencia")), patron)));
+            }
+            if (filtro.desde() != null) {
+                condiciones.add(criterios.greaterThanOrEqualTo(cliente.get("actualizadoEn"),
+                        filtro.desde().atStartOfDay(zona).toOffsetDateTime()));
+            }
+            if (filtro.hasta() != null) {
+                condiciones.add(criterios.lessThan(cliente.get("actualizadoEn"),
+                        filtro.hasta().plusDays(1).atStartOfDay(zona).toOffsetDateTime()));
+            }
             return criterios.and(condiciones.toArray(Predicate[]::new));
         };
     }
 
+    /**
+     * Filtros de búsqueda, todos opcionales (SCRUM-167). {@code motivo} busca dentro de los
+     * motivos de incidencia; {@code desde}/{@code hasta} filtran por última actualización, días
+     * completos en la zona horaria del servidor.
+     */
     public record FiltroPerfiles(Origen origen, String idClienteOrigen, String tipoDocumento, String numeroDocumento,
-                                 EstadoPerfil estado) {
+                                 EstadoPerfil estado, String motivo, LocalDate desde, LocalDate hasta) {
 
         public FiltroPerfiles {
             idClienteOrigen = limpio(idClienteOrigen);
             tipoDocumento = limpio(tipoDocumento) != null ? tipoDocumento.trim().toUpperCase() : null;
             numeroDocumento = limpio(numeroDocumento);
+            motivo = limpio(motivo);
+            if (desde != null && hasta != null && desde.isAfter(hasta)) {
+                throw new ReglaNegocioException("La fecha 'desde' no puede ser posterior a 'hasta'");
+            }
         }
 
         private static String limpio(String valor) {
