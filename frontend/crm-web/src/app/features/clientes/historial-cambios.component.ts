@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { PestaniasClienteComponent } from './pestanias-cliente.component';
 import { CambioHistorial, ClientesService, PaginaHistorial, PerfilCliente } from './clientes.service';
 
 const TAMANIO_PAGINA = 20;
@@ -42,9 +43,9 @@ const NOMBRES_DE_ORIGEN: Record<CambioHistorial['origen'], string> = {
 @Component({
   selector: 'app-historial-cambios',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink],
+  imports: [FormsModule, DatePipe, RouterLink, PestaniasClienteComponent],
   template: `
-    <p><a routerLink="/clientes">← Clientes</a></p>
+    <app-pestanias-cliente [id]="id()" />
     <h1>Historial de cambios</h1>
     @if (perfil(); as p) {
       <p class="subtitulo">
@@ -147,9 +148,9 @@ const NOMBRES_DE_ORIGEN: Record<CambioHistorial['origen'], string> = {
     .cambio header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
     .fecha { font-family: monospace; }
     .responsable { color: var(--color-texto-suave); }
-    .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef2f7; }
-    .origen-MARKETPLACE_VENTAS { color: #1f3864; background: #dae8fc; }
-    .origen-CRM { color: #9a6700; background: #fff4e0; }
+    .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef1f7; }
+    .origen-MARKETPLACE_VENTAS { color: var(--color-primario); background: var(--color-primario-claro); }
+    .origen-CRM { color: var(--color-aviso); background: var(--color-aviso-claro); }
     .valor { word-break: break-word; }
     .anterior { color: var(--color-texto-suave); text-decoration: line-through; }
     .paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; }

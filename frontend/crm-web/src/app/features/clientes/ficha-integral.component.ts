@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Compra } from './compras.service';
 import { FichaIntegral, FichaIntegralService } from './ficha-integral.service';
 import { PuntosFidelizacionComponent } from './puntos-fidelizacion.component';
+import { PestaniasClienteComponent } from './pestanias-cliente.component';
 
 const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
   CONFIRMADA: 'Confirmada',
@@ -26,9 +27,9 @@ const NOMBRES_DE_TIPO_DIRECCION: Record<string, string> = {
 @Component({
   selector: 'app-ficha-integral',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, PuntosFidelizacionComponent],
+  imports: [DatePipe, DecimalPipe, RouterLink, PuntosFidelizacionComponent, PestaniasClienteComponent],
   template: `
-    <p><a routerLink="/clientes">← Clientes</a></p>
+    <app-pestanias-cliente [id]="id()" />
     <h1>Ficha integral del cliente</h1>
 
     @if (ficha(); as datos) {
@@ -116,17 +117,15 @@ const NOMBRES_DE_TIPO_DIRECCION: Record<string, string> = {
     .segmento strong { font-size: 1.6rem; }
     .segmento small { color: var(--color-texto-suave); }
     .sin-datos { color: var(--color-texto-suave); }
-    .compra { padding: 0.5rem 0; border-bottom: 1px solid var(--color-borde, #e5e5e5); }
+    .compra { padding: 0.5rem 0; border-bottom: 1px solid var(--color-borde); }
     .compra:last-child { border-bottom: none; }
     .compra header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
-    .fecha { font-family: monospace; }
-    .referencia { color: var(--color-texto-suave); font-family: monospace; }
+    .referencia { color: var(--color-texto-suave); font-family: var(--fuente-mono); }
     .monto { margin-left: auto; }
-    .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef2f7; }
-    .etiqueta.principal { color: #0b6e4f; background: #e3f6ee; }
-    .estado-CONFIRMADA { color: #0b6e4f; background: #e3f6ee; }
-    .estado-DEVOLUCION_PARCIAL { color: #9a6700; background: #fff4e0; }
-    .estado-ANULADA { color: var(--color-error); background: #fdeceb; }
+    .etiqueta.principal { color: var(--color-exito); background: var(--color-exito-claro); }
+    .estado-CONFIRMADA { color: var(--color-exito); background: var(--color-exito-claro); }
+    .estado-DEVOLUCION_PARCIAL { color: var(--color-aviso); background: var(--color-aviso-claro); }
+    .estado-ANULADA { color: var(--color-error); background: var(--color-error-claro); }
   `,
 })
 export class FichaIntegralComponent implements OnInit {

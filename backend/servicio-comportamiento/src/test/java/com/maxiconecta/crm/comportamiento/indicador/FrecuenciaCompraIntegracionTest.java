@@ -123,22 +123,22 @@ class FrecuenciaCompraIntegracionTest {
 
     @Test
     void identificadoresCanonicosConElMismoSufijoNoCompartenContador() throws Exception {
-        String marketplace = "MARKETPLACE:CLI-001";
-        String ventas = "VENTAS:CLI-001";
+        String primero = "A:CLI-001";
+        String segundo = "B:CLI-001";
         ingesta.recibir(compraAna("55555555-5555-4555-8555-555555555555", "MP-FRECUENCIA-1")
-                .replace("CLI-5521", marketplace));
+                .replace("CLI-5521", primero));
         ingesta.recibir(compraAna("66666666-6666-4666-8666-666666666666", "V-FRECUENCIA-1")
-                .replace("CLI-5521", ventas));
+                .replace("CLI-5521", segundo));
         ingesta.recibir(compraAna("77777777-7777-4777-8777-777777777777", "V-FRECUENCIA-2")
-                .replace("CLI-5521", ventas));
+                .replace("CLI-5521", segundo));
 
-        assertThat(frecuencias.findById(marketplace)).get()
+        assertThat(frecuencias.findById(primero)).get()
                 .extracting("cantidad").isEqualTo(1L);
-        assertThat(frecuencias.findById(ventas)).get()
+        assertThat(frecuencias.findById(segundo)).get()
                 .extracting("cantidad").isEqualTo(2L);
-        mvc.perform(get(RUTA).param("identificador", marketplace))
+        mvc.perform(get(RUTA).param("identificador", primero))
                 .andExpect(jsonPath("$.frecuencia").value(1));
-        mvc.perform(get(RUTA).param("identificador", ventas))
+        mvc.perform(get(RUTA).param("identificador", segundo))
                 .andExpect(jsonPath("$.frecuencia").value(2));
     }
 

@@ -11,7 +11,7 @@ export interface ResumenCliente {
   apellidos: string | null;
   tipoDocumento: string | null;
   numeroDocumento: string | null;
-  estado: 'COMPLETO' | 'INCOMPLETO';
+  estado: 'COMPLETO' | 'INCOMPLETO' | 'INCONSISTENTE';
   actualizadoEn: string;
 }
 

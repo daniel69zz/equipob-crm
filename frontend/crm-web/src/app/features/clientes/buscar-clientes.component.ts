@@ -1,16 +1,25 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.directive';
+import { Permisos } from '../../core/auth/sesion';
 import { ClientesService, ResumenCliente } from './clientes.service';
+
+const NOMBRES_DE_ESTADO: Record<string, string> = {
+  COMPLETO: 'Completo',
+  INCOMPLETO: 'Incompleto',
+  INCONSISTENTE: 'Inconsistente',
+};
 
 @Component({
   selector: 'app-buscar-clientes',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DatePipe, SiTienePermisoDirective],
   template: `
     <h1>Clientes</h1>
-    <p class="subtitulo">Busque un cliente por su documento o por su identificador en Marketplace y Ventas.</p>
+    <p class="subtitulo">Clientes registrados a partir de Marketplace y Ventas. Busque por documento o por su identificador en el módulo.</p>
 
     <form class="tarjeta filtros" (ngSubmit)="buscar()">
       <div>
@@ -28,11 +37,12 @@ import { ClientesService, ResumenCliente } from './clientes.service';
         <input id="numeroDocumento" name="numeroDocumento" [(ngModel)]="filtro.numeroDocumento" placeholder="4455667" />
       </div>
       <div>
-        <label for="idClienteOrigen">Identificador en Marketplace y Ventas</label>
+        <label for="idClienteOrigen">ID en Marketplace y Ventas</label>
         <input id="idClienteOrigen" name="idClienteOrigen" [(ngModel)]="filtro.idClienteOrigen" placeholder="CLI-5521" />
       </div>
       <div class="acciones">
         <button type="submit" [disabled]="cargando()">Buscar</button>
+        <button type="button" class="secundario" [disabled]="cargando()" (click)="limpiar()">Limpiar</button>
       </div>
     </form>
 
@@ -48,24 +58,34 @@ import { ClientesService, ResumenCliente } from './clientes.service';
               <th>Cliente</th>
               <th>Documento</th>
               <th>Perfil</th>
-              <th></th>
+              <th>Actualizado</th>
+              <th>Ver</th>
             </tr>
           </thead>
           <tbody>
             @for (cliente of lista; track cliente.id) {
               <tr>
-                <td>{{ cliente.nombres }} {{ cliente.apellidos }}</td>
-                <td>{{ cliente.tipoDocumento }} {{ cliente.numeroDocumento }}</td>
-                <td>{{ cliente.estado === 'COMPLETO' ? 'Completo' : 'Incompleto' }}</td>
                 <td>
-                  <a [routerLink]="['/clientes', cliente.id, 'ficha-integral']">Ficha integral</a> ·
-                  <a [routerLink]="['/clientes', cliente.id, 'historial']">Historial de cambios</a> ·
-                  <a [routerLink]="['/clientes', cliente.id, 'compras']">Historial de compras</a> ·
+                  <span class="cliente">
+                    <span class="avatar">{{ iniciales(cliente) }}</span>
+                    <span>
+                      <strong>{{ cliente.nombres ?? 'Sin nombre' }} {{ cliente.apellidos ?? '' }}</strong>
+                      <small>Cliente {{ cliente.id }}</small>
+                    </span>
+                  </span>
+                </td>
+                <td>{{ cliente.tipoDocumento ?? '—' }} {{ cliente.numeroDocumento ?? '' }}</td>
+                <td><span class="etiqueta" [class]="'perfil-' + cliente.estado">{{ nombreEstado(cliente.estado) }}</span></td>
+                <td class="fecha">{{ cliente.actualizadoEn | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td class="vistas">
+                  <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', cliente.id, 'ficha-integral']">Ficha</a>
+                  <a [routerLink]="['/clientes', cliente.id, 'historial']">Cambios</a>
+                  <a [routerLink]="['/clientes', cliente.id, 'compras']">Compras</a>
                   <a [routerLink]="['/clientes', cliente.id, 'consentimiento']">Consentimiento</a>
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="4">No se encontraron clientes.</td></tr>
+              <tr><td colspan="5" class="vacio">No se encontraron clientes con esos datos.</td></tr>
             }
           </tbody>
         </table>
@@ -73,21 +93,54 @@ import { ClientesService, ResumenCliente } from './clientes.service';
     }
   `,
   styles: `
-    .subtitulo { color: var(--color-texto-suave); margin-top: 0; }
     .filtros {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 1rem; align-items: end; margin-bottom: 1rem;
     }
+    .acciones { display: flex; gap: 0.5rem; }
+    .cliente { display: flex; align-items: center; gap: 0.7rem; }
+    .cliente strong { display: block; font-weight: 600; white-space: nowrap; }
+    .cliente small { white-space: nowrap; }
+    .cliente small { color: var(--color-texto-suave); font-size: 0.78rem; }
+    .avatar {
+      display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      background: var(--color-primario-claro); color: var(--color-primario); font-weight: 700; font-size: 0.78rem;
+    }
+    .perfil-COMPLETO { color: var(--color-exito); background: var(--color-exito-claro); }
+    .perfil-INCOMPLETO { color: var(--color-aviso); background: var(--color-aviso-claro); }
+    .perfil-INCONSISTENTE { color: var(--color-error); background: var(--color-error-claro); }
+    .vistas { display: flex; gap: 0.9rem; flex-wrap: wrap; }
+    .vacio { color: var(--color-texto-suave); text-align: center; padding: 1.5rem; }
   `,
 })
-export class BuscarClientesComponent {
+export class BuscarClientesComponent implements OnInit {
   private readonly servicio = inject(ClientesService);
+  readonly permisos = Permisos;
 
   filtro = { tipoDocumento: '', numeroDocumento: '', idClienteOrigen: '' };
 
   readonly clientes = signal<ResumenCliente[] | null>(null);
   readonly cargando = signal(false);
   readonly error = signal<string | null>(null);
+
+  /** Al abrir la pantalla se listan los clientes más recientes, sin filtros. */
+  ngOnInit(): void {
+    this.buscar();
+  }
+
+  limpiar(): void {
+    this.filtro = { tipoDocumento: '', numeroDocumento: '', idClienteOrigen: '' };
+    this.buscar();
+  }
+
+  iniciales(cliente: ResumenCliente): string {
+    return [cliente.nombres, cliente.apellidos].filter((t): t is string => !!t?.trim())
+      .map((t) => t.trim()[0].toUpperCase()).join('') || '?';
+  }
+
+  nombreEstado(estado: string): string {
+    return NOMBRES_DE_ESTADO[estado] ?? estado;
+  }
 
   buscar(): void {
     this.cargando.set(true);

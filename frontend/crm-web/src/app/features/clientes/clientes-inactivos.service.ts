@@ -3,7 +3,6 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 export interface ClienteInactivo {
-  origen: 'MARKETPLACE' | 'VENTAS';
   idClienteOrigen: string;
   ultimaCompra: string;
   diasTranscurridos: number;

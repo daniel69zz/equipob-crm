@@ -194,16 +194,16 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
     .alerta-invalidos {
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
       margin-bottom: 1rem; padding: 0.8rem 1rem;
-      color: var(--color-error); background: #fdecea;
+      color: var(--color-error); background: var(--color-error-claro);
       border: 1px solid var(--color-error); border-radius: var(--radio);
     }
     .cerrar-alerta { padding: 0.1rem 0.4rem; color: var(--color-error); background: transparent; font-size: 1.25rem; }
     .mensaje-operacion {
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
       margin-bottom: 1rem; padding: 0.8rem 1rem;
-      color: #1a7f37; background: #e6f4ea; border: 1px solid #1a7f37; border-radius: var(--radio);
+      color: var(--color-exito); background: var(--color-exito-claro); border: 1px solid var(--color-exito); border-radius: var(--radio);
     }
-    .mensaje-operacion.error-operacion { color: var(--color-error); background: #fdecea; border-color: var(--color-error); }
+    .mensaje-operacion.error-operacion { color: var(--color-error); background: var(--color-error-claro); border-color: var(--color-error); }
     .cerrar-mensaje { padding: 0.1rem 0.4rem; color: inherit; background: transparent; font-size: 1.25rem; }
     .periodo { color: var(--color-texto-suave); }
     .resumen { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
@@ -213,17 +213,17 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
     .id { font-family: monospace; font-size: 0.85rem; }
     .causa { color: var(--color-texto-suave); font-size: 0.9rem; }
     .acciones-evento { display: flex; flex-direction: column; align-items: stretch; gap: 0.4rem; min-width: 145px; }
-    .fila-historial > td { padding: 1rem; background: #f8fafc; }
+    .fila-historial > td { padding: 1rem; background: var(--color-superficie-suave); }
     .fila-historial p { margin: 0; color: var(--color-texto-suave); }
     .tabla-historial { background: #fff; }
     .tabla-historial th, .tabla-historial td { font-size: 0.85rem; }
-    .etiqueta { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef2f7; }
-    .estado-PROCESADO { border-left-color: #1a7f37; }
+    .etiqueta { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef1f7; }
+    .estado-PROCESADO { border-left-color: var(--color-exito); }
     .estado-FALLIDO { border-left-color: var(--color-error); }
-    .estado-DESCARTADO { border-left-color: #9a6700; }
-    .etiqueta.estado-PROCESADO { color: #1a7f37; background: #e6f4ea; }
-    .etiqueta.estado-FALLIDO { color: var(--color-error); background: #fdecea; }
-    .etiqueta.estado-DESCARTADO { color: #9a6700; background: #fff4e0; }
+    .estado-DESCARTADO { border-left-color: var(--color-aviso); }
+    .etiqueta.estado-PROCESADO { color: var(--color-exito); background: var(--color-exito-claro); }
+    .etiqueta.estado-FALLIDO { color: var(--color-error); background: var(--color-error-claro); }
+    .etiqueta.estado-DESCARTADO { color: var(--color-aviso); background: var(--color-aviso-claro); }
     .etiqueta.estado-EN_PROCESO { color: var(--color-primario); background: var(--color-primario-claro); }
     .paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
   `,

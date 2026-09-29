@@ -2,6 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PestaniasClienteComponent } from './pestanias-cliente.component';
 import { ClientesService, IdentificadorOrigen, PerfilCliente } from './clientes.service';
 import {
   Compra,
@@ -29,9 +30,9 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
 @Component({
   selector: 'app-historial-compras',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, RouterLink, PestaniasClienteComponent],
   template: `
-    <p><a routerLink="/clientes">← Clientes</a></p>
+    <app-pestanias-cliente [id]="id()" />
     <h1>Historial de compras</h1>
     @if (perfil(); as p) {
       <p class="subtitulo">
@@ -165,10 +166,10 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
     .fecha { font-family: monospace; }
     .referencia { color: var(--color-texto-suave); font-family: monospace; }
     .monto { margin-left: auto; }
-    .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef2f7; }
-    .estado-CONFIRMADA { color: #0b6e4f; background: #e3f6ee; }
-    .estado-DEVOLUCION_PARCIAL { color: #9a6700; background: #fff4e0; }
-    .estado-ANULADA { color: var(--color-error); background: #fdeceb; }
+    .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: var(--color-superficie-suave); }
+    .estado-CONFIRMADA { color: var(--color-exito); background: var(--color-exito-claro); }
+    .estado-DEVOLUCION_PARCIAL { color: var(--color-aviso); background: var(--color-aviso-claro); }
+    .estado-ANULADA { color: var(--color-error); background: var(--color-error-claro); }
     .paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; }
   `,
 })

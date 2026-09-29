@@ -1,14 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { ClienteInactivo, ClientesInactivosService, PaginaClientesInactivos } from './clientes-inactivos.service';
+import { ClientesInactivosService, PaginaClientesInactivos } from './clientes-inactivos.service';
 
 const TAMANIO_PAGINA = 20;
-
-const NOMBRES_DE_ORIGEN: Record<ClienteInactivo['origen'], string> = {
-  VENTAS: 'Ventas',
-  MARKETPLACE: 'Marketplace',
-};
 
 /**
  * Clientes sin compras vigentes desde hace más del umbral definido (SCRUM-31, RF-23), del que
@@ -33,22 +28,20 @@ const NOMBRES_DE_ORIGEN: Record<ClienteInactivo['origen'], string> = {
         <table>
           <thead>
             <tr>
-              <th>Canal</th>
-              <th>Cliente</th>
+              <th>Cliente en Marketplace y Ventas</th>
               <th>Última compra</th>
               <th>Días sin comprar</th>
             </tr>
           </thead>
           <tbody>
-            @for (cliente of d.content; track cliente.origen + cliente.idClienteOrigen) {
+            @for (cliente of d.content; track cliente.idClienteOrigen) {
               <tr>
-                <td><span class="etiqueta" [class]="'origen-' + cliente.origen">{{ nombreOrigen(cliente.origen) }}</span></td>
                 <td class="id">{{ cliente.idClienteOrigen }}</td>
                 <td class="fecha">{{ cliente.ultimaCompra | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td>{{ cliente.diasTranscurridos }}</td>
+                <td><span class="etiqueta" [class.critico]="cliente.diasTranscurridos >= 2 * d.umbralDias">{{ cliente.diasTranscurridos }} días</span></td>
               </tr>
             } @empty {
-              <tr><td colspan="4">No hay clientes inactivos por ahora.</td></tr>
+              <tr><td colspan="3" class="vacio">No hay clientes inactivos por ahora.</td></tr>
             }
           </tbody>
         </table>
@@ -68,13 +61,10 @@ const NOMBRES_DE_ORIGEN: Record<ClienteInactivo['origen'], string> = {
     }
   `,
   styles: `
-    .subtitulo { color: var(--color-texto-suave); margin-top: 0; }
-    .id { font-family: monospace; }
     .fecha { white-space: nowrap; }
-    .etiqueta { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef2f7; }
-    .origen-VENTAS { color: #1f3864; background: #dae8fc; }
-    .origen-MARKETPLACE { color: #6b3fa0; background: #efe6fb; }
-    .paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
+    .etiqueta { color: var(--color-aviso); background: var(--color-aviso-claro); }
+    .etiqueta.critico { color: var(--color-error); background: var(--color-error-claro); }
+    .vacio { color: var(--color-texto-suave); text-align: center; padding: 1.5rem; }
   `,
 })
 export class ClientesInactivosComponent implements OnInit {
@@ -109,7 +99,4 @@ export class ClientesInactivosComponent implements OnInit {
     });
   }
 
-  nombreOrigen(origen: ClienteInactivo['origen']): string {
-    return NOMBRES_DE_ORIGEN[origen] ?? origen;
-  }
 }
