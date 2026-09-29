@@ -36,7 +36,7 @@ Configuración (`application.yml`): `crm.perfil.conflictos.prioridad-identificac
 
 ## Histórico de cambios (SCRUM-22)
 
-Cada creación o cambio del perfil deja un registro de solo lectura con el campo, el valor anterior y el nuevo, la fecha, el origen (`VENTAS`, `MARKETPLACE`, `CRM` o `SISTEMA`) y el responsable. Modelo en `docs/perfil/historico-cambios.md`.
+Cada creación o cambio del perfil deja un registro de solo lectura con el campo, el valor anterior y el nuevo, la fecha, el origen (`VENTAS`, `MARKETPLACE` o `CRM`) y el responsable. Modelo en `docs/perfil/historico-cambios.md`.
 
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
@@ -56,7 +56,7 @@ Un mismo cliente puede tener identificadores en Marketplace y en Ventas; todos a
 
 El motor aplica `docs/perfil/catalogo-reglas-validacion.md` al perfil guardado, incluidas las direcciones activas de todos sus sistemas de origen. Se ejecuta al sincronizar y también mediante `POST /api/perfil/clientes/{clienteId}/validacion`, sin necesitar otro evento. Esta operación exige `CLIENTE_EDITAR` en el Gateway y devuelve `idCliente`, `estado`, `motivosIncompleto` y `motivosInconsistencia` (listas de motivos).
 
-La migración V5 agrega `INCONSISTENTE` y `motivos_inconsistencia`. Un perfil válido conserva el estado existente `COMPLETO`. Si hay ambos tipos de incidencia, prevalece `INCOMPLETO` y se guardan los dos grupos de motivos. El motor no borra ni corrige los datos detectados. Al reevaluar datos corregidos, reemplaza los motivos anteriores y vuelve a `COMPLETO` cuando corresponde.
+La migración V5 agrega `INCONSISTENTE` y el tipo de auditoría `DETECCION`; V6 separa `motivos_incompleto` y `motivos_inconsistencia`, conservando los motivos existentes. Un perfil válido conserva el estado existente `COMPLETO`. Si hay ambos tipos de incidencia, prevalece `INCOMPLETO` y se guardan los dos grupos de motivos. El motor no borra ni corrige los datos detectados. Al reevaluar datos corregidos, reemplaza los motivos anteriores y vuelve a `COMPLETO` cuando corresponde.
 
 `GET /api/perfil/clientes/{clienteId}` expone ambos grupos como texto y la búsqueda existente acepta `estado=INCONSISTENTE`. La reevaluación devuelve 404 para un cliente inexistente y 409 para un perfil absorbido por otro; en ese caso se debe evaluar el perfil consolidado. La evaluación y la sincronización bloquean el perfil durante su transacción para evitar sobrescribir una detección con datos anteriores.
 
@@ -64,7 +64,7 @@ La única restricción adicional de formato por tipo de documento definida en el
 
 La vista **Revisión de perfiles** (`/perfiles/revision`, SCRUM-169) muestra los perfiles incompletos e inconsistentes con sus motivos. Requiere `CLIENTE_CONSULTAR` y permite filtrar por documento, motivo y fechas (SCRUM-167). `GET /api/perfil/clientes` acepta `motivo`, `desde` y `hasta`; el motivo busca en ambos grupos de incidencias, sin distinguir mayúsculas, y las fechas abarcan días completos de última actualización en la zona horaria del servidor.
 
-La auditoría de detecciones (SCRUM-170) registra los cambios de estado y motivos con origen `SISTEMA`, responsable `deteccion-automatica` y sin evento asociado. Usa el histórico existente y su detalle por campo dentro de la misma transacción. Una reevaluación sin cambios no genera registros ni modifica la fecha del último cambio. La consulta conserva ambos grupos de motivos y expone además `motivosIncidencia` como resumen combinado.
+La auditoría de detecciones (SCRUM-170) registra los cambios de estado y motivos con origen `CRM`, tipo `DETECCION`, responsable `deteccion-automatica` y sin evento asociado. Usa el histórico existente y su detalle por campo dentro de la misma transacción. Una reevaluación sin cambios no genera registros ni modifica la fecha del último cambio. La consulta conserva ambos grupos de motivos y expone además `motivosIncidencia` como resumen combinado.
 
 ## Ejecutar en local
 

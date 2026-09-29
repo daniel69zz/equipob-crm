@@ -151,7 +151,7 @@ class RevisionPerfilesAceptacionTest {
         List<CambioPerfil> auditoria = cambiosPerfil.findByIdClienteOrderByFechaAscIdAsc(incompleto.getId());
         assertThat(auditoria).hasSize(2);
         assertThat(auditoria).allSatisfy(cambio -> {
-            assertThat(cambio.getOrigen()).isEqualTo(Origen.SISTEMA);
+            assertThat(cambio.getOrigen()).isEqualTo(Origen.CRM);
             assertThat(cambio.getResponsable()).isEqualTo("deteccion-automatica");
             assertThat(cambio.getFecha()).isNotNull();
         });

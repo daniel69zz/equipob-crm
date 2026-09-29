@@ -39,8 +39,8 @@ public class DeteccionPerfiles {
         DetectorPerfil.Evaluacion evaluacion = detector.evaluar(cliente);
         List<CambioCampo> cambios = cliente.marcarEstado(evaluacion.incompleto(), evaluacion.inconsistencias());
         if (!cambios.isEmpty()) {
-            cliente.registrarActualizacion(Origen.SISTEMA, RESPONSABLE_AUTOMATICO);
-            historial.registrar(cliente.getId(), TipoCambio.ACTUALIZACION, Origen.SISTEMA,
+            cliente.registrarActualizacion(Origen.CRM, RESPONSABLE_AUTOMATICO);
+            historial.registrar(cliente.getId(), TipoCambio.DETECCION, Origen.CRM,
                     RESPONSABLE_AUTOMATICO, cambios, null);
         }
         clientes.save(cliente);

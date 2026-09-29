@@ -67,15 +67,15 @@ class DeteccionPerfilesTest {
         Cliente actualizado = clientes.findById(cliente.getId()).orElseThrow();
         assertThat(actualizado.getEstado()).isEqualTo(EstadoPerfil.INCOMPLETO);
         assertThat(actualizado.getMotivosIncidencia()).isEqualTo("apellidos: vacío");
-        assertThat(actualizado.getActualizadoPorOrigen()).isEqualTo(Origen.SISTEMA);
+        assertThat(actualizado.getActualizadoPorOrigen()).isEqualTo(Origen.CRM);
         assertThat(actualizado.getActualizadoPor()).isEqualTo("deteccion-automatica");
 
         List<CambioPerfil> registrados = cambiosPerfil.findAll();
         assertThat(registrados).singleElement().satisfies(c -> {
             assertThat(c.getIdCliente()).isEqualTo(cliente.getId());
-            assertThat(c.getOrigen()).isEqualTo(Origen.SISTEMA);
+            assertThat(c.getOrigen()).isEqualTo(Origen.CRM);
             assertThat(c.getResponsable()).isEqualTo("deteccion-automatica");
-            assertThat(c.getTipo()).isEqualTo(TipoCambio.ACTUALIZACION);
+            assertThat(c.getTipo()).isEqualTo(TipoCambio.DETECCION);
             assertThat(c.getIdEvento()).isNull();
             assertThat(c.getCambios()).contains("\"estado\"").contains("INCOMPLETO");
         });

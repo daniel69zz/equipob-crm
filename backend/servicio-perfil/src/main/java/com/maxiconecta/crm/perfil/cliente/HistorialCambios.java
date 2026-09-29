@@ -39,13 +39,12 @@ public class HistorialCambios {
 
     /**
      * El origen tiene que distinguir de dónde vino el cambio: las altas y actualizaciones vienen de
-     * Marketplace o Ventas; las detecciones automáticas usan SISTEMA, y las vinculaciones y
-     * unificaciones son acciones de un usuario del CRM.
+     * Marketplace o Ventas; las vinculaciones, unificaciones y detecciones son acciones del CRM.
      */
     private static void exigirOrigenCoherente(TipoCambio tipo, Origen origen, String responsable) {
-        boolean esAccionDelCrm = tipo == TipoCambio.VINCULACION || tipo == TipoCambio.UNIFICACION;
-        boolean esDeteccion = tipo == TipoCambio.ACTUALIZACION && origen == Origen.SISTEMA;
-        if (origen == null || !esDeteccion && (esAccionDelCrm ? origen != Origen.CRM : !origen.esSistemaExterno())) {
+        boolean esAccionDelCrm = tipo == TipoCambio.VINCULACION || tipo == TipoCambio.UNIFICACION
+                || tipo == TipoCambio.DETECCION;
+        if (origen == null || esAccionDelCrm == origen.esSistemaExterno()) {
             throw new IllegalArgumentException("Origen " + origen + " no válido para un cambio de tipo " + tipo);
         }
         if (responsable == null || responsable.isBlank()) {
