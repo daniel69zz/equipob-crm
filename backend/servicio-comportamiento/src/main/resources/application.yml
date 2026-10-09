@@ -45,6 +45,9 @@ comportamiento:
     umbral-dias: ${INACTIVIDAD_UMBRAL_DIAS:90}
     # Cuándo corre la identificación automática (SCRUM-297); por defecto, una vez al día de madrugada.
     cron: ${INACTIVIDAD_CRON:0 0 3 * * *}
+  evolucion:
+    # Zona horaria del negocio con la que cada compra se asigna a su mes, trimestre o año (SCRUM-32).
+    zona-horaria: ${EVOLUCION_ZONA_HORARIA:America/La_Paz}
 
 management:
   endpoints:

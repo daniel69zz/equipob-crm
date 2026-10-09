@@ -15,6 +15,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', id(), 'ficha-integral']" routerLinkActive="activa" role="tab">Ficha integral</a>
         <a [routerLink]="['/clientes', id(), 'historial']" routerLinkActive="activa" role="tab">Historial de cambios</a>
         <a [routerLink]="['/clientes', id(), 'compras']" routerLinkActive="activa" role="tab">Compras e indicadores</a>
+        <a *appSiTienePermiso="permisos.EVOLUCION_CONSUMO_CONSULTAR" [routerLink]="['/clientes', id(), 'evolucion-consumo']" routerLinkActive="activa" role="tab">Evolución por categoría</a>
         <a [routerLink]="['/clientes', id(), 'consentimiento']" routerLinkActive="activa" role="tab">Consentimiento</a>
       </div>
     </nav>

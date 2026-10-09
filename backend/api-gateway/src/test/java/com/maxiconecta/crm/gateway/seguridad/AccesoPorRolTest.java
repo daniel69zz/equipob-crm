@@ -239,6 +239,31 @@ class AccesoPorRolTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Evolución del consumo por categoría (SCRUM-32, SCRUM-305): solo Administrador y Gerente Comercial ---
+
+    @Test
+    void elAdministradorYElGerenteComercialPuedenConsultarLaEvolucionDelConsumo() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/evolucion-consumo";
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "EVOLUCION_CONSUMO_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "EVOLUCION_CONSUMO_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elAgenteNoPuedeConsultarLaEvolucionDelConsumoAunqueConsulteLosIndicadores() throws Exception {
+        String agente = bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE);
+
+        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").header("Authorization", agente))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get("/api/comportamiento/clientes/42/evolucion-consumo").header("Authorization", agente))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/evolucion-consumo"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test
