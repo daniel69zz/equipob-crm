@@ -6,6 +6,7 @@ import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
 import { ClientesInactivosComponent } from './features/clientes/clientes-inactivos.component';
 import { ConsentimientoComponent } from './features/clientes/consentimiento.component';
+import { EvolucionConsumoComponent } from './features/clientes/evolucion-consumo.component';
 import { FichaIntegralComponent } from './features/clientes/ficha-integral.component';
 import { HistorialCambiosComponent } from './features/clientes/historial-cambios.component';
 import { HistorialComprasComponent } from './features/clientes/historial-compras.component';
@@ -54,6 +55,12 @@ export const routes: Routes = [
         component: HistorialComprasComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.INDICADORES_CONSULTAR },
+      },
+      {
+        path: 'clientes/:id/evolucion-consumo',
+        component: EvolucionConsumoComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.EVOLUCION_CONSUMO_CONSULTAR },
       },
       {
         path: 'clientes-inactivos',
