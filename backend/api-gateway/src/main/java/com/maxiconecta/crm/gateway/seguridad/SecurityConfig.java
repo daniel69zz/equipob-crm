@@ -27,6 +27,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.AUDITORIA_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.CLIENTE_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.CLIENTE_EDITAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.EVENTOS_REPROCESAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.EVOLUCION_CONSUMO_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.FICHA_INTEGRAL_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.FIDELIZACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INDICADORES_CONSULTAR;
@@ -81,6 +82,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/perfil/**").hasAuthority(CLIENTE_CONSULTAR)
                         .requestMatchers("/api/perfil/**").hasAuthority(CLIENTE_EDITAR)
 
+                        // Evolucion del consumo por categoria (SCRUM-32, SCRUM-305): permiso propio de los
+                        // perfiles de analisis comercial, mas restrictivo que INDICADORES_CONSULTAR.
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/evolucion-consumo")
+                            .hasAuthority(EVOLUCION_CONSUMO_CONSULTAR)
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/**").hasAuthority(INDICADORES_CONSULTAR)
 
                         .requestMatchers(HttpMethod.GET, "/api/segmentacion/**").hasAuthority(SEGMENTOS_CONSULTAR)
