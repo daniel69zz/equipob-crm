@@ -50,6 +50,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/perfil/**` | GET | `CLIENTE_CONSULTAR` |
 | `/api/perfil/**` | POST, PUT, PATCH, DELETE | `CLIENTE_EDITAR` |
 | `/api/comportamiento/**` | GET | `INDICADORES_CONSULTAR` |
+| `/api/segmentacion/criterios` y `/api/segmentacion/criterios/**` | Todos | Rol `ADMINISTRADOR_CRM` **y** `SEGMENTACION_CONFIGURAR` (regla anterior a la genérica) |
 | `/api/segmentacion/**` | GET | `SEGMENTOS_CONSULTAR` |
 | `/api/segmentacion/**` | POST, PUT, PATCH, DELETE | `SEGMENTACION_CONFIGURAR` |
 | `/api/fidelizacion/**` | GET | `PUNTOS_CONSULTAR` |
