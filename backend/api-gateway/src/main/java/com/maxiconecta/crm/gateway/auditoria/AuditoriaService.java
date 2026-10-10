@@ -32,7 +32,8 @@ public class AuditoriaService {
     /** Operaciones que se pueden encontrar en la auditoría, para filtrar la consulta. */
     public static final List<String> OPERACIONES = List.of(
             CLIENTE_CONSULTADO, CLIENTE_MODIFICADO, ACCESO_DENEGADO,
-            ROL_CREADO, ROL_ACTUALIZADO, ROL_DESACTIVADO, USUARIO_CREADO, ROL_ASIGNADO, USUARIO_DESACTIVADO);
+            ROL_CREADO, ROL_ACTUALIZADO, ROL_DESACTIVADO, USUARIO_CREADO, ROL_ASIGNADO, USUARIO_DESACTIVADO,
+            "CRITERIO_CREADO", "CRITERIO_ACTUALIZADO", "CRITERIO_DESACTIVADO", "CRITERIO_ACTIVADO");
 
     public static final int TAMANIO_MAXIMO_PAGINA = 100;
 
