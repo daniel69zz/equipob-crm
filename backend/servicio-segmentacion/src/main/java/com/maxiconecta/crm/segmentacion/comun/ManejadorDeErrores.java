@@ -10,6 +10,23 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class ManejadorDeErrores {
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> regla(org.springframework.web.server.ResponseStatusException ex, HttpServletRequest solicitud) {
+        return respuesta(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason(), solicitud);
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> validacion(org.springframework.web.bind.MethodArgumentNotValidException ex, HttpServletRequest solicitud) {
+        String mensaje = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage()).collect(java.util.stream.Collectors.joining("; "));
+        return respuesta(HttpStatus.BAD_REQUEST, mensaje, solicitud);
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> cuerpoInvalido(HttpServletRequest solicitud) {
+        return respuesta(HttpStatus.BAD_REQUEST, "Revise los campos, indicadores y condiciones de la solicitud", solicitud);
+    }
+
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> parametroInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest solicitud) {
         return respuesta(HttpStatus.BAD_REQUEST, "Valor no válido para '" + ex.getName() + "': " + ex.getValue(), solicitud);

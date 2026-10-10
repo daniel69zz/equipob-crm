@@ -1,0 +1,63 @@
+classDiagram
+    class CriteriosComponent {
+        +guardar()
+        +confirmarEstado()
+        +verDetalle()
+        +comprobar()
+    }
+    class CriterioController {
+        +listar()
+        +crear()
+        +editar()
+        +estado()
+        +historial()
+        +comprobar()
+    }
+    class CriterioService {
+        +crear()
+        +editar()
+        +cambiarEstado()
+        +historial()
+    }
+    class Criterio {
+        +Long id
+        +String nombre
+        +Indicador indicador
+        +Condicion condicion
+        +BigDecimal minimo
+        +BigDecimal maximo
+        +String categoria
+        +boolean activo
+        +long version
+    }
+    class ReglasCriterio {
+        +normalizar()
+        +seSuperponen()
+        +cumple()
+    }
+    class CriterioRepository {
+        +bloquearConfiguracion()
+        +listar()
+        +crear()
+        +editar()
+        +cambiarEstado()
+    }
+    class AuditoriaCriterios {
+        +registrar(anterior, nuevo)
+        +historial()
+    }
+    class Cambio {
+        +String usuario
+        +OffsetDateTime fecha
+        +String operacion
+        +JsonNode anterior
+        +JsonNode nuevo
+    }
+    CriteriosComponent --> CriterioController : HTTP mediante Gateway JWT
+    CriterioController --> CriterioService
+    CriterioController --> ReglasCriterio : comprobar caso
+    CriterioService --> ReglasCriterio : validar
+    CriterioService --> CriterioRepository
+    CriterioService --> AuditoriaCriterios : misma transaccion
+    CriterioRepository --> Criterio : segmentacion.criterio
+    AuditoriaCriterios --> Cambio : auditoria.evento inmutable

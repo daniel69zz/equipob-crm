@@ -40,6 +40,7 @@ const GRUPOS: Grupo[] = [
   {
     titulo: 'Administración',
     enlaces: [
+      { texto: 'Criterios de segmentación', ruta: '/segmentacion/criterios', icono: 'segmentos', permiso: Permisos.SEGMENTACION_CONFIGURAR },
       { texto: 'Usuarios', ruta: '/admin/usuarios', icono: 'usuarios', permiso: Permisos.USUARIOS_ADMINISTRAR },
       { texto: 'Roles y permisos', ruta: '/admin/roles', icono: 'roles', permiso: Permisos.USUARIOS_ADMINISTRAR },
       { texto: 'Auditoría', ruta: '/admin/auditoria', icono: 'auditoria', permiso: Permisos.AUDITORIA_CONSULTAR },
@@ -220,7 +221,8 @@ export class LayoutComponent implements OnInit {
     const permisos = this.auth.sesion()?.permisos ?? [];
     return GRUPOS.map((grupo) => ({
       ...grupo,
-      enlaces: grupo.enlaces.filter((enlace) => !enlace.permiso || permisos.includes(enlace.permiso)),
+      enlaces: grupo.enlaces.filter((enlace) => (!enlace.permiso || permisos.includes(enlace.permiso)) &&
+        (enlace.permiso !== Permisos.SEGMENTACION_CONFIGURAR || this.auth.sesion()?.rol === 'ADMINISTRADOR_CRM')),
     })).filter((grupo) => grupo.enlaces.length > 0);
   });
 
