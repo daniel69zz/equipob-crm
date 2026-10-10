@@ -1,0 +1,123 @@
+<header class="cabecera">
+  <div><p class="eyebrow">Administración · Segmentación</p><h1>Criterios de segmentación</h1>
+    <p class="subtitulo">Define cómo agrupar clientes por sus compras, su valor y sus categorías.</p></div>
+  <button type="button" (click)="nuevo()" [disabled]="guardando()">+ Nuevo criterio</button>
+</header>
+<section class="resumen" aria-label="Resumen de criterios">
+  <article class="tarjeta"><strong>{{ criterios().length }}</strong><span>Criterios configurados</span></article>
+  <article class="tarjeta"><strong>{{ activos() }}</strong><span>Activos y disponibles</span></article>
+  <article class="tarjeta"><strong>{{ criterios().length - activos() }}</strong><span>Inactivos</span></article>
+</section>
+@if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+@if (exito()) { <p class="exito" role="status">{{ exito() }}</p> }
+
+@if (abierto()) {
+  <section class="tarjeta editor" aria-labelledby="titulo-editor">
+    <h2 id="titulo-editor">{{ editando() ? 'Editar criterio' : 'Nuevo criterio' }}</h2>
+    <form (ngSubmit)="guardar()" novalidate>
+      <fieldset [disabled]="guardando()">
+        <div class="campos">
+          <div class="ancho"><label for="nombre-criterio">Nombre del criterio</label>
+            <input id="nombre-criterio" name="nombre" maxlength="100" [(ngModel)]="formulario.nombre" placeholder="Ej. Compradores habituales" /></div>
+          <div><label for="indicador-criterio">Indicador</label>
+            <select id="indicador-criterio" name="indicador" [(ngModel)]="formulario.indicador" (ngModelChange)="cambiarIndicador()">
+              @for (clave of clavesIndicador; track clave) { <option [value]="clave">{{ indicadores[clave] }}</option> }
+            </select></div>
+          <div><label for="condicion-criterio">Condición</label>
+            <select id="condicion-criterio" name="condicion" [(ngModel)]="formulario.condicion" (ngModelChange)="cambiarCondicion()">
+              @if (formulario.indicador === 'CATEGORIA') { <option value="CONTIENE">Ha consumido la categoría</option> }
+              @else { @for (clave of numericas; track clave) { <option [value]="clave">{{ condiciones[clave] }}</option> } }
+            </select></div>
+          @if (formulario.indicador === 'CATEGORIA') {
+            <div class="ancho"><label for="categoria-criterio">Categoría consumida</label>
+              <input id="categoria-criterio" name="categoria" maxlength="100" [(ngModel)]="formulario.categoria" placeholder="Ej. Electrónica" />
+              <small>Coincidencia exacta; se ignoran mayúsculas, tildes y espacios adicionales.</small></div>
+          } @else {
+            @if (formulario.condicion !== 'MENOR_IGUAL') {
+              <div><label for="minimo-criterio">{{ formulario.condicion === 'IGUAL' ? 'Valor' : 'Mínimo' }}</label>
+                <input id="minimo-criterio" name="minimo" type="number" min="0" [step]="formulario.indicador === 'FRECUENCIA' ? 1 : 0.01" [(ngModel)]="formulario.minimo" /></div>
+            }
+            @if (formulario.condicion === 'ENTRE' || formulario.condicion === 'MENOR_IGUAL') {
+              <div><label for="maximo-criterio">Máximo</label>
+                <input id="maximo-criterio" name="maximo" type="number" min="0" [step]="formulario.indicador === 'FRECUENCIA' ? 1 : 0.01" [(ngModel)]="formulario.maximo" /></div>
+            }
+          }
+          <div class="ancho"><label for="descripcion-criterio">Descripción (opcional)</label>
+            <textarea id="descripcion-criterio" name="descripcion" maxlength="500" rows="2" [(ngModel)]="formulario.descripcion"></textarea></div>
+        </div>
+        <p class="ayuda">{{ formulario.indicador === 'FRECUENCIA' ? 'Frecuencia: cantidad acumulada de compras vigentes, en números enteros.' : formulario.indicador === 'VALOR' ? 'Valor: suma acumulada vigente, en bolivianos, descontando anulaciones y devoluciones.' : 'Categoría: nombre de una categoría con consumo vigente.' }}
+          Los criterios activos del mismo indicador no pueden superponerse. Los límites están incluidos.</p>
+        @if (errorFormulario()) { <p class="error" role="alert">{{ errorFormulario() }}</p> }
+        <div class="acciones"><button type="submit">{{ guardando() ? 'Guardando…' : 'Guardar criterio' }}</button>
+          <button type="button" class="secundario" (click)="abierto.set(false)">Cancelar</button></div>
+      </fieldset>
+    </form>
+  </section>
+}
+
+@if (estadoPendiente(); as c) {
+  <section class="tarjeta confirmacion" role="alertdialog" aria-labelledby="titulo-estado">
+    <h2 id="titulo-estado">{{ c.activo ? 'Desactivar' : 'Activar' }} «{{ c.nombre }}»</h2>
+    <p>{{ c.activo ? 'Dejará de estar disponible para nuevas asignaciones. Su historial se conservará.' : 'Se verificará que no se superponga con otro criterio activo antes de habilitarlo.' }}</p>
+    <div class="acciones"><button type="button" [disabled]="guardando()" (click)="confirmarEstado()">Confirmar {{ c.activo ? 'desactivación' : 'activación' }}</button>
+      <button type="button" class="secundario" [disabled]="guardando()" (click)="estadoPendiente.set(null)">Cancelar</button></div>
+  </section>
+}
+
+<section class="tarjeta lista" aria-label="Lista de criterios">
+  <div class="filtros">
+    <div><label for="buscar-criterio">Buscar por nombre</label><input id="buscar-criterio" [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" placeholder="Nombre del criterio" /></div>
+    <div><label for="filtrar-indicador">Filtrar indicador</label><select id="filtrar-indicador" [ngModel]="filtroIndicador()" (ngModelChange)="filtroIndicador.set($event)">
+      <option value="">Todos los indicadores</option>@for (clave of clavesIndicador; track clave) { <option [value]="clave">{{ indicadores[clave] }}</option> }</select></div>
+    <div><label for="filtrar-estado">Estado</label><select id="filtrar-estado" [ngModel]="filtroEstado()" (ngModelChange)="filtroEstado.set($event)">
+      <option value="">Todos</option><option value="true">Activos</option><option value="false">Inactivos</option></select></div>
+    <button type="button" class="secundario" (click)="cargar()" [disabled]="cargando()">Actualizar lista</button>
+  </div>
+  @if (cargando()) { <p role="status">Cargando criterios…</p> }
+  @else {
+    <div class="tabla"><table><thead><tr><th>Criterio</th><th>Indicador y regla</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>@for (c of visibles(); track c.id) {
+        <tr [class.seleccionado]="seleccionado()?.id === c.id">
+          <td><strong>{{ c.nombre }}</strong><small class="descripcion">{{ c.descripcion }}</small><small>Actualizado por {{ c.actualizadoPor }}</small></td>
+          <td>{{ indicadores[c.indicador] }}<small class="descripcion">{{ regla(c) }}</small></td>
+          <td><span class="etiqueta" [class.activo]="c.activo">{{ c.activo ? 'Activo' : 'Inactivo' }}</span></td>
+          <td><div class="acciones fila"><button type="button" class="secundario" [disabled]="guardando()" (click)="editar(c)">Editar</button>
+            <button type="button" class="secundario" [disabled]="guardando()" (click)="estadoPendiente.set(c)">{{ c.activo ? 'Desactivar' : 'Activar' }}</button>
+            <button type="button" class="secundario" (click)="verDetalle(c)">Historial y prueba</button></div></td>
+        </tr>
+      } @empty { <tr><td colspan="4" class="vacio">{{ criterios().length ? 'No hay criterios para estos filtros.' : 'Todavía no hay criterios. Crea el primero para comenzar.' }}</td></tr> }</tbody></table></div>
+    <p class="pie">{{ visibles().length }} de {{ criterios().length }} criterios · Los activos quedan disponibles para la asignación de segmentos.</p>
+  }
+</section>
+
+@if (seleccionado(); as c) {
+  <section class="tarjeta detalle" aria-labelledby="titulo-detalle">
+    <h2 id="titulo-detalle">Historial y prueba · {{ c.nombre }}</h2>
+    <div class="prueba">
+      <h3>Comprobar un caso</h3><p>Introduce un dato de prueba para comprobar esta regla guardada. Esta consulta no asigna segmentos ni modifica clientes.</p>
+      <form (ngSubmit)="comprobar()">
+        @if (c.indicador === 'CATEGORIA') {
+          <div><label for="caso-categorias">Categorías consumidas (separadas por coma)</label><input id="caso-categorias" name="categoriasCaso" [(ngModel)]="categoriasCaso" placeholder="Electrónica, Libros" /></div>
+        } @else {
+          <div><label for="caso-valor">{{ c.indicador === 'FRECUENCIA' ? 'Compras vigentes del caso' : 'Valor acumulado del caso (Bs)' }}</label>
+            <input id="caso-valor" name="valorCaso" type="number" min="0" [step]="c.indicador === 'FRECUENCIA' ? 1 : 0.01" [(ngModel)]="valorCaso" /></div>
+        }
+        <button type="submit" [disabled]="comprobando()">{{ comprobando() ? 'Comprobando…' : 'Comprobar regla' }}</button>
+      </form>
+      @if (errorCaso()) { <p class="error" role="alert">{{ errorCaso() }}</p> }
+      @if (resultado(); as r) { <p class="resultado" role="status">{{ !r.activo ? 'Criterio inactivo: no participa en la asignación.' : r.cumple ? 'El caso cumple el criterio.' : 'El caso no cumple el criterio.' }} <small>Versión comprobada: {{ r.version }}</small></p> }
+    </div>
+    <h3>Cambios registrados</h3>
+    @if (cargandoHistorial()) { <p role="status">Cargando historial…</p> }
+    @if (errorHistorial()) { <p class="error" role="alert">{{ errorHistorial() }}</p><button class="secundario" (click)="verDetalle(c)">Reintentar historial</button> }
+    @for (cambio of historial(); track cambio.id) {
+      <article class="cambio"><header><strong>{{ operacion(cambio.operacion) }}</strong><span>{{ cambio.usuario }} · {{ cambio.fecha | date: 'dd/MM/yyyy HH:mm:ss' }}</span></header>
+        <div class="fotos"><div><h4>Antes</h4>@if (cambio.anterior; as antes) {
+          <p>{{ antes.nombre }}</p><p>{{ indicadores[antes.indicador] }} · {{ regla(antes) }}</p><p>{{ antes.descripcion || 'Sin descripción' }}</p><span class="etiqueta">{{ antes.activo ? 'Activo' : 'Inactivo' }} · v{{ antes.version }}</span>
+        } @else { <p>El criterio todavía no existía.</p> }</div>
+        <div><h4>Después</h4><p>{{ cambio.nuevo.nombre }}</p><p>{{ indicadores[cambio.nuevo.indicador] }} · {{ regla(cambio.nuevo) }}</p><p>{{ cambio.nuevo.descripcion || 'Sin descripción' }}</p>
+          <span class="etiqueta">{{ cambio.nuevo.activo ? 'Activo' : 'Inactivo' }} · v{{ cambio.nuevo.version }}</span></div></div>
+      </article>
+    }
+  </section>
+}
