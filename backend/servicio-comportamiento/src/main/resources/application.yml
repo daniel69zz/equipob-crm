@@ -5,6 +5,10 @@ crm:
   perfil:
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
+  # Clientes de un segmento, para comparar periodos solo con ellos (SCRUM-40).
+  segmentacion:
+    url: ${SERVICIO_SEGMENTACION_URL:http://localhost:8083}
+    tiempo-espera: ${SEGMENTACION_TIEMPO_ESPERA:2s}
 
 spring:
   application:
