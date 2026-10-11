@@ -239,6 +239,24 @@ class AccesoPorRolTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Valor consumido por periodo (SCRUM-39): mismo permiso que el resto de los indicadores ---
+
+    @Test
+    void elConsumoPorPeriodoSeConsultaConIndicadoresConsultarYSeDenieganSinEl() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/consumo-periodo?desde=2026-09-01&hasta=2026-09-30";
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+
+        mvc.perform(get(ruta).header("Authorization", bearer("carla", "SIN_INDICADORES", List.of("CLIENTE_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test
