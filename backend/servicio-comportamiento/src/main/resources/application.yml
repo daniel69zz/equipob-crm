@@ -62,6 +62,9 @@ comportamiento:
     umbral: ${CAMBIO_COMPORTAMIENTO_UMBRAL:0.5}
     # Cuándo se evalúa a todos los clientes (SCRUM-34); por defecto, una vez al día de madrugada.
     cron: ${CAMBIO_COMPORTAMIENTO_CRON:0 0 4 * * *}
+  cohortes:
+    # Zona horaria en la que se cuentan los meses de las cohortes de primera compra (SCRUM-327).
+    zona: ${COHORTES_ZONA:America/La_Paz}
 
 management:
   endpoints:
