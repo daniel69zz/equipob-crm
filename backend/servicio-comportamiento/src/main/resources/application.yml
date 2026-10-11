@@ -51,6 +51,17 @@ comportamiento:
     umbral-alto: ${NIVEL_CONSUMO_UMBRAL_ALTO:5000}
     # Cuándo se reclasifica a todos los clientes (SCRUM-268); por defecto, una vez al día de madrugada.
     cron: ${NIVEL_CONSUMO_CRON:0 30 3 * * *}
+  cambio-comportamiento:
+    # Periodo actual y línea base de la detección de cambios de comportamiento (SCRUM-316):
+    # se comparan los últimos ventana-dias con el promedio por periodo de los periodos-base anteriores.
+    ventana-dias: ${CAMBIO_COMPORTAMIENTO_VENTANA_DIAS:90}
+    periodos-base: ${CAMBIO_COMPORTAMIENTO_PERIODOS_BASE:3}
+    # Compras vigentes mínimas en la línea base para no quedar "sin línea base" (SCRUM-318).
+    minimo-compras-base: ${CAMBIO_COMPORTAMIENTO_MINIMO_COMPRAS_BASE:3}
+    # Desvío relativo (0.5 = 50 %) desde el que una variación es relevante; mayor que 0 y como máximo 1.
+    umbral: ${CAMBIO_COMPORTAMIENTO_UMBRAL:0.5}
+    # Cuándo se evalúa a todos los clientes (SCRUM-34); por defecto, una vez al día de madrugada.
+    cron: ${CAMBIO_COMPORTAMIENTO_CRON:0 0 4 * * *}
 
 management:
   endpoints:

@@ -12,8 +12,8 @@ import java.util.List;
 
 /**
  * Consolida la ficha integral del cliente (SCRUM-10, SCRUM-154): sus datos personales (SCRUM-152),
- * historial de compras (SCRUM-151), segmento (SCRUM-149), puntos de fidelización y nivel de consumo
- * (SCRUM-566), en una sola consulta.
+ * historial de compras (SCRUM-151), segmento (SCRUM-149), puntos de fidelización, nivel de consumo
+ * (SCRUM-566) y alertas de cambio de comportamiento (SCRUM-567), en una sola consulta.
  */
 @Service
 public class ConsultaFichaIntegral {
@@ -24,16 +24,19 @@ public class ConsultaFichaIntegral {
     private final SegmentoDelCliente segmento;
     private final PuntosDelCliente puntos;
     private final NivelConsumoDelCliente nivelConsumo;
+    private final CambiosComportamientoDelCliente cambiosComportamiento;
 
     public ConsultaFichaIntegral(ClienteRepository clientes, ClienteOrigenRepository origenes,
                                  HistorialComprasCliente historialCompras, SegmentoDelCliente segmento,
-                                 PuntosDelCliente puntos, NivelConsumoDelCliente nivelConsumo) {
+                                 PuntosDelCliente puntos, NivelConsumoDelCliente nivelConsumo,
+                                 CambiosComportamientoDelCliente cambiosComportamiento) {
         this.clientes = clientes;
         this.origenes = origenes;
         this.historialCompras = historialCompras;
         this.segmento = segmento;
         this.puntos = puntos;
         this.nivelConsumo = nivelConsumo;
+        this.cambiosComportamiento = cambiosComportamiento;
     }
 
     @Transactional(readOnly = true)
@@ -46,6 +49,7 @@ public class ConsultaFichaIntegral {
                 historialCompras.buscar(clienteId, identificadoresOrigen),
                 segmento.buscar(clienteId),
                 puntos.buscar(clienteId),
-                nivelConsumo.buscar(clienteId, identificadoresOrigen));
+                nivelConsumo.buscar(clienteId, identificadoresOrigen),
+                cambiosComportamiento.buscar(clienteId, identificadoresOrigen));
     }
 }
