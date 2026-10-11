@@ -88,6 +88,8 @@ public class CriterioCambioComportamiento {
         List<Variacion> variaciones = new ArrayList<>();
         variacion(TipoVariacion.FRECUENCIA, BigDecimal.valueOf(compras.comprasActual()),
                 BigDecimal.valueOf(comprasBase).multiply(factor)).ifPresent(variaciones::add);
+        variacion(TipoVariacion.MONTO, compras.montoActual(),
+                compras.montoBase().multiply(factor)).ifPresent(variaciones::add);
         return new Evaluacion(variaciones.isEmpty() ? EstadoComportamiento.ESTABLE : EstadoComportamiento.CON_VARIACION,
                 comprasBase, List.copyOf(variaciones));
     }
