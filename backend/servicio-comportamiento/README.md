@@ -106,6 +106,17 @@ no se registra dos veces dentro del periodo actual.
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/cambios-comportamiento` | `INDICADORES_CONSULTAR` | Estado de la última evaluación (`CON_VARIACION`, `ESTABLE`, `SIN_LINEA_BASE` o `SIN_EVALUAR`), `evaluadoEn` y las alertas del cliente de la más reciente a la más antigua (máx. 50), cada una con tipo, dirección, valor actual y habitual, variación, umbral, periodo, fecha y un mensaje legible. Usa el parámetro repetible `identificador` |
 
+## Retención por cohortes (SCRUM-36)
+
+Reglas, cálculo manual de referencia y limitaciones en `docs/compra/retencion-cohortes.md`; diagramas
+en `docs/compra/retencion-cohortes-diagramas.md`. Cada cliente queda en la cohorte del mes de su
+primera compra vigente (en hora de Bolivia, `COHORTES_ZONA`), y se mide qué porcentaje vuelve a
+comprar en cada mes posterior. Las compras anuladas no cuentan ni como primera compra ni como retención.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/cohortes` | `INDICADORES_CONSULTAR` | Matriz de retención: por cohorte (`AAAA-MM`), sus clientes y, por periodo hasta el mes en curso, los clientes que compraron y su porcentaje. `desde` y `hasta` (`AAAA-MM`, por defecto los últimos 12 meses, máx. 36) |
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ. Con Docker:
