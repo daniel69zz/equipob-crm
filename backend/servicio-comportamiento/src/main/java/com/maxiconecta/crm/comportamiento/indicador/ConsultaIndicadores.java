@@ -3,6 +3,8 @@ package com.maxiconecta.crm.comportamiento.indicador;
 import com.maxiconecta.crm.comportamiento.compra.AgregadoComprasCliente;
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
+import com.maxiconecta.crm.comportamiento.consumo.CriterioNivelConsumo;
+import com.maxiconecta.crm.comportamiento.consumo.NivelConsumoCliente;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -18,12 +20,14 @@ public class ConsultaIndicadores {
     private final AgregadoComprasCliente agregado;
     private final Clock reloj;
     private final FrecuenciaCompraRepository frecuencias;
+    private final CriterioNivelConsumo criterioNivel;
 
     public ConsultaIndicadores(AgregadoComprasCliente agregado, Clock reloj,
-                               FrecuenciaCompraRepository frecuencias) {
+                               FrecuenciaCompraRepository frecuencias, CriterioNivelConsumo criterioNivel) {
         this.agregado = agregado;
         this.reloj = reloj;
         this.frecuencias = frecuencias;
+        this.criterioNivel = criterioNivel;
     }
 
     public TicketPromedio ticketPromedio(List<Identificador> identificadores) {
@@ -36,6 +40,14 @@ public class ConsultaIndicadores {
 
     public ValorAcumulado valorAcumulado(List<Identificador> identificadores) {
         return ValorAcumulado.de(agregado.resumir(identificadores));
+    }
+
+    /**
+     * Nivel de consumo (SCRUM-27) sobre el valor acumulado de todos los identificadores del
+     * cliente, calculado en el momento: nunca queda desactualizado respecto a las compras.
+     */
+    public NivelConsumoCliente nivelConsumo(List<Identificador> identificadores) {
+        return NivelConsumoCliente.de(valorAcumulado(identificadores), criterioNivel);
     }
 
     public long frecuencia(List<Identificador> identificadores) {

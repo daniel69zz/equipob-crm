@@ -45,6 +45,12 @@ comportamiento:
     umbral-dias: ${INACTIVIDAD_UMBRAL_DIAS:90}
     # Cuándo corre la identificación automática (SCRUM-297); por defecto, una vez al día de madrugada.
     cron: ${INACTIVIDAD_CRON:0 0 3 * * *}
+  nivel-consumo:
+    # Valor acumulado (en bolivianos) desde el que un cliente es de consumo medio y alto (SCRUM-270).
+    umbral-medio: ${NIVEL_CONSUMO_UMBRAL_MEDIO:500}
+    umbral-alto: ${NIVEL_CONSUMO_UMBRAL_ALTO:5000}
+    # Cuándo se reclasifica a todos los clientes (SCRUM-268); por defecto, una vez al día de madrugada.
+    cron: ${NIVEL_CONSUMO_CRON:0 30 3 * * *}
 
 management:
   endpoints:

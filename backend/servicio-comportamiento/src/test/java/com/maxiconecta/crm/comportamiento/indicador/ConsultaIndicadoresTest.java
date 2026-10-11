@@ -3,6 +3,7 @@ package com.maxiconecta.crm.comportamiento.indicador;
 import com.maxiconecta.crm.comportamiento.compra.AgregadoComprasCliente;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
+import com.maxiconecta.crm.comportamiento.consumo.CriterioNivelConsumo;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -19,7 +20,7 @@ class ConsultaIndicadoresTest {
 
     private final FrecuenciaCompraRepository frecuencias = mock(FrecuenciaCompraRepository.class);
     private final ConsultaIndicadores consulta = new ConsultaIndicadores(mock(AgregadoComprasCliente.class),
-            mock(Clock.class), frecuencias);
+            mock(Clock.class), frecuencias, mock(CriterioNivelConsumo.class));
 
     @Test
     void clienteSinIdentificadoresTieneFrecuenciaCero() {
