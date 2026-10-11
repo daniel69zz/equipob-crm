@@ -60,6 +60,9 @@ class FichaIntegralIntegracionTest {
     @MockBean
     private NivelConsumoDelCliente nivelConsumoDelCliente;
 
+    @MockBean
+    private CambiosComportamientoDelCliente cambiosComportamientoDelCliente;
+
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
@@ -81,6 +84,10 @@ class FichaIntegralIntegracionTest {
         when(puntosDelCliente.buscar(anyLong())).thenReturn(new PuntosResponse(350, "PLATA", null, false));
         when(nivelConsumoDelCliente.buscar(anyLong(), any()))
                 .thenReturn(new NivelConsumoResponse("ALTO", new java.math.BigDecimal("5230.00"), false));
+        when(cambiosComportamientoDelCliente.buscar(anyLong(), any())).thenReturn(new CambiosComportamientoResponse(
+                "CON_VARIACION", null, List.of(new CambiosComportamientoResponse.Alerta("MONTO", "DISMINUCION",
+                new java.math.BigDecimal("100.00"), new java.math.BigDecimal("400.00"),
+                new java.math.BigDecimal("-0.75"), null, null, null, "El monto de compra bajó un 75 %")), false));
 
         mvc.perform(get("/api/perfil/clientes/" + cliente.getId() + "/ficha-integral"))
                 .andExpect(status().isOk())
@@ -90,7 +97,11 @@ class FichaIntegralIntegracionTest {
                 .andExpect(jsonPath("$.puntos.saldo").value(350))
                 .andExpect(jsonPath("$.nivelConsumo.nivel").value("ALTO"))
                 .andExpect(jsonPath("$.nivelConsumo.valorAcumulado").value(5230.00))
-                .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(false));
+                .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(false))
+                .andExpect(jsonPath("$.cambiosComportamiento.estado").value("CON_VARIACION"))
+                .andExpect(jsonPath("$.cambiosComportamiento.alertas[0].tipo").value("MONTO"))
+                .andExpect(jsonPath("$.cambiosComportamiento.alertas[0].valorHabitual").value(400.00))
+                .andExpect(jsonPath("$.cambiosComportamiento.sinDatos").value(false));
     }
 
     @Test
@@ -102,13 +113,15 @@ class FichaIntegralIntegracionTest {
         when(segmentoDelCliente.buscar(anyLong())).thenReturn(new SegmentoResponse(null, null, true));
         when(puntosDelCliente.buscar(anyLong())).thenReturn(new PuntosResponse(null, null, null, true));
         when(nivelConsumoDelCliente.buscar(anyLong(), any())).thenReturn(new NivelConsumoResponse(null, null, true));
+        when(cambiosComportamientoDelCliente.buscar(anyLong(), any())).thenReturn(CambiosComportamientoResponse.SIN_DATOS);
 
         mvc.perform(get("/api/perfil/clientes/" + cliente.getId() + "/ficha-integral"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.datosPersonales.nombres").value("Bruno"))
                 .andExpect(jsonPath("$.segmento.sinDatos").value(true))
                 .andExpect(jsonPath("$.puntos.sinDatos").value(true))
-                .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(true));
+                .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(true))
+                .andExpect(jsonPath("$.cambiosComportamiento.sinDatos").value(true));
     }
 
     @Test
