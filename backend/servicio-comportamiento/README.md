@@ -76,6 +76,17 @@ y se corrige de inmediato cuando el cliente vuelve a comprar.
 | ------ | ---------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/comportamiento/clientes?estado=inactivo` | `INDICADORES_CONSULTAR` | Clientes sin compras vigentes desde hace más del umbral configurado, del que lleva más tiempo sin comprar al que lleva menos. Devuelve el identificador del cliente (`idClienteOrigen`), la última compra y los días transcurridos. `pagina`, `tamanio` (por defecto 20, máx. 100) |
 
+## Retención por cohortes (SCRUM-36)
+
+Reglas, cálculo manual de referencia y limitaciones en `docs/compra/retencion-cohortes.md`; diagramas
+en `docs/compra/retencion-cohortes-diagramas.md`. Cada cliente queda en la cohorte del mes de su
+primera compra vigente (en hora de Bolivia, `COHORTES_ZONA`), y se mide qué porcentaje vuelve a
+comprar en cada mes posterior. Las compras anuladas no cuentan ni como primera compra ni como retención.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/cohortes` | `INDICADORES_CONSULTAR` | Matriz de retención: por cohorte (`AAAA-MM`), sus clientes y, por periodo hasta el mes en curso, los clientes que compraron y su porcentaje. `desde` y `hasta` (`AAAA-MM`, por defecto los últimos 12 meses, máx. 36) |
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ. Con Docker:
