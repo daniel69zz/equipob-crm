@@ -30,6 +30,7 @@ class ConsultaFichaIntegralTest {
     private SegmentoDelCliente segmento;
     private PuntosDelCliente puntos;
     private NivelConsumoDelCliente nivelConsumo;
+    private CambiosComportamientoDelCliente cambiosComportamiento;
     private ConsultaFichaIntegral consulta;
 
     @BeforeEach
@@ -40,7 +41,9 @@ class ConsultaFichaIntegralTest {
         segmento = mock(SegmentoDelCliente.class);
         puntos = mock(PuntosDelCliente.class);
         nivelConsumo = mock(NivelConsumoDelCliente.class);
-        consulta = new ConsultaFichaIntegral(clientes, origenes, historialCompras, segmento, puntos, nivelConsumo);
+        cambiosComportamiento = mock(CambiosComportamientoDelCliente.class);
+        consulta = new ConsultaFichaIntegral(clientes, origenes, historialCompras, segmento, puntos, nivelConsumo,
+                cambiosComportamiento);
     }
 
     @Test
@@ -57,6 +60,11 @@ class ConsultaFichaIntegralTest {
         when(puntos.buscar(42L)).thenReturn(puntosRespuesta);
         NivelConsumoResponse nivelRespuesta = new NivelConsumoResponse("ALTO", new java.math.BigDecimal("5230.00"), false);
         when(nivelConsumo.buscar(eq(42L), any())).thenReturn(nivelRespuesta);
+        CambiosComportamientoResponse cambiosRespuesta = new CambiosComportamientoResponse("CON_VARIACION", null,
+                List.of(new CambiosComportamientoResponse.Alerta("FRECUENCIA", "DISMINUCION",
+                        new java.math.BigDecimal("1"), new java.math.BigDecimal("4"), new java.math.BigDecimal("-0.75"),
+                        null, null, null, "La frecuencia de compra bajó un 75 %")), false);
+        when(cambiosComportamiento.buscar(eq(42L), any())).thenReturn(cambiosRespuesta);
 
         FichaIntegralResponse ficha = consulta.obtener(42L);
 
@@ -65,6 +73,7 @@ class ConsultaFichaIntegralTest {
         assertThat(ficha.segmento()).isEqualTo(segmentoRespuesta);
         assertThat(ficha.puntos()).isEqualTo(puntosRespuesta);
         assertThat(ficha.nivelConsumo()).isEqualTo(nivelRespuesta);
+        assertThat(ficha.cambiosComportamiento()).isEqualTo(cambiosRespuesta);
     }
 
     @Test
@@ -77,6 +86,7 @@ class ConsultaFichaIntegralTest {
         when(segmento.buscar(7L)).thenReturn(new SegmentoResponse(null, null, true));
         when(puntos.buscar(7L)).thenReturn(new PuntosResponse(null, null, null, true));
         when(nivelConsumo.buscar(eq(7L), any())).thenReturn(new NivelConsumoResponse(null, null, true));
+        when(cambiosComportamiento.buscar(eq(7L), any())).thenReturn(CambiosComportamientoResponse.SIN_DATOS);
 
         FichaIntegralResponse ficha = consulta.obtener(7L);
 
@@ -84,6 +94,7 @@ class ConsultaFichaIntegralTest {
         assertThat(ficha.segmento().sinDatos()).isTrue();
         assertThat(ficha.puntos().sinDatos()).isTrue();
         assertThat(ficha.nivelConsumo().sinDatos()).isTrue();
+        assertThat(ficha.cambiosComportamiento().sinDatos()).isTrue();
     }
 
     @Test
@@ -92,6 +103,6 @@ class ConsultaFichaIntegralTest {
 
         assertThatThrownBy(() -> consulta.obtener(99L)).isInstanceOf(RecursoNoEncontradoException.class);
 
-        verifyNoInteractions(historialCompras, segmento, puntos, nivelConsumo);
+        verifyNoInteractions(historialCompras, segmento, puntos, nivelConsumo, cambiosComportamiento);
     }
 }
