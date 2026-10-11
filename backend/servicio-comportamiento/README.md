@@ -62,7 +62,7 @@ incrementa atómicamente al registrar una compra confirmada.
 
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
-| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia` y `valorAcumulado`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`). Usa el parámetro repetible `identificador` |
+| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia`, `valorAcumulado` y `nivelConsumo`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`); el nivel de consumo (`nivel`, `valorAcumulado`, `sinNivel`) clasifica ese valor como BAJO, MEDIO o ALTO. Usa el parámetro repetible `identificador` |
 
 ## Clientes inactivos (SCRUM-31)
 
@@ -74,6 +74,20 @@ y se corrige de inmediato cuando el cliente vuelve a comprar.
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes?estado=inactivo` | `INDICADORES_CONSULTAR` | Clientes sin compras vigentes desde hace más del umbral configurado, del que lleva más tiempo sin comprar al que lleva menos. Devuelve el identificador del cliente (`idClienteOrigen`), la última compra y los días transcurridos. `pagina`, `tamanio` (por defecto 20, máx. 100) |
+
+## Nivel de consumo (SCRUM-27)
+
+Diseño, umbrales y casos límite en `docs/compra/nivel-consumo.md`; diagramas en
+`docs/compra/nivel-consumo-diagramas.md`. Cada cliente con compras vigentes queda clasificado como
+`BAJO`, `MEDIO` o `ALTO` según su valor acumulado: desde `comportamiento.nivel-consumo.umbral-medio`
+(por defecto 500) es medio y desde `umbral-alto` (por defecto 5000) es alto; un valor exactamente en
+el umbral pertenece al nivel superior. Sin compras vigentes queda "sin nivel". El nivel se
+reclasifica al procesar una compra, una anulación o una devolución, y todos los clientes se
+recalculan con una tarea programada (`comportamiento.nivel-consumo.cron`, por defecto una vez al día).
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes?nivelConsumo=ALTO` | `INDICADORES_CONSULTAR` | Clientes del nivel indicado (`BAJO`, `MEDIO` o `ALTO`), del que más aporta al que menos. Devuelve los umbrales vigentes y, por cliente, su `idClienteOrigen`, `nivel`, `valorAcumulado` y `actualizadoEn`. `pagina`, `tamanio` (por defecto 20, máx. 100) |
 
 ## Ejecutar en local
 

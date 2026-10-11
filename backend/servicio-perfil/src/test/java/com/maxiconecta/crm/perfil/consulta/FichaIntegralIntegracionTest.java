@@ -57,6 +57,9 @@ class FichaIntegralIntegracionTest {
     @MockBean
     private PuntosDelCliente puntosDelCliente;
 
+    @MockBean
+    private NivelConsumoDelCliente nivelConsumoDelCliente;
+
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
@@ -76,13 +79,18 @@ class FichaIntegralIntegracionTest {
                 new CompraResponse(null, "C-1", null, "CONFIRMADA", List.of())));
         when(segmentoDelCliente.buscar(anyLong())).thenReturn(new SegmentoResponse("FRECUENTE", null, false));
         when(puntosDelCliente.buscar(anyLong())).thenReturn(new PuntosResponse(350, "PLATA", null, false));
+        when(nivelConsumoDelCliente.buscar(anyLong(), any()))
+                .thenReturn(new NivelConsumoResponse("ALTO", new java.math.BigDecimal("5230.00"), false));
 
         mvc.perform(get("/api/perfil/clientes/" + cliente.getId() + "/ficha-integral"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.datosPersonales.nombres").value("Ana"))
                 .andExpect(jsonPath("$.historialCompras[0].referencia").value("C-1"))
                 .andExpect(jsonPath("$.segmento.segmento").value("FRECUENTE"))
-                .andExpect(jsonPath("$.puntos.saldo").value(350));
+                .andExpect(jsonPath("$.puntos.saldo").value(350))
+                .andExpect(jsonPath("$.nivelConsumo.nivel").value("ALTO"))
+                .andExpect(jsonPath("$.nivelConsumo.valorAcumulado").value(5230.00))
+                .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(false));
     }
 
     @Test
@@ -93,12 +101,14 @@ class FichaIntegralIntegracionTest {
         when(historialCompras.buscar(any(), any())).thenReturn(List.of());
         when(segmentoDelCliente.buscar(anyLong())).thenReturn(new SegmentoResponse(null, null, true));
         when(puntosDelCliente.buscar(anyLong())).thenReturn(new PuntosResponse(null, null, null, true));
+        when(nivelConsumoDelCliente.buscar(anyLong(), any())).thenReturn(new NivelConsumoResponse(null, null, true));
 
         mvc.perform(get("/api/perfil/clientes/" + cliente.getId() + "/ficha-integral"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.datosPersonales.nombres").value("Bruno"))
                 .andExpect(jsonPath("$.segmento.sinDatos").value(true))
-                .andExpect(jsonPath("$.puntos.sinDatos").value(true));
+                .andExpect(jsonPath("$.puntos.sinDatos").value(true))
+                .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(true));
     }
 
     @Test

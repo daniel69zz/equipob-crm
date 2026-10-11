@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * SCRUM-154 · Consolidación de la ficha integral del cliente (SCRUM-10): datos personales,
- * historial de compras, segmento y puntos en una sola respuesta.
+ * historial de compras, segmento, puntos y nivel de consumo en una sola respuesta.
  */
 class ConsultaFichaIntegralTest {
 
@@ -29,6 +29,7 @@ class ConsultaFichaIntegralTest {
     private HistorialComprasCliente historialCompras;
     private SegmentoDelCliente segmento;
     private PuntosDelCliente puntos;
+    private NivelConsumoDelCliente nivelConsumo;
     private ConsultaFichaIntegral consulta;
 
     @BeforeEach
@@ -38,11 +39,12 @@ class ConsultaFichaIntegralTest {
         historialCompras = mock(HistorialComprasCliente.class);
         segmento = mock(SegmentoDelCliente.class);
         puntos = mock(PuntosDelCliente.class);
-        consulta = new ConsultaFichaIntegral(clientes, origenes, historialCompras, segmento, puntos);
+        nivelConsumo = mock(NivelConsumoDelCliente.class);
+        consulta = new ConsultaFichaIntegral(clientes, origenes, historialCompras, segmento, puntos, nivelConsumo);
     }
 
     @Test
-    void consolidaLosCuatroBloquesDeLaFicha() {
+    void consolidaLosCincoBloquesDeLaFicha() {
         Cliente cliente = new Cliente();
         cliente.identificar("Ana", "Perez", "CI", "4455667");
         when(clientes.findById(42L)).thenReturn(Optional.of(cliente));
@@ -53,6 +55,8 @@ class ConsultaFichaIntegralTest {
         when(segmento.buscar(42L)).thenReturn(segmentoRespuesta);
         PuntosResponse puntosRespuesta = new PuntosResponse(350, "PLATA", null, false);
         when(puntos.buscar(42L)).thenReturn(puntosRespuesta);
+        NivelConsumoResponse nivelRespuesta = new NivelConsumoResponse("ALTO", new java.math.BigDecimal("5230.00"), false);
+        when(nivelConsumo.buscar(eq(42L), any())).thenReturn(nivelRespuesta);
 
         FichaIntegralResponse ficha = consulta.obtener(42L);
 
@@ -60,10 +64,11 @@ class ConsultaFichaIntegralTest {
         assertThat(ficha.historialCompras()).containsExactly(compra);
         assertThat(ficha.segmento()).isEqualTo(segmentoRespuesta);
         assertThat(ficha.puntos()).isEqualTo(puntosRespuesta);
+        assertThat(ficha.nivelConsumo()).isEqualTo(nivelRespuesta);
     }
 
     @Test
-    void unClienteSinSegmentoNiPuntosCargaElRestoDeLaFichaNormalmente() {
+    void unClienteSinSegmentoPuntosNiNivelCargaElRestoDeLaFichaNormalmente() {
         Cliente cliente = new Cliente();
         cliente.identificar("Bruno", "Rojas", "CI", "1122334");
         when(clientes.findById(7L)).thenReturn(Optional.of(cliente));
@@ -71,12 +76,14 @@ class ConsultaFichaIntegralTest {
         when(historialCompras.buscar(eq(7L), any())).thenReturn(List.of());
         when(segmento.buscar(7L)).thenReturn(new SegmentoResponse(null, null, true));
         when(puntos.buscar(7L)).thenReturn(new PuntosResponse(null, null, null, true));
+        when(nivelConsumo.buscar(eq(7L), any())).thenReturn(new NivelConsumoResponse(null, null, true));
 
         FichaIntegralResponse ficha = consulta.obtener(7L);
 
         assertThat(ficha.datosPersonales().nombres()).isEqualTo("Bruno");
         assertThat(ficha.segmento().sinDatos()).isTrue();
         assertThat(ficha.puntos().sinDatos()).isTrue();
+        assertThat(ficha.nivelConsumo().sinDatos()).isTrue();
     }
 
     @Test
@@ -85,6 +92,6 @@ class ConsultaFichaIntegralTest {
 
         assertThatThrownBy(() -> consulta.obtener(99L)).isInstanceOf(RecursoNoEncontradoException.class);
 
-        verifyNoInteractions(historialCompras, segmento, puntos);
+        verifyNoInteractions(historialCompras, segmento, puntos, nivelConsumo);
     }
 }

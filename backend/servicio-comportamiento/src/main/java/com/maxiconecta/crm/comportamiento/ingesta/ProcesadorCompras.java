@@ -4,6 +4,7 @@ import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
+import com.maxiconecta.crm.comportamiento.consumo.ClasificadorConsumo;
 import com.maxiconecta.crm.comportamiento.inactividad.DetectorClientesInactivos;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorEventos;
 import org.springframework.stereotype.Service;
@@ -29,11 +30,12 @@ public class ProcesadorCompras {
     private final ClientePerfiles perfiles;
     private final FrecuenciaCompraRepository frecuencias;
     private final DetectorClientesInactivos inactividad;
+    private final ClasificadorConsumo consumo;
 
     public ProcesadorCompras(EventoRecibidoRepository eventos, CompraRepository compras,
                              EventoProcesadoRepository procesados, LectorEventos lector, ValidadorEventos validador,
                              ClientePerfiles perfiles, FrecuenciaCompraRepository frecuencias,
-                             DetectorClientesInactivos inactividad) {
+                             DetectorClientesInactivos inactividad, ClasificadorConsumo consumo) {
         this.eventos = eventos;
         this.compras = compras;
         this.idempotencia = new ControlIdempotencia(procesados);
@@ -42,6 +44,7 @@ public class ProcesadorCompras {
         this.perfiles = perfiles;
         this.frecuencias = frecuencias;
         this.inactividad = inactividad;
+        this.consumo = consumo;
     }
 
     @Transactional
@@ -64,6 +67,7 @@ public class ProcesadorCompras {
         frecuencias.incrementar(datos.idCliente());
         recibido.marcarProcesado();
         inactividad.reactivar(datos.idCliente());
+        consumo.reclasificar(datos.idCliente());
         return guardada;
     }
 }

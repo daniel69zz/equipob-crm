@@ -4,6 +4,7 @@ import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Compra } from './compras.service';
 import { FichaIntegral, FichaIntegralService } from './ficha-integral.service';
+import { NivelConsumoComponent } from './nivel-consumo.component';
 import { PuntosFidelizacionComponent } from './puntos-fidelizacion.component';
 import { PestaniasClienteComponent } from './pestanias-cliente.component';
 
@@ -21,13 +22,13 @@ const NOMBRES_DE_TIPO_DIRECCION: Record<string, string> = {
 
 /**
  * Ficha integral del cliente (SCRUM-10, SCRUM-150): datos personales, contacto, direcciones,
- * historial de compras, segmento y puntos en una sola pantalla, para resolver la atención sin
+ * historial de compras, segmento, nivel de consumo y puntos en una sola pantalla, para resolver la atención sin
  * cambiar de sistema.
  */
 @Component({
   selector: 'app-ficha-integral',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, PuntosFidelizacionComponent, PestaniasClienteComponent],
+  imports: [DatePipe, DecimalPipe, RouterLink, NivelConsumoComponent, PuntosFidelizacionComponent, PestaniasClienteComponent],
   template: `
     <app-pestanias-cliente [id]="id()" />
     <h1>Ficha integral del cliente</h1>
@@ -82,6 +83,8 @@ const NOMBRES_DE_TIPO_DIRECCION: Record<string, string> = {
           }
         }
       </section>
+
+      <app-nivel-consumo [nivel]="datos.nivelConsumo" />
 
       <app-puntos-fidelizacion [puntos]="datos.puntos" />
 
