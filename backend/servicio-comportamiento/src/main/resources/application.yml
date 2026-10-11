@@ -45,12 +45,18 @@ comportamiento:
     umbral-dias: ${INACTIVIDAD_UMBRAL_DIAS:90}
     # Cuándo corre la identificación automática (SCRUM-297); por defecto, una vez al día de madrugada.
     cron: ${INACTIVIDAD_CRON:0 0 3 * * *}
+
+  evolucion:
+    # Zona horaria del negocio con la que cada compra se asigna a su mes, trimestre o año (SCRUM-32).
+    zona-horaria: ${EVOLUCION_ZONA_HORARIA:America/La_Paz}
+
   nivel-consumo:
     # Valor acumulado (en bolivianos) desde el que un cliente es de consumo medio y alto (SCRUM-270).
     umbral-medio: ${NIVEL_CONSUMO_UMBRAL_MEDIO:500}
     umbral-alto: ${NIVEL_CONSUMO_UMBRAL_ALTO:5000}
     # Cuándo se reclasifica a todos los clientes (SCRUM-268); por defecto, una vez al día de madrugada.
     cron: ${NIVEL_CONSUMO_CRON:0 30 3 * * *}
+
   cambio-comportamiento:
     # Periodo actual y línea base de la detección de cambios de comportamiento (SCRUM-316):
     # se comparan los últimos ventana-dias con el promedio por periodo de los periodos-base anteriores.
