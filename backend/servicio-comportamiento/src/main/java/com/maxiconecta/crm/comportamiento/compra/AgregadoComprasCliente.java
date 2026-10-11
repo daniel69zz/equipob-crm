@@ -6,6 +6,8 @@ import jakarta.persistence.Tuple;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,6 +82,56 @@ public class AgregadoComprasCliente {
         consulta.where(ComprasDelCliente.vigente(compra, criterios));
         consulta.groupBy(compra.get("idClienteOrigen"));
         consulta.having(criterios.lessThan(ultimaFecha, corte));
+        return entityManager.createQuery(consulta).getResultList();
+    }
+
+    /**
+     * Valor vigente acumulado de cada cliente con compras vigentes (agrupado por
+     * {@code idClienteOrigen}): la base de la clasificación por nivel de consumo
+     * (docs/compra/nivel-consumo.md). Como la detección de inactivos, recorre a todos los clientes,
+     * por eso agrupa en la base en lugar de recibir identificadores.
+     */
+    @Transactional(readOnly = true)
+    public List<ValorCliente> valorVigentePorCliente() {
+        CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ValorCliente> consulta = criterios.createQuery(ValorCliente.class);
+        Root<Compra> compra = consulta.from(Compra.class);
+        consulta.select(criterios.construct(ValorCliente.class, compra.get("idClienteOrigen"),
+                criterios.sum(ComprasDelCliente.montoVigente(compra, criterios))));
+        consulta.where(ComprasDelCliente.vigente(compra, criterios));
+        consulta.groupBy(compra.get("idClienteOrigen"));
+        return entityManager.createQuery(consulta).getResultList();
+    }
+
+    /**
+     * Cantidad y monto vigente de las compras de cada cliente en la línea base
+     * ({@code [inicioBase, inicioActual)}) y en el periodo actual ({@code [inicioActual, fin)}), con
+     * su primera compra vigente: la base de la detección de cambios de comportamiento
+     * (docs/compra/cambios-comportamiento.md, SCRUM-318). Las compras con fecha posterior a
+     * {@code fin} (fecha de origen errónea) no participan. Recorre a todos los clientes con compras
+     * vigentes, por eso agrupa en la base.
+     */
+    @Transactional(readOnly = true)
+    public List<ComprasPorPeriodoCliente> comprasPorPeriodo(OffsetDateTime inicioBase, OffsetDateTime inicioActual,
+                                                            OffsetDateTime fin) {
+        CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ComprasPorPeriodoCliente> consulta = criterios.createQuery(ComprasPorPeriodoCliente.class);
+        Root<Compra> compra = consulta.from(Compra.class);
+        Path<OffsetDateTime> fecha = compra.get("fecha");
+        Expression<BigDecimal> monto = ComprasDelCliente.montoVigente(compra, criterios);
+        Predicate enBase = criterios.and(criterios.greaterThanOrEqualTo(fecha, inicioBase),
+                criterios.lessThan(fecha, inicioActual));
+        Predicate enActual = criterios.greaterThanOrEqualTo(fecha, inicioActual);
+
+        consulta.select(criterios.construct(ComprasPorPeriodoCliente.class,
+                compra.get("idClienteOrigen"),
+                criterios.least(fecha),
+                criterios.sum(criterios.<Long>selectCase().when(enBase, 1L).otherwise(0L)),
+                criterios.sum(criterios.<BigDecimal>selectCase().when(enBase, monto).otherwise(BigDecimal.ZERO)),
+                criterios.sum(criterios.<Long>selectCase().when(enActual, 1L).otherwise(0L)),
+                criterios.sum(criterios.<BigDecimal>selectCase().when(enActual, monto).otherwise(BigDecimal.ZERO))));
+        consulta.where(ComprasDelCliente.vigente(compra, criterios), criterios.lessThan(fecha, fin));
+        consulta.groupBy(compra.get("idClienteOrigen"));
         return entityManager.createQuery(consulta).getResultList();
     }
 }

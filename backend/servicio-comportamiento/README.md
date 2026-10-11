@@ -2,7 +2,7 @@
 
 Registra las compras de cada cliente y calcula sus indicadores.
 
-- **Guarda:** historial de compras (ítems y categorías), ticket promedio, recencia, frecuencia, valor acumulado e inactividad.
+- **Guarda:** historial de compras (ítems y categorías), ticket promedio, recencia, frecuencia, valor acumulado, inactividad, nivel de consumo y detecciones de cambio de comportamiento.
 - **Analiza:** evolución del consumo de cada cliente por categoría y periodo.
 - **Consume de RabbitMQ:** compras confirmadas y anulaciones o devoluciones.
 - **Esquema en la base:** `comportamiento`
@@ -21,12 +21,12 @@ Cada compra se vincula al perfil del cliente consultando el servicio de Perfil (
 
 Si ni siquiera se puede escribir en la bitácora, el mensaje se reintenta 3 veces y después pasa a la cola `crm.comportamiento.compras.respaldo`.
 
-| Método | Ruta | Permiso (en el Gateway) | Descripción |
-|---|---|---|---|
-| GET | `/api/comportamiento/eventos` | `EVENTOS_REPROCESAR` | Bitácora de ingesta por periodo, con el resumen por estado. Filtros: `desde`, `hasta` (`AAAA-MM-DD`, por defecto los últimos 7 días), `estado`, `transaccion` (identificador de la compra), `pagina`, `tamanio` (máx. 100) |
-| POST | `/api/comportamiento/eventos/{id}/reprocesar` | `EVENTOS_REPROCESAR` | Reprocesa un evento `FALLIDO` conservando la validación y la idempotencia del flujo normal |
-| GET | `/api/comportamiento/eventos/{id}/intentos` | `EVENTOS_REPROCESAR` | Historial de intentos manuales del evento, del más reciente al más antiguo |
-| POST | `/api/comportamiento/eventos/respaldo/reinyectar` | `EVENTOS_REPROCESAR` | Reinyecta un único mensaje de la cola de respaldo; responde `204` si está vacía. `cola=compras` (por defecto) o `cola=anulaciones` |
+| Método | Ruta                                              | Permiso (en el Gateway) | Descripción                                                                                                                                                                                                                |
+| ------ | ------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/comportamiento/eventos`                     | `EVENTOS_REPROCESAR`    | Bitácora de ingesta por periodo, con el resumen por estado. Filtros: `desde`, `hasta` (`AAAA-MM-DD`, por defecto los últimos 7 días), `estado`, `transaccion` (identificador de la compra), `pagina`, `tamanio` (máx. 100) |
+| POST   | `/api/comportamiento/eventos/{id}/reprocesar`     | `EVENTOS_REPROCESAR`    | Reprocesa un evento `FALLIDO` conservando la validación y la idempotencia del flujo normal                                                                                                                                 |
+| GET    | `/api/comportamiento/eventos/{id}/intentos`       | `EVENTOS_REPROCESAR`    | Historial de intentos manuales del evento, del más reciente al más antiguo                                                                                                                                                 |
+| POST   | `/api/comportamiento/eventos/respaldo/reinyectar` | `EVENTOS_REPROCESAR`    | Reinyecta un único mensaje de la cola de respaldo; responde `204` si está vacía. `cola=compras` (por defecto) o `cola=anulaciones`                                                                                         |
 
 Cada intento manual se registra en `comportamiento.intento_reproceso`, incluyendo resultado,
 causa y el usuario recibido en `X-Usuario`. Solo puede haber un intento activo por evento. Un
@@ -49,9 +49,9 @@ Si ni siquiera se puede escribir en la bitácora, el mensaje pasa a `crm.comport
 Ver diseño en `docs/compra/historial-compras.md` y el formato de la respuesta en
 `docs/compra/formato-historial-compras.md`.
 
-| Método | Ruta | Permiso (en el Gateway) | Descripción |
-|---|---|---|---|
-| GET | `/api/comportamiento/clientes/{clienteId}/compras` | `INDICADORES_CONSULTAR` | Compras del cliente, de la más reciente a la más antigua. `{clienteId}` solo identifica al cliente para la auditoría del Gateway; la búsqueda usa `identificador` (repetible: cada identificador del cliente en Marketplace y Ventas, tal como los devuelve `identificadoresOrigen` en `GET /api/perfil/clientes/{clienteId}`). Sin identificadores, o si ninguno tiene compras, responde una página vacía. `pagina`, `tamanio` (por defecto 20, máx. 100) |
+| Método | Ruta                                               | Permiso (en el Gateway) | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------ | -------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/comportamiento/clientes/{clienteId}/compras` | `INDICADORES_CONSULTAR` | Compras del cliente, de la más reciente a la más antigua. `{clienteId}` solo identifica al cliente para la auditoría del Gateway; la búsqueda usa `identificador` (repetible: cada identificador del cliente en Marketplace y Ventas, tal como los devuelve `identificadoresOrigen` en `GET /api/perfil/clientes/{clienteId}`). Sin identificadores, o si ninguno tiene compras, responde una página vacía. `pagina`, `tamanio` (por defecto 20, máx. 100) |
 
 ## Indicadores del cliente (SCRUM-17, SCRUM-19, SCRUM-33, SCRUM-37)
 
@@ -61,9 +61,9 @@ acumulado se derivan del historial y se calculan al consultarlos, así que refle
 las compras nuevas, devoluciones y anulaciones; frecuencia es la excepción, se persiste y se
 incrementa atómicamente al registrar una compra confirmada.
 
-| Método | Ruta | Permiso (en el Gateway) | Descripción |
-|---|---|---|---|
-| GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia` y `valorAcumulado`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`). Usa el parámetro repetible `identificador` |
+| Método | Ruta                                                   | Permiso (en el Gateway) | Descripción                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------ | ------------------------------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia`, `valorAcumulado` y `nivelConsumo`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`); el nivel de consumo (`nivel`, `valorAcumulado`, `sinNivel`) clasifica ese valor como BAJO, MEDIO o ALTO. Usa el parámetro repetible `identificador` |
 
 ## Clientes inactivos (SCRUM-31)
 
@@ -72,20 +72,9 @@ compra vigente tiene más de `comportamiento.inactividad.umbral-dias` días (por
 recalcula con una tarea programada (`comportamiento.inactividad.cron`, por defecto una vez al día)
 y se corrige de inmediato cuando el cliente vuelve a comprar.
 
-| Método | Ruta | Permiso (en el Gateway) | Descripción |
-|---|---|---|---|
-| GET | `/api/comportamiento/clientes?estado=inactivo` | `INDICADORES_CONSULTAR` | Clientes sin compras vigentes desde hace más del umbral configurado, del que lleva más tiempo sin comprar al que lleva menos. Devuelve el identificador del cliente (`idClienteOrigen`), la última compra y los días transcurridos. `pagina`, `tamanio` (por defecto 20, máx. 100) |
-
-## Evolución del consumo por categoría (SCRUM-32)
-
-Lógica de cálculo, periodos, comparación y calidad de los datos en
-`docs/compra/evolucion-consumo-categoria.md`. Se calcula al consultarla sobre el historial, así que
-refleja de inmediato las compras nuevas, devoluciones y anulaciones. Cada compra se asigna a su
-periodo según su fecha en `comportamiento.evolucion.zona-horaria` (por defecto `America/La_Paz`).
-
-| Método | Ruta | Permiso (en el Gateway) | Descripción |
-|---|---|---|---|
-| GET | `/api/comportamiento/clientes/{clienteId}/evolucion-consumo` | `EVOLUCION_CONSUMO_CONSULTAR` | Monto, compras y unidades vigentes de cada categoría en cada periodo del rango, en cero los periodos sin compras, con la variación contra el periodo anterior y contra el periodo base y la tendencia de la categoría. Usa `identificador` (repetible) como el historial. Filtros: `desde`, `hasta` (`AAAA-MM-DD`, por defecto los últimos 12 meses), `periodo` (`MENSUAL`, `TRIMESTRAL` o `ANUAL`), `categoria` (repetible) y `periodoBase` |
+| Método | Ruta                                           | Permiso (en el Gateway) | Descripción                                                                                                                                                                                                                                                                        |
+| ------ | ---------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/comportamiento/clientes?estado=inactivo` | `INDICADORES_CONSULTAR` | Clientes sin compras vigentes desde hace más del umbral configurado, del que lleva más tiempo sin comprar al que lleva menos. Devuelve el identificador del cliente (`idClienteOrigen`), la última compra y los días transcurridos. `pagina`, `tamanio` (por defecto 20, máx. 100) |
 
 ## Ejecutar en local
 

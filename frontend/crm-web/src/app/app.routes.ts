@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
-import { autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.guards';
+import { administradorSegmentacionGuard, autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.guards';
+import { CriteriosComponent } from './features/segmentacion/criterios.component';
 import { Permisos } from './core/auth/sesion';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
@@ -26,6 +27,7 @@ export const routes: Routes = [
     canActivate: [autenticadoGuard],
     children: [
       { path: '', component: InicioComponent },
+      { path: 'segmentacion/criterios', component: CriteriosComponent, canActivate: [administradorSegmentacionGuard] },
       {
         path: 'clientes',
         component: BuscarClientesComponent,

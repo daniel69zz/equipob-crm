@@ -4,4 +4,6 @@
 - `seguridad/`: catálogo de roles, matriz de permisos, alcance de la auditoría y convención de rutas para datos de clientes.
 - `ingesta/`: estrategia de idempotencia de los eventos de venta.
 - `perfil/`: modelo de datos del perfil, identificadores de origen, mapeo de datos con su política de reintentos, histórico de cambios, y catálogo de reglas de validación (perfiles incompletos o inconsistentes).
-- `compra/`: diseño de la consulta del historial de compras del cliente (SCRUM-16), regla de cálculo del ticket promedio (SCRUM-17) y reglas de recálculo de los indicadores ante anulaciones y devoluciones (SCRUM-523).
+- `compra/`: diseño de la consulta del historial de compras del cliente (SCRUM-16), regla de cálculo del ticket promedio (SCRUM-17) reglas de recálculo de los indicadores ante anulaciones y devoluciones (SCRUM-523) nivel de consumo del cliente con sus umbrales y diagramas (SCRUM-27) y detección de cambios en el comportamiento de compra con sus criterios, alertas y diagramas (SCRUM-34).
+
+- `segmentacion/`: modelo y API de criterios (SCRUM-25), diagramas y verificación de backend/frontend.

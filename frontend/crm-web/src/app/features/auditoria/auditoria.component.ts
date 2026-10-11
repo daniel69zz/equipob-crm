@@ -8,6 +8,10 @@ const TAMANIO_PAGINA = 50;
 
 /** Nombre visible de cada operación de auditoría. */
 const NOMBRES_DE_OPERACION: Record<string, string> = {
+  CRITERIO_CREADO: 'Criterio creado',
+  CRITERIO_ACTUALIZADO: 'Criterio actualizado',
+  CRITERIO_DESACTIVADO: 'Criterio desactivado',
+  CRITERIO_ACTIVADO: 'Criterio activado',
   CLIENTE_CONSULTADO: 'Consulta de cliente',
   CLIENTE_MODIFICADO: 'Modificación de cliente',
   ACCESO_DENEGADO: 'Acceso denegado',

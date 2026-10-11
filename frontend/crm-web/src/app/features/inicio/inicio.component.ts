@@ -65,10 +65,11 @@ const MODULOS: Modulo[] = [
     ruta: '/admin/auditoria',
   },
   {
-    titulo: 'Segmentación',
-    descripcion: 'Segmentos de clientes según su comportamiento.',
-    permiso: Permisos.SEGMENTOS_CONSULTAR,
+    titulo: 'Criterios de segmentación',
+    descripcion: 'Configura reglas por frecuencia, valor y categorías. Consulta cada cambio.',
+    permiso: Permisos.SEGMENTACION_CONFIGURAR,
     icono: 'segmentos',
+    ruta: '/segmentacion/criterios',
   },
   {
     titulo: 'Fidelización',
@@ -221,7 +222,8 @@ export class InicioComponent implements OnInit {
 
   private readonly permisos = computed(() => this.auth.sesion()?.permisos ?? []);
   readonly puedeVerEventos = computed(() => this.permisos().includes(Permisos.EVENTOS_REPROCESAR));
-  readonly disponibles = computed(() => MODULOS.filter((m) => m.ruta && this.permisos().includes(m.permiso)));
+  readonly disponibles = computed(() => MODULOS.filter((m) => m.ruta && this.permisos().includes(m.permiso) &&
+    (m.permiso !== Permisos.SEGMENTACION_CONFIGURAR || this.auth.sesion()?.rol === 'ADMINISTRADOR_CRM')));
   readonly proximos = computed(() => MODULOS.filter((m) => !m.ruta && this.permisos().includes(m.permiso)));
 
   readonly saludo = computed(() => {

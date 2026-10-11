@@ -1,7 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { CambiosComportamientoFicha } from './cambios-comportamiento.component';
 import { Compra } from './compras.service';
+import { NivelConsumoFicha } from './nivel-consumo.component';
 import { PuntosFidelizacion } from './puntos-fidelizacion.component';
 
 export interface DireccionFicha {
@@ -37,11 +39,13 @@ export interface FichaIntegral {
   historialCompras: Compra[];
   segmento: SegmentoFicha;
   puntos: PuntosFidelizacion;
+  nivelConsumo: NivelConsumoFicha | null;
+  cambiosComportamiento: CambiosComportamientoFicha | null;
 }
 
 /**
  * Ficha integral del cliente (SCRUM-10, SCRUM-150): datos personales, contacto, direcciones,
- * historial de compras, segmento y puntos en una sola consulta
+ * historial de compras, segmento, puntos, nivel de consumo y alertas de cambio de comportamiento en una sola consulta
  * (GET /api/perfil/clientes/{id}/ficha-integral, restringido a Administrador de CRM y Agente de
  * Atención al Cliente por SCRUM-153).
  */

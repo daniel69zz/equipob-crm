@@ -61,3 +61,13 @@ Solo los roles con el permiso `AUDITORIA_CONSULTAR` (por defecto, el **Administr
 | Página y tamaño | `pagina`, `tamanio` | `0`, `50` (máximo 100) |
 
 Los resultados se ordenan del más reciente al más antiguo.
+
+## Cambios de criterios de segmentación (SCRUM-25)
+
+El servicio de Segmentación inserta `CRITERIO_CREADO`, `CRITERIO_ACTUALIZADO`,
+`CRITERIO_DESACTIVADO` y `CRITERIO_ACTIVADO` en `auditoria.evento`, entidad
+`CRITERIO_SEGMENTACION`. Su detalle contiene fotos JSON `anterior` y `nuevo` de la
+configuración, sin datos personales de clientes. El registro y el cambio comparten una
+transacción: un fallo de auditoría revierte la modificación. Estos eventos aparecen en la
+pantalla Auditoría y en el historial de cada criterio. Esto es auditoría de cambios de
+configuración; el filtro de accesos a clientes conserva su alcance anterior.

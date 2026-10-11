@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * SCRUM-509 · Casos de acceso por perfil según docs/seguridad/matriz-permisos.md.
  */
 @WebMvcTest
-@Import({SecurityConfig.class, JwtService.class})
+@Import({SecurityConfig.class, JwtService.class, AccesoPorRolTest.ServicioCaido.class})
 @TestPropertySource(properties = {
         "crm.seguridad.jwt.secreto=secreto-de-prueba-con-mas-de-32-caracteres-crm",
         "spring.cloud.gateway.mvc.enabled=false"
@@ -289,6 +289,41 @@ class AccesoPorRolTest {
     void unaRutaNoContempladaEnLaMatrizSeDeniega() throws Exception {
         mvc.perform(get("/api/desconocida").header("Authorization", bearerAdministrador()))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void criteriosExigenAdministradorYPermisoInclusoSiOtroRolTieneElPermiso() throws Exception {
+        String ruta = "/api/segmentacion/criterios";
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(post(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        for (String rol : List.of("AGENTE_ATENCION", "GERENTE_COMERCIAL")) {
+            String token = bearer("prueba-" + rol, rol, List.of("SEGMENTACION_CONFIGURAR", "SEGMENTOS_CONSULTAR"));
+            mvc.perform(get(ruta).header("Authorization", token)).andExpect(status().isForbidden());
+            mvc.perform(post(ruta).header("Authorization", token)
+                    .header("X-Usuario-Rol", "ADMINISTRADOR_CRM")).andExpect(status().isForbidden());
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(ruta + "/1")
+                    .header("Authorization", token)).andExpect(status().isForbidden());
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch(ruta + "/1/estado")
+                    .header("Authorization", token)).andExpect(status().isForbidden());
+        }
+        mvc.perform(post(ruta).header("Authorization", bearer("sin-permiso", "ADMINISTRADOR_CRM", List.of())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void servicioCaidoDevuelve503SinInvalidarLaSesion() throws Exception {
+        String token = bearerAdministrador();
+        mvc.perform(get("/api/segmentacion/prueba-disponibilidad").header("Authorization", token))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.mensaje").value("El servicio solicitado no está disponible. Intente nuevamente."));
+        mvc.perform(get("/api/auth/yo").header("Authorization", token)).andExpect(status().isOk());
+    }
+
+    @org.springframework.web.bind.annotation.RestController
+    static class ServicioCaido {
+        @org.springframework.web.bind.annotation.GetMapping("/api/segmentacion/prueba-disponibilidad")
+        public void obtener() { throw new org.springframework.web.client.ResourceAccessException("Fallo de red simulado"); }
     }
 
     // --- Utilidades ---
