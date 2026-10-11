@@ -49,6 +49,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/comportamiento/eventos/**` | Todos | `EVENTOS_REPROCESAR` |
 | `/api/perfil/**` | GET | `CLIENTE_CONSULTAR` |
 | `/api/perfil/**` | POST, PUT, PATCH, DELETE | `CLIENTE_EDITAR` |
+| `/api/comportamiento/comparacion-periodos` | GET | `INDICADORES_CONSULTAR` **y** `SEGMENTOS_CONSULTAR` (regla anterior a la genérica) |
 | `/api/comportamiento/**` | GET | `INDICADORES_CONSULTAR` |
 | `/api/segmentacion/criterios` y `/api/segmentacion/criterios/**` | Todos | Rol `ADMINISTRADOR_CRM` **y** `SEGMENTACION_CONFIGURAR` (regla anterior a la genérica) |
 | `/api/segmentacion/**` | GET | `SEGMENTOS_CONSULTAR` |
