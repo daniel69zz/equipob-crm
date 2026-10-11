@@ -2,7 +2,7 @@
 
 Registra las compras de cada cliente y calcula sus indicadores.
 
-- **Guarda:** historial de compras (ítems y categorías), ticket promedio, recencia, frecuencia, valor acumulado e inactividad.
+- **Guarda:** historial de compras (ítems y categorías), ticket promedio, recencia, frecuencia, valor acumulado, inactividad, nivel de consumo y detecciones de cambio de comportamiento.
 - **Consume de RabbitMQ:** compras confirmadas y anulaciones o devoluciones.
 - **Esquema en la base:** `comportamiento`
 
@@ -88,6 +88,23 @@ recalculan con una tarea programada (`comportamiento.nivel-consumo.cron`, por de
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes?nivelConsumo=ALTO` | `INDICADORES_CONSULTAR` | Clientes del nivel indicado (`BAJO`, `MEDIO` o `ALTO`), del que más aporta al que menos. Devuelve los umbrales vigentes y, por cliente, su `idClienteOrigen`, `nivel`, `valorAcumulado` y `actualizadoEn`. `pagina`, `tamanio` (por defecto 20, máx. 100) |
+
+## Cambios en el comportamiento de compra (SCRUM-34)
+
+Criterios, umbrales, ventana y limitaciones en `docs/compra/cambios-comportamiento.md`; diagramas en
+`docs/compra/cambios-comportamiento-diagramas.md`. Una tarea programada
+(`comportamiento.cambio-comportamiento.cron`, por defecto una vez al día a las 04:00) compara, para cada
+cliente con compras vigentes, la frecuencia y el monto de los últimos `ventana-dias` (90) con su
+promedio por periodo en los `periodos-base` (3) periodos anteriores. Un desvío relativo de al menos
+`umbral` (0.5 = 50 %), hacia arriba o hacia abajo, se registra como una detección en
+`comportamiento.deteccion_cambio_comportamiento` (inmutable, auditable y es la alerta de la ficha).
+Con menos de `minimo-compras-base` (3) compras en la línea base, o menos de un periodo de antigüedad, el
+cliente queda `SIN_LINEA_BASE` y no genera detecciones. La misma variación (cliente, tipo y dirección)
+no se registra dos veces dentro del periodo actual.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/cambios-comportamiento` | `INDICADORES_CONSULTAR` | Estado de la última evaluación (`CON_VARIACION`, `ESTABLE`, `SIN_LINEA_BASE` o `SIN_EVALUAR`), `evaluadoEn` y las alertas del cliente de la más reciente a la más antigua (máx. 50), cada una con tipo, dirección, valor actual y habitual, variación, umbral, periodo, fecha y un mensaje legible. Usa el parámetro repetible `identificador` |
 
 ## Ejecutar en local
 
