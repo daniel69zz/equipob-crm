@@ -82,4 +82,22 @@ public class AgregadoComprasCliente {
         consulta.having(criterios.lessThan(ultimaFecha, corte));
         return entityManager.createQuery(consulta).getResultList();
     }
+
+    /**
+     * Valor vigente acumulado de cada cliente con compras vigentes (agrupado por
+     * {@code idClienteOrigen}): la base de la clasificación por nivel de consumo
+     * (docs/compra/nivel-consumo.md). Como la detección de inactivos, recorre a todos los clientes,
+     * por eso agrupa en la base en lugar de recibir identificadores.
+     */
+    @Transactional(readOnly = true)
+    public List<ValorCliente> valorVigentePorCliente() {
+        CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ValorCliente> consulta = criterios.createQuery(ValorCliente.class);
+        Root<Compra> compra = consulta.from(Compra.class);
+        consulta.select(criterios.construct(ValorCliente.class, compra.get("idClienteOrigen"),
+                criterios.sum(ComprasDelCliente.montoVigente(compra, criterios))));
+        consulta.where(ComprasDelCliente.vigente(compra, criterios));
+        consulta.groupBy(compra.get("idClienteOrigen"));
+        return entityManager.createQuery(consulta).getResultList();
+    }
 }
