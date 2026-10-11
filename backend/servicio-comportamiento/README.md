@@ -64,6 +64,19 @@ incrementa atómicamente al registrar una compra confirmada.
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia` y `valorAcumulado`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`). Usa el parámetro repetible `identificador` |
 
+## Valor consumido por periodo (SCRUM-39)
+
+Diseño, validaciones y formato de la respuesta en `docs/compra/consumo-por-periodo.md`; diagramas en
+`docs/compra/consumo-por-periodo-diagramas.md`. Devuelve el valor total y el promedio por compra que
+consumió un cliente entre dos fechas, ambas inclusive y en la zona horaria del negocio
+(`comportamiento.consumo-periodo.zona-horaria`, por defecto `America/La_Paz`). No incluye compras
+anuladas; una devolución parcial aporta lo que le queda vigente. Un periodo sin compras responde 200
+con cero, `sinDatos: true` y un mensaje.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/consumo-periodo` | `INDICADORES_CONSULTAR` | Valor consumido en el periodo. `desde` y `hasta` (obligatorias, `AAAA-MM-DD`, máx. 5 años; 400 si faltan, están al revés o tienen otro formato). Devuelve `total`, `promedio`, `compras`, `sinDatos` y `mensaje`. Usa el parámetro repetible `identificador` |
+
 ## Clientes inactivos (SCRUM-31)
 
 Diseño y criterio en `docs/compra/clientes-inactivos.md`. Un cliente es inactivo cuando su última
