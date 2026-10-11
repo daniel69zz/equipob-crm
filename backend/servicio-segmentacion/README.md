@@ -3,6 +3,7 @@
 Servicio Spring Boot del CRM MaxiConecta, propietario del esquema `segmentacion`.
 
 - Consulta del segmento asignado para la ficha integral del cliente (SCRUM-149).
+- Consulta de los clientes de un segmento, `GET /api/segmentacion/clientes?segmento=` (SCRUM-357), que usa la comparación de periodos por segmento (`docs/compra/comparacion-periodos.md`).
 - **SCRUM-25:** alta, edición, activación y desactivación de criterios por frecuencia, valor acumulado y categoría.
 - Rechazo de rangos inválidos y superposiciones, con control de concurrencia y versiones.
 - Auditoría transaccional con fotos antes/después en el esquema compartido de solo inserción.

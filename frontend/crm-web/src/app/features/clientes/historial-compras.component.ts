@@ -4,6 +4,8 @@ import { Component, OnInit, computed, inject, input, signal } from '@angular/cor
 import { RouterLink } from '@angular/router';
 import { PestaniasClienteComponent } from './pestanias-cliente.component';
 import { ClientesService, IdentificadorOrigen, PerfilCliente } from './clientes.service';
+import { ComparacionPeriodosComponent } from './comparacion-periodos.component';
+import { ConsumoPeriodoComponent } from './consumo-periodo.component';
 import {
   Compra,
   ComprasService,
@@ -30,7 +32,7 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
 @Component({
   selector: 'app-historial-compras',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, PestaniasClienteComponent],
+  imports: [DatePipe, DecimalPipe, RouterLink, PestaniasClienteComponent, ConsumoPeriodoComponent, ComparacionPeriodosComponent],
   template: `
     <app-pestanias-cliente [id]="id()" />
     <h1>Historial de compras</h1>
@@ -107,6 +109,11 @@ const NOMBRES_DE_ESTADO: Record<Compra['estado'], string> = {
         }
       </div>
     </section>
+
+    @if (perfil()) {
+      <app-consumo-periodo [idCliente]="id()" [identificadores]="identificadoresOrigen()" />
+      <app-comparacion-periodos [idCliente]="id()" [identificadores]="identificadoresOrigen()" />
+    }
 
     @if (historial(); as datos) {
       @for (compra of datos.content; track $index) {
@@ -196,6 +203,8 @@ export class HistorialComprasComponent implements OnInit {
   );
   readonly esUltimaPagina = computed(() => this.hastaRegistro() >= (this.historial()?.total ?? 0));
 
+  readonly identificadoresOrigen = signal<IdentificadorOrigen[]>([]);
+
   private identificadores: IdentificadorOrigen[] = [];
 
   ngOnInit(): void {
@@ -203,6 +212,7 @@ export class HistorialComprasComponent implements OnInit {
       next: (perfil) => {
         this.perfil.set(perfil);
         this.identificadores = perfil.identificadoresOrigen;
+        this.identificadoresOrigen.set(perfil.identificadoresOrigen);
         this.buscar(0);
         this.cargarIndicadores();
       },

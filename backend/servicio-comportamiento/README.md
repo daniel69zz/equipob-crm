@@ -64,6 +64,35 @@ incrementa atómicamente al registrar una compra confirmada.
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia` y `valorAcumulado`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`). Usa el parámetro repetible `identificador` |
 
+## Valor consumido por periodo (SCRUM-39)
+
+Diseño, validaciones y formato de la respuesta en `docs/compra/consumo-por-periodo.md`; diagramas en
+`docs/compra/consumo-por-periodo-diagramas.md`. Devuelve el valor total y el promedio por compra que
+consumió un cliente entre dos fechas, ambas inclusive y en la zona horaria del negocio
+(`comportamiento.consumo-periodo.zona-horaria`, por defecto `America/La_Paz`). No incluye compras
+anuladas; una devolución parcial aporta lo que le queda vigente. Un periodo sin compras responde 200
+con cero, `sinDatos: true` y un mensaje.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/consumo-periodo` | `INDICADORES_CONSULTAR` | Valor consumido en el periodo. `desde` y `hasta` (obligatorias, `AAAA-MM-DD`, máx. 5 años; 400 si faltan, están al revés o tienen otro formato). Devuelve `total`, `promedio`, `compras`, `sinDatos` y `mensaje`. Usa el parámetro repetible `identificador` |
+
+## Comparación entre dos periodos (SCRUM-40)
+
+Reglas, formato de la respuesta y permisos en `docs/compra/comparacion-periodos.md`; diagramas en
+`docs/compra/comparacion-periodos-diagramas.md`. Compara la frecuencia (compras vigentes) y el valor de
+compra de un cliente, o de los clientes de un segmento, entre un periodo A (base) y un periodo B, con
+la variación absoluta y porcentual de cada métrica y su tendencia (`CRECE`, `DECAE`, `ESTABLE` o
+`NUEVO` cuando el periodo base está en cero y no hay porcentaje). Los periodos no pueden
+superponerse. Para un segmento, los clientes se consultan en `servicio-segmentacion`
+(`SERVICIO_SEGMENTACION_URL`, `SEGMENTACION_TIEMPO_ESPERA`); si no responde, la comparación
+responde 503.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/comparacion-periodos` | `INDICADORES_CONSULTAR` | Compara un cliente. `desdeA`, `hastaA`, `desdeB` y `hastaB` obligatorias (`AAAA-MM-DD`). Usa el parámetro repetible `identificador` |
+| GET | `/api/comportamiento/comparacion-periodos` | `INDICADORES_CONSULTAR` y `SEGMENTOS_CONSULTAR` | Compara los clientes de un segmento (`segmento`, obligatorio) y los mismos cuatro parámetros de fechas. Devuelve solo agregados |
+
 ## Clientes inactivos (SCRUM-31)
 
 Diseño y criterio en `docs/compra/clientes-inactivos.md`. Un cliente es inactivo cuando su última
