@@ -36,6 +36,8 @@ class CriteriosIntegrationTest {
         r.add("spring.datasource.url", postgres::getJdbcUrl);
         r.add("spring.datasource.username", postgres::getUsername);
         r.add("spring.datasource.password", postgres::getPassword);
+        // Estas pruebas no usan RabbitMQ: la asignación automática se prueba en AsignacionSegmentoIntegracionTest.
+        r.add("spring.rabbitmq.listener.simple.auto-startup", () -> "false");
     }
     @Autowired CriterioService service;
     @Autowired JdbcTemplate jdbc;

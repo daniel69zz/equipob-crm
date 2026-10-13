@@ -24,6 +24,11 @@ public class CriterioRepository {
 
     public List<Criterio> listar() { return jdbc.query("SELECT * FROM segmentacion.criterio ORDER BY id DESC", MAPPER); }
 
+    /** Criterios vigentes para la asignación automática (SCRUM-26), del más antiguo al más nuevo. */
+    public List<Criterio> activos() {
+        return jdbc.query("SELECT * FROM segmentacion.criterio WHERE activo ORDER BY id", MAPPER);
+    }
+
     public Optional<Criterio> obtener(long id) {
         return jdbc.query("SELECT * FROM segmentacion.criterio WHERE id = ?", MAPPER, id).stream().findFirst();
     }

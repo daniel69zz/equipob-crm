@@ -19,6 +19,22 @@ spring:
     schemas: segmentacion
     locations: classpath:db/migration
 
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PUERTO:5672}
+    username: ${RABBIT_USUARIO:guest}
+    password: ${RABBIT_PASSWORD:guest}
+    listener:
+      simple:
+        # Un mensaje de métricas que falla por un error transitorio se reintenta y luego va a la
+        # cola de respaldo (SCRUM-26); uno inválido va a respaldo de inmediato.
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2
+
 management:
   endpoints:
     web:
