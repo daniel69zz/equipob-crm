@@ -87,6 +87,20 @@ comprar en cada mes posterior. Las compras anuladas no cuentan ni como primera c
 |---|---|---|---|
 | GET | `/api/comportamiento/cohortes` | `INDICADORES_CONSULTAR` | Matriz de retención: por cohorte (`AAAA-MM`), sus clientes y, por periodo hasta el mes en curso, los clientes que compraron y su porcentaje. `desde` y `hasta` (`AAAA-MM`, por defecto los últimos 12 meses, máx. 36) |
 
+## Perfil de preferencias (SCRUM-41)
+
+Construcción explícita y persistencia por cliente CRM, usando todo su historial vigente y el ranking
+de categorías de SCRUM-18 (monto, compras y nombre). Modelo, validaciones y alcance en
+`docs/preferencias/perfil-preferencias.md`; comandos y resultados esperados en `docs/preferencias/prueba-manual.md`.
+
+| Método | Ruta | Acceso en Gateway |
+|---|---|---|
+| POST | `/api/comportamiento/clientes/{clienteId}/preferencias/construir` | Administrador y `CLIENTE_EDITAR` |
+| GET | `/api/comportamiento/clientes/{clienteId}/preferencias` | Administrador o Agente, y `FICHA_INTEGRAL_CONSULTAR` |
+
+La construcción verifica los identificadores con el servicio de Perfil y persiste la instantánea
+atómicamente mediante V11. GET no recalcula. La actualización por eventos corresponde a SCRUM-42.
+
 ## Ejecutar en local
 
 Requiere PostgreSQL y RabbitMQ. Con Docker:
