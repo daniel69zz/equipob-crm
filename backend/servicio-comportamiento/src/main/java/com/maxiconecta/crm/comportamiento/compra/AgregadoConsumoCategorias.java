@@ -41,6 +41,12 @@ public class AgregadoConsumoCategorias {
                 devuelto(identificadores, desde, hasta), anuladas(identificadores, desde, hasta));
     }
 
+    /** Todo el historial, sin imponer a las preferencias la ventana de los reportes (SCRUM-361). */
+    @Transactional(readOnly = true)
+    public ConsumoEnRango consumirTodo(List<Identificador> identificadores) {
+        return consumir(identificadores, null, null);
+    }
+
     private List<CompraEnRango> compras(List<Identificador> identificadores, OffsetDateTime desde, OffsetDateTime hasta) {
         CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> consulta = criterios.createTupleQuery();
@@ -97,9 +103,14 @@ public class AgregadoConsumoCategorias {
 
     private static Predicate enRango(From<?, Compra> compra, CriteriaBuilder criterios,
                                      List<Identificador> identificadores, OffsetDateTime desde, OffsetDateTime hasta) {
-        return criterios.and(ComprasDelCliente.deIdentificadores(compra, criterios, identificadores),
-                criterios.greaterThanOrEqualTo(compra.get("fecha"), desde),
-                criterios.lessThan(compra.get("fecha"), hasta));
+        Predicate cliente = ComprasDelCliente.deIdentificadores(compra, criterios, identificadores);
+        if (desde != null) {
+            cliente = criterios.and(cliente, criterios.greaterThanOrEqualTo(compra.get("fecha"), desde));
+        }
+        if (hasta != null) {
+            cliente = criterios.and(cliente, criterios.lessThan(compra.get("fecha"), hasta));
+        }
+        return cliente;
     }
 
     private List<LineaConsumoCategoria> lineas(CriteriaQuery<Tuple> consulta) {
