@@ -7,6 +7,7 @@ import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
 import com.maxiconecta.crm.comportamiento.consumo.ClasificadorConsumo;
 import com.maxiconecta.crm.comportamiento.inactividad.DetectorClientesInactivos;
+import com.maxiconecta.crm.comportamiento.metrica.PublicadorMetricas;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorEventos;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ class ProcesadorComprasIdempotenciaTest {
     private final FrecuenciaCompraRepository frecuencias = mock(FrecuenciaCompraRepository.class);
     private final ProcesadorCompras procesador = new ProcesadorCompras(eventos, compras, procesados, lector,
             validadorSinReglas(), mock(ClientePerfiles.class), frecuencias, mock(DetectorClientesInactivos.class),
-            mock(ClasificadorConsumo.class));
+            mock(ClasificadorConsumo.class), mock(PublicadorMetricas.class));
 
     @BeforeEach
     void eventoEnLaBitacora() {
