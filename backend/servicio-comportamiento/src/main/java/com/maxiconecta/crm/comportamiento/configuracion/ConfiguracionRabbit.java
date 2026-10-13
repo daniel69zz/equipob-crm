@@ -28,10 +28,18 @@ public class ConfiguracionRabbit {
     public static final String RUTA_COMPRA_ANULADA = "compra.anulada";
     public static final String COLA_ANULACIONES = "crm.comportamiento.anulaciones";
     public static final String COLA_ANULACIONES_RESPALDO = "crm.comportamiento.anulaciones.respaldo";
+    /** Eventos que publica el CRM para los demás servicios (SCRUM-26, docs/segmentacion/asignacion-automatica.md). */
+    public static final String EXCHANGE_CRM = "crm.comportamiento.eventos";
+    public static final String RUTA_METRICAS_ACTUALIZADAS = "metricas.actualizadas";
 
     @Bean
     public TopicExchange exchangeVentas() {
         return new TopicExchange(EXCHANGE_VENTAS, true, false);
+    }
+
+    @Bean
+    public TopicExchange exchangeCrm() {
+        return new TopicExchange(EXCHANGE_CRM, true, false);
     }
 
     @Bean

@@ -100,6 +100,15 @@ comprar en cada mes posterior. Las compras anuladas no cuentan ni como primera c
 |---|---|---|---|
 | GET | `/api/comportamiento/cohortes` | `INDICADORES_CONSULTAR` | Matriz de retención: por cohorte (`AAAA-MM`), sus clientes y, por periodo hasta el mes en curso, los clientes que compraron y su porcentaje. `desde` y `hasta` (`AAAA-MM`, por defecto los últimos 12 meses, máx. 36) |
 
+## Métricas para la segmentación (SCRUM-26)
+
+Después de cada compra o anulación procesada, y solo si su transacción se confirma, publica las
+métricas vigentes del cliente (frecuencia, valor acumulado y categorías de todos sus identificadores
+vinculados) en el exchange `crm.comportamiento.eventos` con la routing key `metricas.actualizadas`.
+`servicio-segmentacion` las consume para asignar el segmento. Un evento descartado por duplicado o una
+compra sin perfil vinculado no publican nada. Formato y reglas en
+`docs/segmentacion/asignacion-automatica.md`.
+
 ## Perfil de preferencias (SCRUM-41)
 
 Construcción explícita y persistencia por cliente CRM, usando todo su historial vigente y el ranking

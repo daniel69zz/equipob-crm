@@ -6,6 +6,7 @@ import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
 import com.maxiconecta.crm.comportamiento.consumo.ClasificadorConsumo;
 import com.maxiconecta.crm.comportamiento.inactividad.DetectorClientesInactivos;
+import com.maxiconecta.crm.comportamiento.metrica.PublicadorMetricas;
 import com.maxiconecta.crm.comportamiento.validacion.EventoInvalidoException;
 import com.maxiconecta.crm.comportamiento.validacion.ReglaContratoCompraConfirmada;
 import com.maxiconecta.crm.comportamiento.validacion.ReglaValidacionEvento;
@@ -40,7 +41,8 @@ class ProcesadorComprasTest {
     private final DetectorClientesInactivos inactividad = mock(DetectorClientesInactivos.class);
     private final ClasificadorConsumo consumo = mock(ClasificadorConsumo.class);
     private final ProcesadorCompras procesador = new ProcesadorCompras(eventos, compras, procesados, lector,
-            validadorReal(), mock(ClientePerfiles.class), frecuencias, inactividad, consumo);
+            validadorReal(), mock(ClientePerfiles.class), frecuencias, inactividad, consumo,
+            mock(PublicadorMetricas.class));
 
     @Test
     void unEventoValidoContinuaHastaGuardarLaCompra() {
