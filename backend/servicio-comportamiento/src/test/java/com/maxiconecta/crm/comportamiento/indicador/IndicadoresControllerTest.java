@@ -2,6 +2,8 @@ package com.maxiconecta.crm.comportamiento.indicador;
 
 import com.maxiconecta.crm.comportamiento.comun.ManejadorDeErrores;
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
+import com.maxiconecta.crm.comportamiento.consumo.NivelConsumo;
+import com.maxiconecta.crm.comportamiento.consumo.NivelConsumoCliente;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -50,6 +52,9 @@ class IndicadoresControllerTest {
         when(consulta.valorAcumulado(List.of(new Identificador("CLI-5521"),
                 new Identificador("mp-user-3307"))))
                 .thenReturn(new ValorAcumulado(new BigDecimal("480.50"), 2, false));
+        when(consulta.nivelConsumo(List.of(new Identificador("CLI-5521"),
+                new Identificador("mp-user-3307"))))
+                .thenReturn(new NivelConsumoCliente(NivelConsumo.BAJO, new BigDecimal("480.50"), false));
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores")
                         .param("identificador", "CLI-5521", "mp-user-3307"))
@@ -64,7 +69,10 @@ class IndicadoresControllerTest {
                 .andExpect(jsonPath("$.frecuencia").value(5))
                 .andExpect(jsonPath("$.valorAcumulado.valor").value(480.50))
                 .andExpect(jsonPath("$.valorAcumulado.compras").value(2))
-                .andExpect(jsonPath("$.valorAcumulado.sinDatos").value(false));
+                .andExpect(jsonPath("$.valorAcumulado.sinDatos").value(false))
+                .andExpect(jsonPath("$.nivelConsumo.nivel").value("BAJO"))
+                .andExpect(jsonPath("$.nivelConsumo.valorAcumulado").value(480.50))
+                .andExpect(jsonPath("$.nivelConsumo.sinNivel").value(false));
     }
 
     @Test
@@ -74,6 +82,7 @@ class IndicadoresControllerTest {
         when(consulta.recencia(List.of())).thenReturn(new RecenciaCompra(null, null, true));
         when(consulta.frecuencia(List.of())).thenReturn(0L);
         when(consulta.valorAcumulado(List.of())).thenReturn(new ValorAcumulado(BigDecimal.ZERO, 0, true));
+        when(consulta.nivelConsumo(List.of())).thenReturn(new NivelConsumoCliente(null, BigDecimal.ZERO, true));
 
         mvc.perform(get("/api/comportamiento/clientes/42/indicadores"))
                 .andExpect(status().isOk())
@@ -85,12 +94,15 @@ class IndicadoresControllerTest {
                 .andExpect(jsonPath("$.recencia.sinDatos").value(true))
                 .andExpect(jsonPath("$.frecuencia").value(0))
                 .andExpect(jsonPath("$.valorAcumulado.valor").value(0))
-                .andExpect(jsonPath("$.valorAcumulado.sinDatos").value(true));
+                .andExpect(jsonPath("$.valorAcumulado.sinDatos").value(true))
+                .andExpect(jsonPath("$.nivelConsumo.nivel").doesNotExist())
+                .andExpect(jsonPath("$.nivelConsumo.sinNivel").value(true));
 
         verify(consulta).ticketPromedio(List.of());
         verify(consulta).recencia(List.of());
         verify(consulta).frecuencia(List.of());
         verify(consulta).valorAcumulado(List.of());
+        verify(consulta).nivelConsumo(List.of());
     }
 
     @Test

@@ -27,6 +27,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.AUDITORIA_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.CLIENTE_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.CLIENTE_EDITAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.EVENTOS_REPROCESAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.EVOLUCION_CONSUMO_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.FICHA_INTEGRAL_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.FIDELIZACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INDICADORES_CONSULTAR;
@@ -81,6 +82,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/perfil/**").hasAuthority(CLIENTE_CONSULTAR)
                         .requestMatchers("/api/perfil/**").hasAuthority(CLIENTE_EDITAR)
 
+                        // Evolucion del consumo por categoria (SCRUM-32, SCRUM-305): permiso propio de los
+                        // perfiles de analisis comercial, mas restrictivo que INDICADORES_CONSULTAR.
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/evolucion-consumo")
+                            .hasAuthority(EVOLUCION_CONSUMO_CONSULTAR)
+                        // SCRUM-41: construcción explícita administrativa y lectura del perfil persistido.
+                        .requestMatchers(HttpMethod.POST, "/api/comportamiento/clientes/*/preferencias/construir")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(CLIENTE_EDITAR)))
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/preferencias")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole("ADMINISTRADOR_CRM", "AGENTE_ATENCION"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(FICHA_INTEGRAL_CONSULTAR)))
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/**").hasAuthority(INDICADORES_CONSULTAR)
 
                         .requestMatchers("/api/segmentacion/criterios", "/api/segmentacion/criterios/**")

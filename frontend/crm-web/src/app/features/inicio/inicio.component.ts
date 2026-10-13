@@ -37,6 +37,13 @@ const MODULOS: Modulo[] = [
     ruta: '/clientes-inactivos',
   },
   {
+    titulo: 'Retención por cohortes',
+    descripcion: 'Qué porcentaje de clientes vuelve a comprar en cada mes después de su primera compra.',
+    permiso: Permisos.INDICADORES_CONSULTAR,
+    icono: 'cohortes',
+    ruta: '/analisis/cohortes',
+  },
+  {
     titulo: 'Eventos de venta',
     descripcion: 'Bitácora de lo que llega de Marketplace y Ventas, y reproceso de los fallidos.',
     permiso: Permisos.EVENTOS_REPROCESAR,

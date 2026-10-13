@@ -34,6 +34,12 @@ const GRUPOS: Grupo[] = [
     ],
   },
   {
+    titulo: 'Análisis',
+    enlaces: [
+      { texto: 'Retención por cohortes', ruta: '/analisis/cohortes', icono: 'cohortes', permiso: Permisos.INDICADORES_CONSULTAR },
+    ],
+  },
+  {
     titulo: 'Integración',
     enlaces: [{ texto: 'Eventos de venta', ruta: '/eventos', icono: 'eventos', permiso: Permisos.EVENTOS_REPROCESAR }],
   },
