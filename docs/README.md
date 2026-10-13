@@ -1,5 +1,7 @@
 # Documentación
 
+- `preferencias/`: construcción y persistencia del perfil de preferencias (SCRUM-41), regla de relevancia, diagramas y prueba manual por API.
+
 - `contratos-eventos/`: contratos de los eventos que intercambian el CRM y el módulo Marketplace y Ventas, su única integración.
 - `seguridad/`: catálogo de roles, matriz de permisos, alcance de la auditoría y convención de rutas para datos de clientes.
 - `ingesta/`: estrategia de idempotencia de los eventos de venta.

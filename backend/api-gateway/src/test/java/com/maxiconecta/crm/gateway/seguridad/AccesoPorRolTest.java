@@ -332,6 +332,34 @@ class AccesoPorRolTest {
         return resultado -> assertThat(resultado.getResponse().getStatus()).isNotIn(401, 403);
     }
 
+    @Test
+    void construirPreferenciasExigeAdministradorYPermisoDeEdicion() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/preferencias/construir";
+        mvc.perform(post(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(post(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        mvc.perform(post(ruta).header("Authorization", bearer("sin-permiso", "ADMINISTRADOR_CRM", List.of())))
+                .andExpect(status().isForbidden());
+        for (String rol : List.of("AGENTE_ATENCION", "GERENTE_COMERCIAL")) {
+            mvc.perform(post(ruta).header("Authorization", bearer("otro", rol, List.of("CLIENTE_EDITAR"))))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void preferenciasPersistidasSoloSeConsultanConRolYPermisoDeFicha() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/preferencias";
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        for (String rol : List.of("ADMINISTRADOR_CRM", "AGENTE_ATENCION")) {
+            mvc.perform(get(ruta).header("Authorization", bearer("consulta", rol, List.of("FICHA_INTEGRAL_CONSULTAR"))))
+                    .andExpect(pasaElControlDeAcceso());
+            mvc.perform(get(ruta).header("Authorization", bearer("sin-permiso", rol, List.of("INDICADORES_CONSULTAR"))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(get(ruta).header("Authorization", bearer("gerente", "GERENTE_COMERCIAL",
+                        List.of("FICHA_INTEGRAL_CONSULTAR", "INDICADORES_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+    }
+
     private static List<String> agregar(List<String> permisos, String extra) {
         return Stream.concat(permisos.stream(), Stream.of(extra)).toList();
     }
