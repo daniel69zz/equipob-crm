@@ -8,9 +8,9 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 
 /**
- * Segmento vigente de un cliente (SCRUM-149). La asignación en sí (criterios, umbrales) no es
- * parte de esta historia: este servicio solo responde la consulta síncrona del segmento ya
- * asignado, que consolida la ficha integral (SCRUM-10).
+ * Segmento vigente de un cliente (SCRUM-149), que consolida la ficha integral (SCRUM-10). Lo asigna
+ * automáticamente {@code asignacion.AsignacionSegmento} con cada compra o anulación (SCRUM-26);
+ * esta entidad solo se usa para consultarlo.
  */
 @Entity
 @Table(schema = "segmentacion", name = "segmento_cliente")
