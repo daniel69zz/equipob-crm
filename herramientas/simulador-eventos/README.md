@@ -50,6 +50,22 @@ python3 publicar.py eventos/compra-ana.json eventos/anulacion-parcial.json event
 | `anulacion-compra-inexistente.json` | `FALLIDO`: la compra V-999999 no está registrada |
 | `anulacion-montos-no-cuadran.json` | `FALLIDO`: la suma de los ítems no coincide con `montoRevertido` |
 
+### Asignación automática de segmento (SCRUM-26)
+
+Con `servicio-comportamiento`, `servicio-segmentacion` y `servicio-perfil` levantados, criterios
+activos (SCRUM-25) y el perfil del cliente creado (`cliente-ana-alta.json`), cada compra o anulación
+de ese cliente actualiza su segmento:
+
+```bash
+python3 publicar.py eventos/compra-ana.json            # se asigna el segmento
+python3 publicar.py eventos/compra-ana.json            # reentrega: DESCARTADO, el segmento no se recalcula
+python3 publicar.py eventos/anulacion-total.json        # se reevalúa; cambia o se retira si corresponde
+```
+
+Después de cada paso, `GET /api/segmentacion/clientes/{id}/segmento` muestra el segmento vigente y
+`auditoria.evento` (entidad `SEGMENTO_CLIENTE`) los cambios. Reglas en
+`docs/segmentacion/asignacion-automatica.md`.
+
 ### Clientes (RIO-CRM-01)
 
 Publicarlos en este orden para ver la creación, la actualización y el descarte:
