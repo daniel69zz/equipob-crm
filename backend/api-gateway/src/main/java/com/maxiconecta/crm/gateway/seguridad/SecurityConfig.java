@@ -86,6 +86,15 @@ public class SecurityConfig {
                         // perfiles de analisis comercial, mas restrictivo que INDICADORES_CONSULTAR.
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/evolucion-consumo")
                             .hasAuthority(EVOLUCION_CONSUMO_CONSULTAR)
+                        // SCRUM-41: construcción explícita administrativa y lectura del perfil persistido.
+                        .requestMatchers(HttpMethod.POST, "/api/comportamiento/clientes/*/preferencias/construir")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(CLIENTE_EDITAR)))
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/preferencias")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole("ADMINISTRADOR_CRM", "AGENTE_ATENCION"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(FICHA_INTEGRAL_CONSULTAR)))
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/**").hasAuthority(INDICADORES_CONSULTAR)
 
                         .requestMatchers("/api/segmentacion/criterios", "/api/segmentacion/criterios/**")
