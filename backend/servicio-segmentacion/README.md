@@ -12,16 +12,23 @@ Servicio Spring Boot del CRM MaxiConecta, propietario del esquema `segmentacion`
   prioridad (valor, frecuencia, categoría), descarta reentregas por `idEvento`, audita cada cambio y
   envía los mensajes inválidos a `crm.segmentacion.metricas.respaldo`
   (`POST /api/segmentacion/respaldo/reinyectar` los reprocesa).
+- **SCRUM-28:** listado paginado de los clientes de un segmento o nivel de consumo
+  (`GET /api/segmentacion/clientes`), con filtros, orden, catálogo de segmentos
+  (`GET /api/segmentacion/segmentos`), control de `SEGMENTOS_CONSULTAR` y auditoría de cada consulta.
+  Pantalla Angular en `/segmentacion/clientes`.
 
 Modelo, API, decisiones, diagramas, pruebas y puesta en marcha:
-[Documentación de SCRUM-25](../../docs/segmentacion/criterios.md) y
-[asignación automática de SCRUM-26](../../docs/segmentacion/asignacion-automatica.md).
+[Documentación de SCRUM-25](../../docs/segmentacion/criterios.md),
+[asignación automática de SCRUM-26](../../docs/segmentacion/asignacion-automatica.md) y
+[clientes por segmento de SCRUM-28](../../docs/segmentacion/clientes-por-segmento.md).
 
 ## Ejecutar
 
 PostgreSQL disponible y migraciones del API Gateway aplicadas (crean la auditoría compartida).
 Variables `DB_URL`, `DB_USUARIO`, `DB_PASSWORD`; puerto predeterminado 8083, configurable con `PUERTO`.
 RabbitMQ con `RABBIT_HOST`, `RABBIT_PUERTO`, `RABBIT_USUARIO`, `RABBIT_PASSWORD`.
+servicio-perfil con `SERVICIO_PERFIL_URL` (por defecto `http://localhost:8081`), para los nombres del
+listado de clientes por segmento.
 
 ```powershell
 mvn spring-boot:run
