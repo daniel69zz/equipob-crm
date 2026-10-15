@@ -47,6 +47,16 @@ public class PerfilController {
                 resultado.getTotalElements());
     }
 
+    /**
+     * Resúmenes de varios perfiles en una sola consulta ({@code ?id=42&id=43}). Lo usa
+     * servicio-segmentacion para nombrar a los clientes de una página del listado por segmento
+     * (SCRUM-277, docs/segmentacion/criterio-consulta-clientes.md).
+     */
+    @GetMapping(params = "id")
+    public List<ResumenPerfil> porIdentificadores(@RequestParam("id") List<Long> ids) {
+        return consulta.resumenes(ids);
+    }
+
     public record PaginaPerfiles(List<ResumenPerfil> clientes, int pagina, int tamanio, long total) {
     }
 }
