@@ -1,5 +1,7 @@
 package com.maxiconecta.crm.comportamiento.metrica;
 
+import com.maxiconecta.crm.comportamiento.consumo.NivelConsumo;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -11,8 +13,13 @@ import java.util.List;
  * Es una foto completa, no un incremento: aplicarla dos veces da el mismo segmento.
  * {@code idEvento} es el del evento de venta o anulación que la provocó y sirve de clave de
  * idempotencia en Segmentación.
+ * <p>
+ * {@code nivelConsumo} y {@code ultimaCompra} los muestra el listado de clientes por segmento
+ * (SCRUM-277, docs/segmentacion/criterio-consulta-clientes.md); son {@code null} cuando el cliente
+ * no tiene compras vigentes.
  */
 public record MetricasCliente(String idEvento, String tipoEventoOrigen, long idCliente,
                               List<String> identificadoresOrigen, long frecuencia, BigDecimal valor,
-                              List<String> categorias, OffsetDateTime calculadasEn) {
+                              List<String> categorias, NivelConsumo nivelConsumo, OffsetDateTime ultimaCompra,
+                              OffsetDateTime calculadasEn) {
 }
