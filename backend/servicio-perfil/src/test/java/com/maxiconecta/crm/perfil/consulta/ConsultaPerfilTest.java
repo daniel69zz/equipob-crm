@@ -17,6 +17,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.stream.LongStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -98,6 +99,27 @@ class ConsultaPerfilTest {
                 null, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30)), 0, 50).getContent();
 
         assertThat(resultado).extracting(ResumenPerfil::id).containsExactly(dentro.getId());
+    }
+
+    @Test
+    void resumenesDeVariosPerfilesOrdenadosYSinLosQueNoExisten() {
+        // SCRUM-279: los nombres de una página del listado por segmento (SCRUM-28) se piden juntos.
+        Cliente primero = guardarConMotivo("apellidos: vacío");
+        Cliente segundo = guardarConMotivo("apellidos: vacío");
+
+        List<ResumenPerfil> resultado = consulta.resumenes(List.of(segundo.getId(), 999_999L, primero.getId(),
+                segundo.getId()));
+
+        assertThat(resultado).extracting(ResumenPerfil::id).containsExactly(primero.getId(), segundo.getId());
+        assertThat(resultado).extracting(ResumenPerfil::nombres).containsOnly("Ana");
+    }
+
+    @Test
+    void noSeConsultanMasPerfilesQueUnaPagina() {
+        List<Long> ids = LongStream.rangeClosed(1, ConsultaPerfil.TAMANIO_MAXIMO_PAGINA + 1)
+                .boxed().toList();
+
+        assertThatThrownBy(() -> consulta.resumenes(ids)).isInstanceOf(ReglaNegocioException.class);
     }
 
     @Test

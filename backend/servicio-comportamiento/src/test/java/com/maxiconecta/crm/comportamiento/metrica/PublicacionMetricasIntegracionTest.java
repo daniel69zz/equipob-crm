@@ -25,6 +25,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -105,6 +107,9 @@ class PublicacionMetricasIntegracionTest {
         assertThat(metricas.get("valor").decimalValue()).isEqualByComparingTo("350.50");
         assertThat(textos(metricas.get("categorias"))).containsExactly("Electrónica", "Accesorios");
         assertThat(metricas.get("calculadasEn").asText()).isNotBlank();
+        // SCRUM-279: el listado de clientes por segmento recibe el nivel y la última compra con la foto.
+        assertThat(metricas.get("nivelConsumo").asText()).isEqualTo("BAJO");
+        assertThat(instante(metricas.get("ultimaCompra"))).isEqualTo(Instant.parse("2026-09-27T19:28:10Z"));
     }
 
     @Test
@@ -145,12 +150,18 @@ class PublicacionMetricasIntegracionTest {
         assertThat(parcial.get("frecuencia").asLong()).isEqualTo(1);
         assertThat(parcial.get("valor").decimalValue()).isEqualByComparingTo("300.00");
         assertThat(textos(parcial.get("categorias"))).containsExactly("Electrónica");
+        // Una devolución parcial deja la compra vigente: sigue siendo la última.
+        assertThat(parcial.get("nivelConsumo").asText()).isEqualTo("BAJO");
+        assertThat(instante(parcial.get("ultimaCompra"))).isEqualTo(Instant.parse("2026-09-27T19:28:10Z"));
 
         publicar("anulacion-total.json");
         JsonNode total = json.readTree(recibir().getBody());
         assertThat(total.get("frecuencia").asLong()).isZero();
         assertThat(total.get("valor").decimalValue()).isEqualByComparingTo("0");
         assertThat(textos(total.get("categorias"))).isEmpty();
+        // Sin compras vigentes queda sin nivel y sin última compra.
+        assertThat(total.path("nivelConsumo").asText(null)).isNull();
+        assertThat(total.path("ultimaCompra").asText(null)).isNull();
     }
 
     // --- Sin perfil o con error: no se publica ---
@@ -183,6 +194,10 @@ class PublicacionMetricasIntegracionTest {
         Message mensaje = rabbit.receive(COLA_PRUEBA, 15_000);
         assertThat(mensaje).as("mensaje de métricas publicado").isNotNull();
         return mensaje;
+    }
+
+    private static Instant instante(JsonNode fecha) {
+        return OffsetDateTime.parse(fecha.asText()).toInstant();
     }
 
     private static List<String> textos(JsonNode arreglo) {
