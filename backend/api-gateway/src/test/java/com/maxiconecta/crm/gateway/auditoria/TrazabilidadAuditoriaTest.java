@@ -142,6 +142,27 @@ class TrazabilidadAuditoriaTest {
                 argThat(detalle -> detalle.startsWith("GET /api/perfil/clientes · ") && !detalle.contains("4455667")));
     }
 
+    @Test
+    void elListadoDeClientesPorSegmentoQuedaRegistradoComoConsultaSinCliente() throws Exception {
+        // SCRUM-568: el listado de SCRUM-28 sigue la convención de rutas, así que el Gateway lo audita.
+        mvc.perform(get("/api/segmentacion/clientes").param("segmento", "Alto valor")
+                .header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)));
+
+        verify(auditoriaService).registrar(eq("luis"), eq(AuditoriaService.CLIENTE_CONSULTADO),
+                eq(AuditoriaService.ENTIDAD_CLIENTE), isNull(),
+                argThat(detalle -> detalle.startsWith("GET /api/segmentacion/clientes · ") && !detalle.contains("Alto")));
+    }
+
+    @Test
+    void elAgenteNoPuedeListarClientesPorSegmentoYQuedaRegistrado() throws Exception {
+        mvc.perform(get("/api/segmentacion/clientes").param("segmento", "Alto valor")
+                        .header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+
+        verify(auditoriaService).registrar(eq("ana"), eq(AuditoriaService.ACCESO_DENEGADO),
+                eq(AuditoriaService.ENTIDAD_CLIENTE), isNull(), argThat(detalle -> detalle.contains("HTTP 403")));
+    }
+
     // --- Criterio 2: los intentos denegados también quedan registrados ---
 
     @Test

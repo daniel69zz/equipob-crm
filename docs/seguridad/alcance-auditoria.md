@@ -71,3 +71,37 @@ configuración, sin datos personales de clientes. El registro y el cambio compar
 transacción: un fallo de auditoría revierte la modificación. Estos eventos aparecen en la
 pantalla Auditoría y en el historial de cada criterio. Esto es auditoría de cambios de
 configuración; el filtro de accesos a clientes conserva su alcance anterior.
+
+## Consultas de clientes por segmento (SCRUM-28, SCRUM-568)
+
+`GET /api/segmentacion/clientes?segmento=...` sigue la convención de rutas, así que el Gateway la
+registra como cualquier listado: `CLIENTE_CONSULTADO` con `entidad_id` vacío, o `ACCESO_DENEGADO` si
+el rol no tiene `SEGMENTOS_CONSULTAR` (verificado en `TrazabilidadAuditoriaTest`). Como ese registro
+no guarda los parámetros, **no dice qué grupo se consultó ni qué clientes se mostraron**; un listado
+expone los nombres de hasta 100 clientes a la vez.
+
+Por eso servicio-segmentacion inserta además, en cada consulta autorizada y antes de responder, un
+registro propio:
+
+| Campo | Contenido |
+|---|---|
+| `usuario` | Usuario que reenvía el Gateway en `X-Usuario` |
+| `operacion` | `CLIENTES_SEGMENTO_CONSULTADOS` |
+| `entidad` / `entidad_id` | `SEGMENTO` y el nombre del segmento (hasta 60 caracteres), o `NIVEL_CONSUMO` y el nivel si se listó solo por nivel |
+| `detalle` | JSON con el segmento, el nivel, las fechas de última compra, el orden, la página, el tamaño, el total y los **números de cliente** mostrados |
+
+```json
+{"segmento":"Habituales","nivelConsumo":"ALTO","ultimaCompraDesde":"2026-08-01","ultimaCompraHasta":null,
+ "orden":"valor","direccion":"desc","pagina":0,"tamanio":20,"total":1,"clientes":[602]}
+```
+
+- El detalle no lleva nombres ni documentos: solo identificadores internos y los filtros, que no son
+  datos personales.
+- Si este registro falla, la consulta responde error y **no muestra los datos**: toda consulta
+  autorizada queda registrada (criterio de aceptación 4 de SCRUM-28).
+- Una consulta rechazada (401 o 403) no llega a este registro; queda solo la de `ACCESO_DENEGADO` del
+  Gateway.
+- La operación aparece en el filtro de la pantalla Auditoría como «Consulta de clientes por segmento».
+  El filtro por cliente de esa pantalla busca accesos a un cliente concreto (`entidad` `CLIENTE`), así
+  que no encuentra estos registros: para saber si un cliente apareció en un listado se busca su número
+  en el `detalle`.
