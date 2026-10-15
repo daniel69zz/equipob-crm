@@ -40,3 +40,9 @@ management:
     web:
       exposure:
         include: health
+
+crm:
+  # Nombres de los clientes del listado por segmento (SCRUM-277).
+  perfil:
+    url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
+    tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
