@@ -1,6 +1,6 @@
 # Documentación
 
-- `preferencias/`: construcción y persistencia del perfil de preferencias (SCRUM-41), regla de relevancia, diagramas y prueba manual por API.
+- `preferencias/`: construcción y persistencia del perfil de preferencias (SCRUM-41), regla de relevancia, diagramas y prueba manual por API, y su actualización automática con cada compra o anulación con trazabilidad por evento (SCRUM-42).
 
 - `contratos-eventos/`: contratos de los eventos que intercambian el CRM y el módulo Marketplace y Ventas, su única integración.
 - `seguridad/`: catálogo de roles, matriz de permisos, alcance de la auditoría y convención de rutas para datos de clientes.
