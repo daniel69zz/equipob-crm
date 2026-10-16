@@ -2,6 +2,9 @@ server:
   port: ${PUERTO:8082}
 
 crm:
+  mensajeria:
+    # Broker de mensajería: rabbit (predeterminado) o pubsub (perfil "pubsub"). Ver docs/mensajeria/pubsub.md.
+    broker: rabbit
   perfil:
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
@@ -23,6 +26,14 @@ spring:
   flyway:
     schemas: comportamiento
     locations: classpath:db/migration
+
+  # Google Cloud Pub/Sub solo se activa con el perfil "pubsub" (application-pubsub.yml).
+  cloud:
+    gcp:
+      core:
+        enabled: false
+      pubsub:
+        enabled: false
 
   rabbitmq:
     host: ${RABBIT_HOST:localhost}
@@ -76,6 +87,9 @@ comportamiento:
     zona: ${COHORTES_ZONA:America/La_Paz}
 
 management:
+  health:
+    pubsub:
+      enabled: false
   endpoints:
     web:
       exposure:
