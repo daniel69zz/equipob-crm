@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
 import com.maxiconecta.crm.comportamiento.ingesta.EventoRecibidoRepository;
+import com.maxiconecta.crm.comportamiento.preferencia.IdentificadoresPreferencias;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -59,6 +60,10 @@ class PublicacionMetricasIntegracionTest {
 
     @MockBean
     private ClientePerfiles perfiles;
+
+    // La actualización de preferencias (SCRUM-42) también consume estas métricas; aquí no consulta Perfil.
+    @MockBean
+    private IdentificadoresPreferencias identificadores;
 
     @Autowired
     private RabbitTemplate rabbit;

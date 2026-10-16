@@ -66,6 +66,13 @@ Después de cada paso, `GET /api/segmentacion/clientes/{id}/segmento` muestra el
 `auditoria.evento` (entidad `SEGMENTO_CLIENTE`) los cambios. Reglas en
 `docs/segmentacion/asignacion-automatica.md`.
 
+### Actualización del perfil de preferencias (SCRUM-42)
+
+Con el perfil del cliente creado, cada compra o anulación vuelve a calcular su perfil de
+preferencias (`GET /api/comportamiento/clientes/{id}/preferencias`) y lo registra en
+`.../preferencias/actualizaciones`; una reentrega no lo actualiza dos veces. Detalle en
+`docs/preferencias/actualizacion-por-eventos.md`.
+
 ### Clientes (RIO-CRM-01)
 
 Publicarlos en este orden para ver la creación, la actualización y el descarte:
