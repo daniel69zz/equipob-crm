@@ -1,17 +1,22 @@
 package com.maxiconecta.crm.comportamiento.ingesta;
 
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
+import com.maxiconecta.crm.comportamiento.mensajeria.ReinyectorPubSub;
 import com.rabbitmq.client.GetResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
-/** Reinyecta un único mensaje de respaldo y lo confirma antes de retirarlo de la DLQ. */
+/**
+ * Reinyecta un único mensaje de respaldo y lo confirma antes de retirarlo de la DLQ. Con el perfil
+ * {@code pubsub} lo hace sobre la suscripción de respaldo de Pub/Sub ({@link ReinyectorPubSub}).
+ */
 @Service
 public class ReinyectorMensajesRespaldo {
 
@@ -19,9 +24,11 @@ public class ReinyectorMensajesRespaldo {
     private static final long TIEMPO_CONFIRMACION_MS = 5_000;
 
     private final RabbitTemplate rabbit;
+    private final ObjectProvider<ReinyectorPubSub> pubsub;
 
-    public ReinyectorMensajesRespaldo(RabbitTemplate rabbit) {
+    public ReinyectorMensajesRespaldo(RabbitTemplate rabbit, ObjectProvider<ReinyectorPubSub> pubsub) {
         this.rabbit = rabbit;
+        this.pubsub = pubsub;
     }
 
     /** Reinyecta un mensaje de la cola de respaldo de compras. */
@@ -30,7 +37,8 @@ public class ReinyectorMensajesRespaldo {
     }
 
     public Optional<Reinyeccion> reinyectarUno(ColaRespaldo cola, String usuario) {
-        Reinyeccion resultado = rabbit.execute(channel -> {
+        ReinyectorPubSub conPubSub = pubsub.getIfAvailable();
+        Reinyeccion resultado = conPubSub != null ? reinyectarConPubSub(conPubSub, cola) : rabbit.execute(channel -> {
             GetResponse mensaje = channel.basicGet(cola.respaldo(), false);
             if (mensaje == null) {
                 return null;
@@ -62,6 +70,18 @@ public class ReinyectorMensajesRespaldo {
         return Optional.ofNullable(resultado);
     }
 
+    private static Reinyeccion reinyectarConPubSub(ReinyectorPubSub conPubSub, ColaRespaldo cola) {
+        try {
+            return conPubSub.reinyectarUno(cola.respaldo(), cola.topico())
+                    .map(r -> new Reinyeccion(r.idMensaje(), r.bytes())).orElse(null);
+        } catch (Exception ex) {
+            if (ex instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new IllegalStateException("No se pudo reinyectar el mensaje de " + cola.respaldo(), ex);
+        }
+    }
+
     private static void reponer(com.rabbitmq.client.Channel channel, long etiqueta, Exception original) {
         try {
             channel.basicNack(etiqueta, false, true);
@@ -75,16 +95,26 @@ public class ReinyectorMensajesRespaldo {
 
     /** Cola de respaldo (DLQ) y la cola a la que vuelven sus mensajes. */
     public enum ColaRespaldo {
-        COMPRAS(ConfiguracionRabbit.COLA_COMPRAS_RESPALDO, ConfiguracionRabbit.COLA_COMPRAS),
-        ANULACIONES(ConfiguracionRabbit.COLA_ANULACIONES_RESPALDO, ConfiguracionRabbit.COLA_ANULACIONES),
-        PREFERENCIAS(ConfiguracionRabbit.COLA_PREFERENCIAS_RESPALDO, ConfiguracionRabbit.COLA_PREFERENCIAS);
+        COMPRAS(ConfiguracionRabbit.COLA_COMPRAS_RESPALDO, ConfiguracionRabbit.COLA_COMPRAS,
+                ConfiguracionRabbit.EXCHANGE_VENTAS),
+        ANULACIONES(ConfiguracionRabbit.COLA_ANULACIONES_RESPALDO, ConfiguracionRabbit.COLA_ANULACIONES,
+                ConfiguracionRabbit.EXCHANGE_VENTAS),
+        PREFERENCIAS(ConfiguracionRabbit.COLA_PREFERENCIAS_RESPALDO, ConfiguracionRabbit.COLA_PREFERENCIAS,
+                ConfiguracionRabbit.EXCHANGE_CRM);
 
         private final String respaldo;
         private final String destino;
+        private final String topico;
 
-        ColaRespaldo(String respaldo, String destino) {
+        ColaRespaldo(String respaldo, String destino, String topico) {
             this.respaldo = respaldo;
             this.destino = destino;
+            this.topico = topico;
+        }
+
+        /** Tópico de Pub/Sub al que vuelve el mensaje (el exchange del mismo nombre en RabbitMQ). */
+        public String topico() {
+            return topico;
         }
 
         public String respaldo() {

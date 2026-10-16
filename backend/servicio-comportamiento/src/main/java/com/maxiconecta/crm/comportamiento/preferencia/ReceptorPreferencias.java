@@ -41,7 +41,12 @@ public class ReceptorPreferencias {
 
     @RabbitListener(queues = ConfiguracionRabbit.COLA_PREFERENCIAS)
     public void recibir(Message mensaje) {
-        MetricasCliente metricas = leer(mensaje.getBody());
+        procesar(mensaje.getBody());
+    }
+
+    /** Mismo tratamiento para RabbitMQ y para Pub/Sub (docs/mensajeria/pubsub.md). */
+    public void procesar(byte[] contenido) {
+        MetricasCliente metricas = leer(contenido);
         try {
             PerfilesPreferencias.Actualizacion actualizacion = perfiles.actualizarPorEvento(metricas.idCliente(),
                     metricas.idEvento(), metricas.tipoEventoOrigen());
