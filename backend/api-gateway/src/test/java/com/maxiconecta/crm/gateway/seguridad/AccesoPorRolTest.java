@@ -365,7 +365,15 @@ class AccesoPorRolTest {
 
     @Test
     void preferenciasPersistidasSoloSeConsultanConRolYPermisoDeFicha() throws Exception {
-        String ruta = "/api/comportamiento/clientes/42/preferencias";
+        verificarAccesoDePreferencias("/api/comportamiento/clientes/42/preferencias");
+    }
+
+    @Test
+    void laTrazabilidadDeLasPreferenciasTieneElMismoAccesoQueElPerfil() throws Exception {
+        verificarAccesoDePreferencias("/api/comportamiento/clientes/42/preferencias/actualizaciones");
+    }
+
+    private void verificarAccesoDePreferencias(String ruta) throws Exception {
         mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
         for (String rol : List.of("ADMINISTRADOR_CRM", "AGENTE_ATENCION")) {
             mvc.perform(get(ruta).header("Authorization", bearer("consulta", rol, List.of("FICHA_INTEGRAL_CONSULTAR"))))

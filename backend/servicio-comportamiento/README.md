@@ -121,7 +121,16 @@ de categorías de SCRUM-18 (monto, compras y nombre). Modelo, validaciones y alc
 | GET | `/api/comportamiento/clientes/{clienteId}/preferencias` | Administrador o Agente, y `FICHA_INTEGRAL_CONSULTAR` |
 
 La construcción verifica los identificadores con el servicio de Perfil y persiste la instantánea
-atómicamente mediante V11. GET no recalcula. La actualización por eventos corresponde a SCRUM-42.
+atómicamente mediante V11. GET no recalcula.
+
+**SCRUM-42:** el perfil también se recalcula solo con cada compra confirmada o anulación, al recibir
+las métricas que publica el servicio (cola `crm.comportamiento.preferencias`). Un evento reentregado
+no lo actualiza dos veces y cada actualización queda registrada con su fecha y su evento. Detalle en
+`docs/preferencias/actualizacion-por-eventos.md`.
+
+| Método | Ruta | Acceso en Gateway |
+|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/preferencias/actualizaciones` | Igual que la consulta del perfil |
 
 ## Ejecutar en local
 
@@ -148,3 +157,8 @@ mvn test
 ```
 
 Las pruebas de integración levantan PostgreSQL y RabbitMQ con **Testcontainers**; si Docker no está disponible, se omiten.
+
+## Mensajería con Google Cloud Pub/Sub
+
+Por defecto usa RabbitMQ. Con `SPRING_PROFILES_ACTIVE=pubsub` consume y publica sus eventos en Google
+Cloud Pub/Sub, con los mismos nombres de tópicos y suscripciones. Ver `docs/mensajeria/pubsub.md`.

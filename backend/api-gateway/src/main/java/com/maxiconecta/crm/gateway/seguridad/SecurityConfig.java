@@ -91,7 +91,9 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(CLIENTE_EDITAR)))
-                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/preferencias")
+                        // SCRUM-42: la trazabilidad de las actualizaciones tiene el mismo acceso que el perfil.
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/preferencias",
+                                "/api/comportamiento/clientes/*/preferencias/actualizaciones")
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole("ADMINISTRADOR_CRM", "AGENTE_ATENCION"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(FICHA_INTEGRAL_CONSULTAR)))

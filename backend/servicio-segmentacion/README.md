@@ -37,3 +37,8 @@ Las pruebas de integración requieren Docker y usan PostgreSQL real mediante Tes
 No se omiten si falta Docker: el fallo indica que no pudo verificarse esa parte.
 El historial de cambios de segmento (SCRUM-30) es otra historia; usa la auditoría
 `SEGMENTO_CLIENTE` que registra la asignación automática.
+
+## Mensajería con Google Cloud Pub/Sub
+
+Por defecto usa RabbitMQ. Con `SPRING_PROFILES_ACTIVE=pubsub` consume y publica sus eventos en Google
+Cloud Pub/Sub, con los mismos nombres de tópicos y suscripciones. Ver `docs/mensajeria/pubsub.md`.

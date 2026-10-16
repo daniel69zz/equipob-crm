@@ -31,7 +31,12 @@ public class ReceptorMetricas {
 
     @RabbitListener(queues = ConfiguracionRabbit.COLA_METRICAS)
     public void recibir(Message mensaje) {
-        MetricasCliente metricas = leer(mensaje.getBody());
+        procesar(mensaje.getBody());
+    }
+
+    /** Mismo tratamiento para RabbitMQ y para Pub/Sub (docs/mensajeria/pubsub.md). */
+    public void procesar(byte[] contenido) {
+        MetricasCliente metricas = leer(contenido);
         AsignacionSegmento.Resultado resultado = asignacion.aplicar(metricas);
         log.debug("Métricas del evento {} para el cliente {}: {}", metricas.idEvento(), metricas.idCliente(), resultado);
     }

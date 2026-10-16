@@ -3,7 +3,8 @@
 Publica eventos de ejemplo en RabbitMQ, como si los enviara Marketplace y Ventas.
 
 Usa la API HTTP del plugin de administración de RabbitMQ (puerto 15672), así que no necesita
-librerías adicionales: solo Python 3.
+librerías adicionales: solo Python 3. Con --pubsub publica en Google Cloud Pub/Sub (el emulador local
+por defecto), en el tópico ventas.eventos con la ruta en el atributo "ruta" (docs/mensajeria/pubsub.md).
 
 Ejemplos:
     python3 publicar.py eventos/compra-ana.json
@@ -12,6 +13,7 @@ Ejemplos:
     python3 publicar.py eventos/cliente-ana-alta.json --nuevo    # otro cliente con los mismos datos
     python3 publicar.py eventos/cliente-ana-alta.json --ahora    # mismo cliente, cambio con fecha actual
     python3 publicar.py eventos/*.json eventos/mensaje-ilegible.txt # todos los ejemplos
+    python3 publicar.py eventos/compra-ana.json --pubsub          # en el emulador de Pub/Sub
 """
 import argparse
 import base64
@@ -72,6 +74,18 @@ def publicar(args, contenido, routing_key):
         return json.load(respuesta).get("routed", False)
 
 
+def publicar_pubsub(args, contenido, ruta):
+    url = f"{args.pubsub_url}/v1/projects/{args.proyecto}/topics/{EXCHANGE}:publish"
+    cuerpo = json.dumps({"messages": [{
+        "data": base64.b64encode(contenido.encode("utf-8")).decode(),
+        "attributes": {"ruta": ruta, "contentType": "application/json"},
+    }]}).encode("utf-8")
+    solicitud = urllib.request.Request(url, data=cuerpo, method="POST",
+                                       headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(solicitud, timeout=10) as respuesta:
+        return bool(json.load(respuesta).get("messageIds"))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Publica eventos de ejemplo de Marketplace y Ventas en RabbitMQ.")
     parser.add_argument("archivos", nargs="+", help="archivos con el contenido de cada evento")
@@ -84,6 +98,11 @@ def main():
     parser.add_argument("--vhost", default="/")
     parser.add_argument("--usuario", default="guest")
     parser.add_argument("--password", default="guest")
+    parser.add_argument("--pubsub", action="store_true",
+                        help="publica en Google Cloud Pub/Sub (emulador) en lugar de RabbitMQ")
+    parser.add_argument("--pubsub-url", default="http://localhost:8085",
+                        help="API REST del emulador de Pub/Sub (por defecto http://localhost:8085)")
+    parser.add_argument("--proyecto", default="crm-maxiconecta", help="proyecto de Pub/Sub (PUBSUB_PROYECTO)")
     args = parser.parse_args()
 
     errores = 0
@@ -91,7 +110,7 @@ def main():
         for _ in range(args.veces):
             contenido, routing_key = contenido_a_publicar(ruta_archivo, args.nuevo, args.ahora)
             try:
-                enrutado = publicar(args, contenido, routing_key)
+                enrutado = (publicar_pubsub if args.pubsub else publicar)(args, contenido, routing_key)
             except urllib.error.URLError as error:
                 print(f"✗ {ruta_archivo}: no se pudo publicar ({error})", file=sys.stderr)
                 errores += 1
@@ -99,7 +118,8 @@ def main():
             if enrutado:
                 print(f"✓ {ruta_archivo} → {EXCHANGE} [{routing_key}]")
             else:
-                print(f"✗ {ruta_archivo}: ninguna cola recibió el mensaje (¿está corriendo el servicio consumidor?)",
+                print(f"✗ {ruta_archivo}: ninguna cola recibió el mensaje (¿está corriendo el servicio consumidor?)"
+                      if not args.pubsub else f"✗ {ruta_archivo}: Pub/Sub no confirmó la publicación",
                       file=sys.stderr)
                 errores += 1
     sys.exit(1 if errores else 0)
