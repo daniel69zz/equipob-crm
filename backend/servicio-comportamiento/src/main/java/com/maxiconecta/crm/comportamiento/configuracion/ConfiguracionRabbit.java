@@ -5,9 +5,15 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.boot.autoconfigure.amqp.RabbitProperties;
+import org.springframework.boot.autoconfigure.amqp.RabbitRetryTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+
+import java.util.Map;
 
 /**
  * Colas de RabbitMQ del servicio. Los nombres siguen los contratos
@@ -31,6 +37,9 @@ public class ConfiguracionRabbit {
     /** Eventos que publica el CRM para los demás servicios (SCRUM-26, docs/segmentacion/asignacion-automatica.md). */
     public static final String EXCHANGE_CRM = "crm.comportamiento.eventos";
     public static final String RUTA_METRICAS_ACTUALIZADAS = "metricas.actualizadas";
+    /** Actualización del perfil de preferencias con las métricas de cada compra o anulación (SCRUM-42). */
+    public static final String COLA_PREFERENCIAS = "crm.comportamiento.preferencias";
+    public static final String COLA_PREFERENCIAS_RESPALDO = "crm.comportamiento.preferencias.respaldo";
 
     @Bean
     public TopicExchange exchangeVentas() {
@@ -91,5 +100,43 @@ public class ConfiguracionRabbit {
     @Bean
     public Binding enlaceAnulaciones(Queue colaAnulaciones, TopicExchange exchangeVentas) {
         return BindingBuilder.bind(colaAnulaciones).to(exchangeVentas).with(RUTA_COMPRA_ANULADA);
+    }
+
+    @Bean
+    public Queue colaPreferencias() {
+        return QueueBuilder.durable(COLA_PREFERENCIAS)
+                .deadLetterExchange(EXCHANGE_RESPALDO)
+                .deadLetterRoutingKey(COLA_PREFERENCIAS_RESPALDO)
+                .build();
+    }
+
+    @Bean
+    public Binding enlacePreferencias(Queue colaPreferencias, TopicExchange exchangeCrm) {
+        return BindingBuilder.bind(colaPreferencias).to(exchangeCrm).with(RUTA_METRICAS_ACTUALIZADAS);
+    }
+
+    @Bean
+    public Queue colaPreferenciasRespaldo() {
+        return QueueBuilder.durable(COLA_PREFERENCIAS_RESPALDO).build();
+    }
+
+    @Bean
+    public Binding enlacePreferenciasRespaldo(Queue colaPreferenciasRespaldo, DirectExchange exchangeRespaldo) {
+        return BindingBuilder.bind(colaPreferenciasRespaldo).to(exchangeRespaldo).with(COLA_PREFERENCIAS_RESPALDO);
+    }
+
+    /**
+     * Un mensaje rechazado a propósito ({@link AmqpRejectAndDontRequeueException}: inválido o de un
+     * cliente que no se puede actualizar) va directo a respaldo; reintentarlo no cambia el resultado.
+     */
+    @Bean
+    public RabbitRetryTemplateCustomizer sinReintentarMensajesRechazados(RabbitProperties propiedades) {
+        int intentos = propiedades.getListener().getSimple().getRetry().getMaxAttempts();
+        return (destino, plantilla) -> {
+            if (destino == RabbitRetryTemplateCustomizer.Target.LISTENER) {
+                plantilla.setRetryPolicy(new SimpleRetryPolicy(intentos,
+                        Map.of(AmqpRejectAndDontRequeueException.class, false), true, true));
+            }
+        };
     }
 }

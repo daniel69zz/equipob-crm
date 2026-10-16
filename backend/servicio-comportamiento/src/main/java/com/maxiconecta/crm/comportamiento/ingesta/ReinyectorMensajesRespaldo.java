@@ -76,7 +76,8 @@ public class ReinyectorMensajesRespaldo {
     /** Cola de respaldo (DLQ) y la cola a la que vuelven sus mensajes. */
     public enum ColaRespaldo {
         COMPRAS(ConfiguracionRabbit.COLA_COMPRAS_RESPALDO, ConfiguracionRabbit.COLA_COMPRAS),
-        ANULACIONES(ConfiguracionRabbit.COLA_ANULACIONES_RESPALDO, ConfiguracionRabbit.COLA_ANULACIONES);
+        ANULACIONES(ConfiguracionRabbit.COLA_ANULACIONES_RESPALDO, ConfiguracionRabbit.COLA_ANULACIONES),
+        PREFERENCIAS(ConfiguracionRabbit.COLA_PREFERENCIAS_RESPALDO, ConfiguracionRabbit.COLA_PREFERENCIAS);
 
         private final String respaldo;
         private final String destino;
