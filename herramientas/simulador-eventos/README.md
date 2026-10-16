@@ -21,6 +21,15 @@ python3 publicar.py eventos/compra-carlos.json --nuevo   # idEvento e idCompra n
 python3 publicar.py eventos/cliente-ana-alta.json --ahora  # mismo cliente, cambio con fecha actual
 ```
 
+Con `--pubsub` publica en Google Cloud Pub/Sub (el emulador en `http://localhost:8085` por defecto) en
+lugar de RabbitMQ, en el tópico `ventas.eventos` con la ruta en el atributo `ruta`
+(`docs/mensajeria/pubsub.md`):
+
+```bash
+python3 publicar.py eventos/compra-ana.json --pubsub
+python3 publicar.py eventos/compra-ana.json --pubsub --pubsub-url http://localhost:8085 --proyecto crm-maxiconecta
+```
+
 Opciones: `--nuevo` (identificadores nuevos; en una anulación cambia `idAnulacion`, no la compra a la que apunta), `--ahora` (fecha del cambio = ahora), `--url` (por defecto `http://localhost:15672`), `--usuario`, `--password`, `--vhost`.
 
 ## Eventos de ejemplo
