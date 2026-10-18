@@ -1,6 +1,11 @@
 server:
   port: ${PUERTO:8083}
 
+segmentacion:
+  simulacion:
+    max-clientes: ${SIMULACION_MAX_CLIENTES:100000}
+    max-segundos: ${SIMULACION_MAX_SEGUNDOS:10}
+
 spring:
   application:
     name: servicio-segmentacion
