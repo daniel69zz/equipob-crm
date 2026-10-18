@@ -63,6 +63,20 @@ public class CriterioService {
     @Transactional(readOnly = true)
     public List<AuditoriaCriterios.Cambio> historial(long id) { obtener(id); return auditoria.historial(id); }
 
+    /** SCRUM-286: mismas reglas que guardar, sin bloquear ni escribir configuración. */
+    @Transactional(readOnly = true)
+    public Criterio prepararSimulacion(Long id, SolicitudCriterio solicitud) {
+        var s = ReglasCriterio.normalizar(solicitud);
+        var anterior = id == null ? null : obtener(id);
+        if (anterior != null) validarVersion(anterior, s.version());
+        boolean activo = anterior == null || anterior.activo();
+        validarConflictos(s, id, activo);
+        // Un alta futura tiene menor prioridad por antigüedad que todos los criterios existentes.
+        return new Criterio(id == null ? Long.MAX_VALUE : id, s.nombre(), s.descripcion(), s.indicador(),
+                s.condicion(), s.minimo(), s.maximo(), s.categoria(), activo,
+                anterior == null ? 0 : anterior.version(), null, null, null);
+    }
+
     private void validarConflictos(SolicitudCriterio s, Long id, boolean activo) {
         for (var otro : repository.listar()) {
             if (otro.id().equals(id)) continue;

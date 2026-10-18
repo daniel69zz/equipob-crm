@@ -15,6 +15,12 @@ export interface CambioCriterio {
 }
 export interface Caso { frecuencia?: number | null; valor?: number | null; categorias?: string[]; }
 export interface Comprobacion { criterioId: number; version: number; activo: boolean; cumple: boolean; }
+export interface SimulacionSegmentacion {
+  clientesEvaluados: number; asignacionesSinMetricas: number; clientesQueCambiarian: number;
+  reglaActiva: boolean; calculadoEn: string; metricasMasAntiguas: string | null; metricasMasRecientes: string | null;
+  duracionMs: number;
+  distribucion: { clave: string; segmento: string; propuesta: boolean; actual: number; simulado: number; diferencia: number }[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class CriteriosService {
@@ -28,6 +34,9 @@ export class CriteriosService {
   }
   historial(id: number) { return this.http.get<CambioCriterio[]>(`${this.url}/${id}/historial`); }
   comprobar(id: number, caso: Caso) { return this.http.post<Comprobacion>(`${this.url}/${id}/comprobar`, caso); }
+  simular(regla: SolicitudCriterio, criterioId?: number) {
+    return this.http.post<SimulacionSegmentacion>(`${this.url}/simular`, { criterioId, regla });
+  }
 }
 
 export const INDICADORES: Record<Indicador, string> = {

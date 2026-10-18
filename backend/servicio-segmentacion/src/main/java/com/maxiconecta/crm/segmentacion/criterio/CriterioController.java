@@ -1,6 +1,9 @@
 package com.maxiconecta.crm.segmentacion.criterio;
 
 import jakarta.servlet.http.HttpServletRequest;
+import com.maxiconecta.crm.segmentacion.simulacion.SimulacionSegmentacion;
+import com.maxiconecta.crm.segmentacion.simulacion.SolicitudSimulacion;
+import com.maxiconecta.crm.segmentacion.simulacion.ResultadoSimulacion;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.springframework.http.HttpStatus;
@@ -14,7 +17,16 @@ import java.util.List;
 @RequestMapping("/api/segmentacion/criterios")
 public class CriterioController {
     private final CriterioService service;
-    public CriterioController(CriterioService service) { this.service = service; }
+    private final SimulacionSegmentacion simulacion;
+    public CriterioController(CriterioService service, SimulacionSegmentacion simulacion) {
+        this.service = service; this.simulacion = simulacion;
+    }
+
+    @PostMapping("/simular")
+    public ResultadoSimulacion simular(@Valid @RequestBody SolicitudSimulacion solicitud, HttpServletRequest req) {
+        administrador(req);
+        return simulacion.simular(solicitud);
+    }
 
     @GetMapping
     public List<Criterio> listar(@RequestParam(required = false) Boolean activo,
