@@ -62,6 +62,13 @@ export class AuthService {
     return this.sesionVigente()?.permisos.includes(permiso) ?? false;
   }
 
+  /** SCRUM-43: misma combinación de rol y permiso que exige el Gateway. */
+  puedeConsultarPreferencias(): boolean {
+    const sesion = this.sesionVigente();
+    return !!sesion && ['ADMINISTRADOR_CRM', 'AGENTE_ATENCION'].includes(sesion.rol)
+      && sesion.permisos.includes('FICHA_INTEGRAL_CONSULTAR');
+  }
+
   token(): string | null {
     return this.sesionVigente()?.token ?? null;
   }

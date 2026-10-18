@@ -381,9 +381,11 @@ class AccesoPorRolTest {
             mvc.perform(get(ruta).header("Authorization", bearer("sin-permiso", rol, List.of("INDICADORES_CONSULTAR"))))
                     .andExpect(status().isForbidden());
         }
-        mvc.perform(get(ruta).header("Authorization", bearer("gerente", "GERENTE_COMERCIAL",
-                        List.of("FICHA_INTEGRAL_CONSULTAR", "INDICADORES_CONSULTAR"))))
-                .andExpect(status().isForbidden());
+        for (String rol : List.of("GERENTE_COMERCIAL", "ANALISTA_DATOS", "OTRO_ROL")) {
+            mvc.perform(get(ruta).header("Authorization", bearer("denegado", rol,
+                            List.of("FICHA_INTEGRAL_CONSULTAR", "INDICADORES_CONSULTAR"))))
+                    .andExpect(status().isForbidden());
+        }
     }
 
     private static List<String> agregar(List<String> permisos, String extra) {
