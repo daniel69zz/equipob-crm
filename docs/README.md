@@ -1,5 +1,7 @@
 # Documentación
 
+- [Consulta de preferencias (SCRUM-43)](preferencias/consulta-preferencias.md): pantalla, acceso por rol, integración y pruebas; [diagramas](preferencias/consulta-diagramas.md).
+
 - `preferencias/`: construcción y persistencia del perfil de preferencias (SCRUM-41), regla de relevancia, diagramas y prueba manual por API, y su actualización automática con cada compra o anulación con trazabilidad por evento (SCRUM-42).
 
 - `mensajeria/`: Google Cloud Pub/Sub como broker alternativo a RabbitMQ, elegible por configuración (perfil `pubsub`).

@@ -28,6 +28,13 @@ export const invitadoGuard: CanActivateFn = () => {
   return auth.estaAutenticado() ? inject(Router).createUrlTree(['/']) : true;
 };
 
+export const preferenciasGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!auth.estaAutenticado()) return router.createUrlTree(['/login']);
+  return auth.puedeConsultarPreferencias() ? true : router.createUrlTree(['/acceso-denegado']);
+};
+
 /** SCRUM-25 exige también el rol, aunque otro rol reciba por error el permiso. */
 export const administradorSegmentacionGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
