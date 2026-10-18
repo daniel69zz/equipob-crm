@@ -56,7 +56,8 @@ public class AuditoriaAccesoFilter extends OncePerRequestFilter {
 
     private void registrar(HttpServletRequest solicitud, int estado) {
         String ruta = ruta(solicitud);
-        String detalle = "%s %s · HTTP %d · IP %s".formatted(solicitud.getMethod(), ruta, estado, solicitud.getRemoteAddr());
+        String detalle = "%s %s · HTTP %d · IP %s%s".formatted(
+                solicitud.getMethod(), ruta, estado, solicitud.getRemoteAddr(), filtrosSegmentacion(solicitud));
         try {
             auditoriaService.registrar(usuarioActual(), operacion(solicitud.getMethod(), estado),
                     AuditoriaService.ENTIDAD_CLIENTE, clienteId(ruta), detalle);
@@ -72,6 +73,21 @@ public class AuditoriaAccesoFilter extends OncePerRequestFilter {
         return HttpMethod.GET.matches(metodo) || HttpMethod.HEAD.matches(metodo)
                 ? AuditoriaService.CLIENTE_CONSULTADO
                 : AuditoriaService.CLIENTE_MODIFICADO;
+    }
+
+    /** SCRUM-568: lista cerrada; no copia nombres de clientes ni toda la query string. */
+    static String filtrosSegmentacion(HttpServletRequest solicitud) {
+        if (!"/api/segmentacion/clientes".equals(ruta(solicitud))) return "";
+        StringBuilder detalle = new StringBuilder();
+        for (String clave : java.util.List.of("segmentoId", "segmento", "nivelConsumo")) {
+            String valor = solicitud.getParameter(clave);
+            if (valor != null && !valor.isBlank()) {
+                String limpio = valor.replaceAll("[\\p{Cntrl}]", " ").trim();
+                detalle.append(" · ").append(clave).append("=")
+                        .append(limpio, 0, Math.min(limpio.length(), 100));
+            }
+        }
+        return detalle.toString();
     }
 
     /**

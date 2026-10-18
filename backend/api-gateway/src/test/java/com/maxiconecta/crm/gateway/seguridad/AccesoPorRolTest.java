@@ -346,6 +346,22 @@ class AccesoPorRolTest {
 
     // --- Utilidades ---
 
+    @Test
+    void consultaScrum28PorPermisoSinAbrirLaConfiguracion() throws Exception {
+        for (String rol : List.of("ADMINISTRADOR_CRM", "GERENTE_COMERCIAL", "ANALISTA_DATOS")) {
+            String token = bearer("lector-" + rol, rol, List.of("SEGMENTOS_CONSULTAR"));
+            for (String ruta : List.of("/api/segmentacion/clientes?segmentoId=12", "/api/segmentacion/segmentos")) {
+                mvc.perform(get(ruta).header("Authorization", token)).andExpect(pasaElControlDeAcceso());
+            }
+            mvc.perform(get("/api/segmentacion/criterios").header("Authorization", token))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(get("/api/segmentacion/clientes?segmentoId=12")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/segmentacion/clientes?segmentoId=12")
+                .header("Authorization", bearer("agente", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+    }
+
     private static ResultMatcher pasaElControlDeAcceso() {
         return resultado -> assertThat(resultado.getResponse().getStatus()).isNotIn(401, 403);
     }

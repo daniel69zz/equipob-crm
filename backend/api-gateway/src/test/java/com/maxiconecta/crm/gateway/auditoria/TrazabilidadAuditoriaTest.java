@@ -84,6 +84,27 @@ class TrazabilidadAuditoriaTest {
     // --- Criterio 1: consultas y modificaciones quedan registradas ---
 
     @Test
+    void registraSeleccionScrum28SinNombreDeBusquedaNiParametrosArbitrarios() throws Exception {
+        mvc.perform(get("/api/segmentacion/clientes").param("segmentoId", "12")
+                .param("nivelConsumo", "ALTO").param("nombre", "Nombre privado").param("token", "dato-secreto")
+                .header("Authorization", bearer("gerente", "GERENTE_COMERCIAL", PERMISOS_GERENTE)));
+        verify(auditoriaService).registrar(eq("gerente"), eq(AuditoriaService.CLIENTE_CONSULTADO),
+                eq(AuditoriaService.ENTIDAD_CLIENTE), isNull(), argThat(detalle ->
+                    detalle.contains("segmentoId=12") && detalle.contains("nivelConsumo=ALTO")
+                    && !detalle.contains("Nombre privado") && !detalle.contains("dato-secreto")));
+    }
+
+    @Test
+    void tambienAuditaElListadoDenegado() throws Exception {
+        mvc.perform(get("/api/segmentacion/clientes").param("segmentoId", "12")
+                .header("Authorization", bearer("agente", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        verify(auditoriaService).registrar(eq("agente"), eq(AuditoriaService.ACCESO_DENEGADO),
+                eq(AuditoriaService.ENTIDAD_CLIENTE), isNull(),
+                argThat(detalle -> detalle.contains("segmentoId=12") && detalle.contains("HTTP 403")));
+    }
+
+    @Test
     void unaConsultaDeClienteQuedaRegistradaConUsuarioOperacionYCliente() throws Exception {
         mvc.perform(get("/api/perfil/clientes/42").header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)));
 
