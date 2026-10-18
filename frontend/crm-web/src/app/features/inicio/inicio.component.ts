@@ -16,6 +16,13 @@ interface Modulo {
 /** Módulos del CRM. Cada usuario ve solo los que su rol permite; los que no tienen ruta llegan en próximos sprints. */
 const MODULOS: Modulo[] = [
   {
+    titulo: 'Clientes por segmento',
+    descripcion: 'Consulta clientes por segmento y nivel de consumo, con filtros y paginación.',
+    permiso: Permisos.SEGMENTOS_CONSULTAR,
+    icono: 'segmentos',
+    ruta: '/segmentacion/clientes',
+  },
+  {
     titulo: 'Clientes',
     descripcion: 'Perfil único, historial de cambios, compras y consentimiento de cada cliente.',
     permiso: Permisos.CLIENTE_CONSULTAR,

@@ -36,6 +36,7 @@ const GRUPOS: Grupo[] = [
   {
     titulo: 'Análisis',
     enlaces: [
+        { texto: 'Clientes por segmento', ruta: '/segmentacion/clientes', icono: 'segmentos', permiso: Permisos.SEGMENTOS_CONSULTAR },
       { texto: 'Retención por cohortes', ruta: '/analisis/cohortes', icono: 'cohortes', permiso: Permisos.INDICADORES_CONSULTAR },
     ],
   },

@@ -1,0 +1,32 @@
+.eyebrow { color: var(--color-primario); font-size: .72rem; font-weight: 700; letter-spacing: .1em; }
+.cabecera h1 { margin-top: .35rem; }
+.filtros { display: grid; grid-template-columns: 1fr 1fr 1.25fr auto; gap: 1rem; align-items: end; margin: 1.5rem 0; }
+.filtros > div { min-width: 0; }
+.acciones { display: flex; gap: .5rem; }
+.ayuda { grid-column: 1 / -1; color: var(--color-texto-suave); margin: 0; font-size: .85rem; }
+.resumen { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.resumen strong { font-size: 1.1rem; }
+.resumen p, .estado p, .vacio p { color: var(--color-texto-suave); margin: .4rem 0; font-size: .85rem; }
+.tamano { min-width: 150px; }
+.tabla-scroll { overflow-x: auto; }
+table { min-width: 620px; }
+.orden { background: transparent; color: inherit; padding: .3rem 0; box-shadow: none; font: inherit; font-weight: 600; border: 0; text-align: left; }
+.orden:hover { background: transparent; color: var(--color-primario); }
+.orden span { margin-left: .3rem; }
+td small { display: flex; gap: .75rem; margin-top: .25rem; color: var(--color-texto-suave); }
+.nivel-ALTO { background: var(--color-exito-claro); color: var(--color-exito); }
+.nivel-MEDIO { background: var(--color-primario-claro); color: var(--color-primario); }
+.nivel-BAJO, .nivel-SIN_NIVEL { background: #f1f5f9; color: #475569; }
+.estado, .vacio { text-align: center; padding: 2.5rem 1rem; }
+.paginacion { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-top: 1rem; font-size: .85rem; }
+.paginacion > div { display: flex; gap: .75rem; align-items: center; }
+.error { margin-bottom: 1rem; }
+.error button { margin-left: .5rem; }
+.solo-lectores { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+@media (max-width: 1050px) { .filtros { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) {
+  .filtros { grid-template-columns: 1fr; }
+  .resumen, .paginacion { align-items: stretch; flex-direction: column; }
+  .paginacion > div { justify-content: space-between; }
+  .acciones button { flex: 1; }
+}

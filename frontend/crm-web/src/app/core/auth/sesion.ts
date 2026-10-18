@@ -32,4 +32,5 @@ export const NombresDeRol: Record<string, string> = {
   ADMINISTRADOR_CRM: 'Administrador de CRM',
   AGENTE_ATENCION: 'Agente de Atención al Cliente',
   GERENTE_COMERCIAL: 'Gerente Comercial',
+  ANALISTA_DATOS: 'Analista de Datos',
 };

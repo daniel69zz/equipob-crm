@@ -1,0 +1,113 @@
+<div class="cabecera">
+  <div>
+    <span class="eyebrow">ANÁLISIS COMERCIAL</span>
+    <h1>Clientes por segmento</h1>
+    <p class="subtitulo">Consulte clientes por su segmento y nivel de consumo para orientar sus acciones comerciales.</p>
+  </div>
+</div>
+
+<form class="tarjeta filtros" (ngSubmit)="consultar()">
+  <div>
+    <label for="segmento-consulta">Segmento</label>
+    <select id="segmento-consulta" name="segmento" [(ngModel)]="seleccion" [disabled]="cargandoCatalogo()">
+      <option value="">Todos los segmentos</option>
+      @for (segmento of segmentos(); track clave(segmento)) {
+        <option [value]="clave(segmento)">{{ segmento.nombre }}{{ !segmento.activo ? ' (inactivo)' : '' }}{{ segmento.legado ? ' (anterior)' : '' }}</option>
+      }
+    </select>
+  </div>
+  <div>
+    <label for="nivel-consulta">Nivel de consumo</label>
+    <select id="nivel-consulta" name="nivel" [(ngModel)]="nivel">
+      <option value="">Todos los niveles</option>
+      <option value="BAJO">Bajo</option>
+      <option value="MEDIO">Medio</option>
+      <option value="ALTO">Alto</option>
+      <option value="SIN_NIVEL">Sin nivel</option>
+    </select>
+  </div>
+  <div>
+    <label for="nombre-consulta">Nombre del cliente</label>
+    <input id="nombre-consulta" name="nombre" [(ngModel)]="nombre" maxlength="200" placeholder="Buscar por nombre o apellido" />
+  </div>
+  <div class="acciones">
+    <button type="submit" [disabled]="cargando()">Consultar</button>
+    <button type="button" class="secundario" (click)="limpiar()">Limpiar</button>
+  </div>
+  <p class="ayuda">Seleccione un segmento o un nivel. Si elige ambos, se mostrarán los clientes que cumplan las dos condiciones.</p>
+</form>
+
+@if (errorCatalogo()) {
+  <div class="error" role="alert">{{ errorCatalogo() }}
+    <button type="button" class="secundario" (click)="cargarCatalogo()">Recargar segmentos</button>
+  </div>
+}
+@if (error()) {
+  <div class="error" role="alert">{{ error() }}
+    @if (consultado()) { <button type="button" class="secundario" (click)="reintentar()" [disabled]="cargando()">Reintentar consulta</button> }
+  </div>
+}
+@if (cargando()) {
+  <div class="tarjeta estado" role="status" aria-live="polite">Consultando clientes…</div>
+}
+@if (resultado(); as r) {
+  <section class="tarjeta resultados" aria-label="Resultados de clientes">
+    <div class="resumen">
+      <div><strong>{{ r.total }} {{ r.total === 1 ? 'cliente encontrado' : 'clientes encontrados' }}</strong>
+        <p>Una fila por cliente del CRM, incluyendo sus cuentas vinculadas.</p></div>
+      <div class="tamano">
+        <label for="tamano-consulta">Clientes por página</label>
+        <select id="tamano-consulta" name="tamanio" [(ngModel)]="tamanio" (ngModelChange)="cambiarTamanio()">
+          <option value="10">10</option><option value="20">20</option>
+          <option value="50">50</option><option value="100">100</option>
+        </select>
+      </div>
+    </div>
+    <div class="tabla-scroll">
+      <table>
+        <caption class="solo-lectores">Clientes que cumplen los filtros seleccionados</caption>
+        <thead><tr>
+          @for (columna of columnas; track columna.clave) {
+            <th scope="col" [attr.aria-sort]="ordenAria(columna.clave)">
+              <button type="button" class="orden" (click)="ordenar(columna.clave)" [attr.aria-label]="'Ordenar por ' + columna.titulo">
+                {{ columna.titulo }}
+                <span aria-hidden="true">{{ ordenAria(columna.clave) === 'ascending' ? '↑' : ordenAria(columna.clave) === 'descending' ? '↓' : '↕' }}</span>
+              </button>
+            </th>
+          }
+        </tr></thead>
+        <tbody>
+          @for (cliente of r.clientes; track cliente.clienteId) {
+            <tr>
+              <td><strong>{{ cliente.nombre }}</strong><small>Cliente {{ cliente.clienteId }}
+                <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', cliente.clienteId, 'ficha-integral']">Ver ficha</a>
+              </small></td>
+              <td>{{ cliente.segmento ?? 'Sin segmento' }}</td>
+              <td><span class="etiqueta nivel" [class]="'etiqueta nivel nivel-' + (cliente.nivelConsumo ?? 'SIN_NIVEL')">{{ etiquetaNivel(cliente.nivelConsumo) }}</span></td>
+              <td>{{ cliente.ultimaCompra ? (cliente.ultimaCompra | date: 'dd/MM/yyyy HH:mm') : 'Sin compras' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="vacio">
+              <strong>No hay clientes para mostrar.</strong>
+              <p>{{ r.total > 0 ? 'Esta página ya no tiene resultados. Vuelva a la primera página.' : 'No se encontraron clientes con los filtros seleccionados.' }}</p>
+              @if (r.pagina > 0) { <button type="button" class="secundario" (click)="pagina(0)">Primera página</button> }
+            </td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <nav class="paginacion" aria-label="Paginación de clientes">
+      <span aria-live="polite">{{ r.total && r.clientes.length ? r.pagina * r.tamanio + 1 : 0 }}–{{ r.clientes.length ? fin(r) : 0 }} de {{ r.total }}</span>
+      <div>
+        <button type="button" class="secundario" [disabled]="r.pagina === 0" (click)="pagina(r.pagina - 1)">Anterior</button>
+        <span>Página {{ r.pagina + 1 }}</span>
+        <button type="button" class="secundario" [disabled]="(r.pagina + 1) * r.tamanio >= r.total" (click)="pagina(r.pagina + 1)">Siguiente</button>
+      </div>
+    </nav>
+  </section>
+} @else if (!consultado() && !error()) {
+  <div class="tarjeta estado">
+    <strong>Elija el grupo de clientes que desea consultar</strong>
+    <p>Seleccione un segmento o un nivel de consumo y pulse Consultar.</p>
+  </div>
+}
