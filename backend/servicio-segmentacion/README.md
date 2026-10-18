@@ -2,6 +2,10 @@
 
 Servicio Spring Boot del CRM MaxiConecta, propietario del esquema `segmentacion`.
 
+- **SCRUM-28:** listado paginado por segmento y nivel, búsqueda por nombre y ordenamiento global.
+  Pantalla integrada en `/segmentacion/clientes`; catálogo de consulta independiente de criterios.
+  [Contrato, pruebas y diagramas](../../docs/segmentacion/SCRUM-28-consulta-clientes.md).
+
 - Consulta del segmento asignado para la ficha integral del cliente (SCRUM-149).
 - **SCRUM-25:** alta, edición, activación y desactivación de criterios por frecuencia, valor acumulado y categoría.
 - Rechazo de rangos inválidos y superposiciones, con control de concurrencia y versiones.
@@ -21,6 +25,8 @@ Modelo, API, decisiones, diagramas, pruebas y puesta en marcha:
 
 PostgreSQL disponible y migraciones del API Gateway aplicadas (crean la auditoría compartida).
 Variables `DB_URL`, `DB_USUARIO`, `DB_PASSWORD`; puerto predeterminado 8083, configurable con `PUERTO`.
+SCRUM-28 requiere las migraciones de Perfil y Comportamiento en esa misma base y
+`SERVICIO_COMPORTAMIENTO_URL` (por defecto http://localhost:8082) para consultar sus umbrales.
 RabbitMQ con `RABBIT_HOST`, `RABBIT_PUERTO`, `RABBIT_USUARIO`, `RABBIT_PASSWORD`.
 
 ```powershell

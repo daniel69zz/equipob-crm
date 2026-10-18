@@ -30,6 +30,12 @@ La ficha integral del cliente (SCRUM-10) se expone en `GET /api/perfil/clientes/
 
 ## Campos de cada registro
 
+**Excepción acotada de SCRUM-28:** para `/api/segmentacion/clientes` se añaden al detalle
+solo `segmentoId`, `segmento` (asignación anterior) y `nivelConsumo`. Cada valor se limita
+a 100 caracteres y se eliminan caracteres de control. No se guarda el filtro por nombre,
+tokens, otros parámetros ni filas del resultado. Esto permite identificar el grupo consultado
+sin duplicar los datos personales de la búsqueda.
+
 | Campo | Contenido | Ejemplo |
 |---|---|---|
 | `ocurrido_en` | Fecha y hora en que terminó la operación | `2026-09-27 19:42:10-04` |

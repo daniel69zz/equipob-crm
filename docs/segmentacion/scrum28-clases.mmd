@@ -1,0 +1,70 @@
+classDiagram
+    direction TB
+    class ConsultaSegmentosComponent {
+        consultar()
+        ordenar(columna)
+        pagina(numero)
+        reintentar()
+    }
+    class ConsultaSegmentosService {
+        catalogo()
+        buscar(filtros)
+    }
+    class ClientesPorSegmentoController {
+        catalogo(request)
+        buscar(filtros, request)
+        autorizar(request)
+    }
+    class FiltroConsultaClientes {
+        Long segmentoId
+        String segmento
+        String nivelConsumo
+        String nombre
+        int pagina
+        int tamanio
+        String orden
+        String direccion
+    }
+    class RepositorioConsultaClientes {
+        catalogo()
+        buscar(filtro, umbrales)
+    }
+    class Pagina {
+        List clientes
+        int pagina
+        int tamanio
+        long total
+    }
+    class Cliente {
+        long clienteId
+        String nombre
+        Long segmentoId
+        String segmento
+        String nivelConsumo
+        OffsetDateTime ultimaCompra
+    }
+    class UmbralesConsumo {
+        obtener()
+    }
+    class UmbralesConsumoController {
+        obtener()
+    }
+    class CriterioNivelConsumo {
+        umbralMedio()
+        umbralAlto()
+        clasificar(valor)
+    }
+    class AuditoriaAccesoFilter {
+        registrar()
+        filtrosSegmentacion(request)
+    }
+    ConsultaSegmentosComponent --> ConsultaSegmentosService
+    ConsultaSegmentosService ..> ClientesPorSegmentoController : HTTP via Gateway
+    ClientesPorSegmentoController --> FiltroConsultaClientes : valida
+    ClientesPorSegmentoController --> RepositorioConsultaClientes
+    ClientesPorSegmentoController --> UmbralesConsumo
+    UmbralesConsumo ..> UmbralesConsumoController : HTTP interno
+    UmbralesConsumoController --> CriterioNivelConsumo
+    RepositorioConsultaClientes --> Pagina
+    Pagina *-- Cliente
+    AuditoriaAccesoFilter ..> ClientesPorSegmentoController : audita acceso

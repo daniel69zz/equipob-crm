@@ -40,6 +40,11 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 
 ## Permiso requerido por ruta en el API Gateway
 
+SCRUM-28 agrega el rol `ANALISTA_DATOS` con `SEGMENTOS_CONSULTAR` como único permiso inicial.
+Los endpoints `GET /api/segmentacion/clientes` y `GET /api/segmentacion/segmentos` usan ese
+permiso para administrador, gerente y analista. El catálogo de consulta no abre acceso a
+`/api/segmentacion/criterios`, que conserva sus restricciones administrativas.
+
 Las reglas se evalúan en este orden; la primera que coincide decide.
 
 | Ruta | Método | Permiso |

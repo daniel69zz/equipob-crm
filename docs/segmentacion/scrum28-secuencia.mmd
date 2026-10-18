@@ -1,0 +1,33 @@
+sequenceDiagram
+    actor Usuario
+    participant UI as Angular CRM
+    participant Gateway as API Gateway
+    participant API as Segmentacion
+    participant Consumo as Comportamiento
+    participant BD as PostgreSQL
+    Usuario->>UI: Selecciona segmento o nivel
+    UI->>Gateway: GET /api/segmentacion/clientes + JWT
+    Gateway->>Gateway: Autenticar y verificar SEGMENTOS_CONSULTAR
+    alt Sin sesion o permiso
+        Gateway->>BD: Auditoria ACCESO_DENEGADO + seleccion
+        Gateway-->>UI: 401 o 403
+    else Autorizado
+        Gateway->>API: Peticion con identidad saneada
+        API->>API: Validar identidad y filtros
+        API->>Consumo: GET /internal/consumo/umbrales
+        Consumo-->>API: Umbrales vigentes
+        API->>BD: Transaccion de lectura REPEATABLE_READ
+        Note over API,BD: Perfil + vinculos actuales + compras vigentes + segmento
+        API->>BD: COUNT con filtros
+        BD-->>API: Total
+        API->>BD: Orden global + LIMIT/OFFSET
+        BD-->>API: Pagina de clientes CRM
+        API-->>Gateway: clientes, pagina, tamanio, total
+        Gateway->>BD: Auditoria de acceso + segmento/nivel
+        Gateway-->>UI: 200
+        UI-->>Usuario: Tabla o mensaje de lista vacia
+    end
+    Note over UI,API: Error de dependencia: 503 y reintento; no lista vacia
+    Usuario->>UI: Ordena o cambia pagina
+    UI->>UI: Mantener filtros en URL y cancelar consulta anterior
+    UI->>Gateway: Nueva consulta paginada

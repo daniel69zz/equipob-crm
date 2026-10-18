@@ -1,5 +1,8 @@
 # Documentación
 
+- [SCRUM-28: consulta de clientes por segmento o nivel](segmentacion/SCRUM-28-consulta-clientes.md):
+  contrato, integración frontend/backend, roles, auditoría, diagramas y verificación.
+
 - `preferencias/`: construcción y persistencia del perfil de preferencias (SCRUM-41), regla de relevancia, diagramas y prueba manual por API, y su actualización automática con cada compra o anulación con trazabilidad por evento (SCRUM-42).
 
 - `mensajeria/`: Google Cloud Pub/Sub como broker alternativo a RabbitMQ, elegible por configuración (perfil `pubsub`).

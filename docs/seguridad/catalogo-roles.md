@@ -10,6 +10,10 @@ Roles del personal interno que usa la Aplicación Web del CRM. Cada usuario tien
 
 ## Reglas
 
+SCRUM-28 incorpora `ANALISTA_DATOS` (Analista de Datos) mediante la migración V7 del Gateway.
+Su permiso inicial es exclusivamente `SEGMENTOS_CONSULTAR`: puede consultar clientes por
+segmento o nivel desde la aplicación, sin configurar criterios ni abrir la ficha integral.
+
 - Un usuario interno tiene **exactamente un rol activo**.
 - Solo el **Administrador de CRM** crea usuarios, asigna roles y administra los permisos de cada rol.
 - Un rol **desactivado** no se puede asignar a usuarios nuevos.
