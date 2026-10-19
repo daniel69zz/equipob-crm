@@ -71,6 +71,11 @@ comportamiento:
     # Cuándo se reclasifica a todos los clientes (SCRUM-268); por defecto, una vez al día de madrugada.
     cron: ${NIVEL_CONSUMO_CRON:0 30 3 * * *}
 
+  clasificacion-frecuencia:
+    # Compras vigentes desde las que un cliente es habitual y frecuente; con al menos una, ocasional (SCRUM-341).
+    umbral-habitual: ${CLASIFICACION_FRECUENCIA_UMBRAL_HABITUAL:4}
+    umbral-frecuente: ${CLASIFICACION_FRECUENCIA_UMBRAL_FRECUENTE:10}
+
   cambio-comportamiento:
     # Periodo actual y línea base de la detección de cambios de comportamiento (SCRUM-316):
     # se comparan los últimos ventana-dias con el promedio por periodo de los periodos-base anteriores.
