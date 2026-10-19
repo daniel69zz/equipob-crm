@@ -57,7 +57,7 @@ public class SimulacionSegmentacion {
             // Límite de filas y tiempo por sentencia; no se carga la población completa en memoria.
             jdbc.query(conexion -> {
                 var ps = conexion.prepareStatement("""
-                        SELECT m.frecuencia, m.valor, m.categorias, m.calculadas_en,
+                        SELECT m.frecuencia, m.valor, m.categorias, m.calculadas_en, m.clasificacion_frecuencia,
                                s.criterio_id, s.segmento
                         FROM segmentacion.metricas_cliente m
                         LEFT JOIN segmentacion.segmento_cliente s ON s.cliente_id=m.cliente_id
@@ -84,7 +84,8 @@ public class SimulacionSegmentacion {
                 String nombreActual = rs.getString("segmento");
                 String actual = clave((Long) rs.getObject("criterio_id"), nombreActual);
                 filas.computeIfAbsent(actual, k -> new Fila(nombreActual == null ? "Sin segmento" : nombreActual, false)).actual++;
-                var elegido = ReglaPrioridadSegmento.elegir(escenario, frecuencia, valor, categorias);
+                var elegido = ReglaPrioridadSegmento.elegir(escenario, frecuencia, valor, categorias,
+                        rs.getString("clasificacion_frecuencia"));
                 String simulado = elegido.map(c -> clave(c.id(), c.nombre())).orElse("sin-segmento");
                 filas.get(simulado).simulado++;
                 if (!actual.equals(simulado)) totales[1]++;

@@ -74,7 +74,7 @@ public class CriterioService {
         // Un alta futura tiene menor prioridad por antigüedad que todos los criterios existentes.
         return new Criterio(id == null ? Long.MAX_VALUE : id, s.nombre(), s.descripcion(), s.indicador(),
                 s.condicion(), s.minimo(), s.maximo(), s.categoria(), activo,
-                anterior == null ? 0 : anterior.version(), null, null, null);
+                anterior == null ? 0 : anterior.version(), null, null, null, s.clasificacion());
     }
 
     private void validarConflictos(SolicitudCriterio s, Long id, boolean activo) {

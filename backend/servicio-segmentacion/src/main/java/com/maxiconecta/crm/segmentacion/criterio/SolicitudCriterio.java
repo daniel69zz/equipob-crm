@@ -12,4 +12,12 @@ public record SolicitudCriterio(
         @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal minimo,
         @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal maximo,
         @Size(max = 100) String categoria,
-        @PositiveOrZero Long version) { }
+        @PositiveOrZero Long version,
+        @Size(max = 20) String clasificacion) {
+
+    /** Solicitud de los indicadores de SCRUM-25, sin clasificación por frecuencia. */
+    public SolicitudCriterio(String nombre, String descripcion, Indicador indicador, Condicion condicion,
+                             BigDecimal minimo, BigDecimal maximo, String categoria, Long version) {
+        this(nombre, descripcion, indicador, condicion, minimo, maximo, categoria, version, null);
+    }
+}

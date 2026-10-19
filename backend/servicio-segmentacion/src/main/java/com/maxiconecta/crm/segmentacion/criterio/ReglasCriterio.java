@@ -27,6 +27,18 @@ public final class ReglasCriterio {
         }
         BigDecimal min = s.minimo(), max = s.maximo();
         String categoria = limpiar(s.categoria());
+        String clasificacion = limpiar(s.clasificacion()).toUpperCase(Locale.ROOT);
+        if (s.indicador() == Indicador.CLASIFICACION_FRECUENCIA) {
+            // SCRUM-38: una sola clasificación por criterio, sin rangos ni categoría.
+            if (s.condicion() != Condicion.IGUAL || !CLASIFICACIONES.contains(clasificacion)
+                    || min != null || max != null || !categoria.isEmpty()) {
+                throw invalido("La clasificación por frecuencia requiere la condición IGUAL y una clasificación: "
+                        + "OCASIONAL, HABITUAL o FRECUENTE; no admite rangos ni categoría");
+            }
+            return new SolicitudCriterio(limpiar(s.nombre()), limpiar(s.descripcion()), s.indicador(),
+                    s.condicion(), null, null, null, s.version(), clasificacion);
+        }
+        if (!clasificacion.isEmpty()) throw invalido("Solo la clasificación por frecuencia admite una clasificación");
         if (s.indicador() == Indicador.CATEGORIA) {
             if (s.condicion() != Condicion.CONTIENE || categoria.isEmpty() || min != null || max != null) {
                 throw invalido("Categoría requiere la condición CONTIENE y una categoría; no admite rangos numéricos");
@@ -62,13 +74,25 @@ public final class ReglasCriterio {
     public static boolean seSuperponen(SolicitudCriterio nuevo, Criterio existente) {
         if (!existente.activo() || nuevo.indicador() != existente.indicador()) return false;
         if (nuevo.indicador() == Indicador.CATEGORIA) return clave(nuevo.categoria()).equals(clave(existente.categoria()));
+        if (nuevo.indicador() == Indicador.CLASIFICACION_FRECUENCIA) {
+            return nuevo.clasificacion().equals(existente.clasificacion());
+        }
         // Límites inclusivos: [0, 5] y [5, 10] comparten el 5 y se rechazan.
         return (nuevo.maximo() == null || existente.minimo() == null || nuevo.maximo().compareTo(existente.minimo()) >= 0)
                 && (existente.maximo() == null || nuevo.minimo() == null || existente.maximo().compareTo(nuevo.minimo()) >= 0);
     }
 
     public static boolean cumple(Criterio criterio, BigDecimal frecuencia, BigDecimal valor, List<String> categorias) {
+        return cumple(criterio, frecuencia, valor, categorias, null);
+    }
+
+    /** Igual que la anterior, con la clasificación por frecuencia del cliente (SCRUM-38), o {@code null} si no tiene. */
+    public static boolean cumple(Criterio criterio, BigDecimal frecuencia, BigDecimal valor, List<String> categorias,
+                                 String clasificacion) {
         if (!criterio.activo()) return false;
+        if (criterio.indicador() == Indicador.CLASIFICACION_FRECUENCIA) {
+            return clasificacion != null && clasificacion.equals(criterio.clasificacion());
+        }
         if (criterio.indicador() == Indicador.CATEGORIA) {
             return categorias != null && categorias.stream().anyMatch(c -> clave(c).equals(clave(criterio.categoria())));
         }
