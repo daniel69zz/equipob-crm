@@ -33,7 +33,7 @@ mantienen al día con cada compra o anulación, así que nunca quedan desactuali
 
 Cada servicio sigue siendo dueño de su esquema: servicio-comportamiento pide a servicio-segmentacion
 el segmento del cliente y sus compañeros de segmento, y agrega los perfiles de esos compañeros en su
-propio esquema. La migración V5 de segmentación agrega un índice por `segmento` para listar los
+propio esquema. La migración V6 de segmentación agrega un índice por `segmento` para listar los
 miembros sin recorrer la tabla.
 
 ## Criterio de afinidad (SCRUM-380)

@@ -257,6 +257,44 @@ class AccesoPorRolTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Comparación de periodos (SCRUM-40): el cliente con INDICADORES_CONSULTAR; el segmento, además con SEGMENTOS_CONSULTAR ---
+
+    @Test
+    void laComparacionDePeriodosDeUnClienteSeConsultaConIndicadoresConsultarYSeDenieganSinEl() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/comparacion-periodos?desdeA=2026-08-01&hastaA=2026-08-31"
+                + "&desdeB=2026-09-01&hastaB=2026-09-30";
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+
+        mvc.perform(get(ruta).header("Authorization", bearer("carla", "SIN_INDICADORES", List.of("CLIENTE_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void laComparacionDePeriodosDeUnSegmentoExigeIndicadoresYSegmentosConsultar() throws Exception {
+        String ruta = "/api/comportamiento/comparacion-periodos?segmento=FRECUENTE&desdeA=2026-08-01&hastaA=2026-08-31"
+                + "&desdeB=2026-09-01&hastaB=2026-09-30";
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+
+        // El agente de atención tiene INDICADORES_CONSULTAR pero no SEGMENTOS_CONSULTAR.
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("carla", "SOLO_SEGMENTOS", List.of("CLIENTE_CONSULTAR", "SEGMENTOS_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Evolución del consumo por categoría (SCRUM-32, SCRUM-305): solo Administrador y Gerente Comercial ---
 
     @Test

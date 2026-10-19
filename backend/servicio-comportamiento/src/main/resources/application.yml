@@ -9,7 +9,8 @@ crm:
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
   segmentacion:
-    # Segmento y compañeros de segmento para la sugerencia de categorías afines (SCRUM-44).
+    # Clientes de un segmento, para comparar periodos solo con ellos (SCRUM-40), y compañeros de
+    # segmento para la sugerencia de categorías afines (SCRUM-44).
     url: ${SERVICIO_SEGMENTACION_URL:http://localhost:8083}
     tiempo-espera: ${SEGMENTACION_TIEMPO_ESPERA:2s}
 

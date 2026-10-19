@@ -101,6 +101,12 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole("ADMINISTRADOR_CRM", "AGENTE_ATENCION"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(FICHA_INTEGRAL_CONSULTAR)))
+                        // Comparar periodos por segmento (SCRUM-40): ademas de los indicadores, exige poder
+                        // consultar segmentos (el agente de atencion compara clientes, no segmentos).
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/comparacion-periodos")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(INDICADORES_CONSULTAR),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(SEGMENTOS_CONSULTAR)))
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/**").hasAuthority(INDICADORES_CONSULTAR)
 
                         .requestMatchers("/api/segmentacion/criterios", "/api/segmentacion/criterios/**")

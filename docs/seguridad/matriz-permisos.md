@@ -57,6 +57,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/comportamiento/clientes/*/sugerencias-categorias` | GET | `SUGERENCIAS_CONSULTAR` |
 | `/api/comportamiento/clientes/*/preferencias/construir` | POST | Rol `ADMINISTRADOR_CRM` y `CLIENTE_EDITAR` |
 | `/api/comportamiento/clientes/*/preferencias` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `FICHA_INTEGRAL_CONSULTAR` |
+| `/api/comportamiento/comparacion-periodos` | GET | `INDICADORES_CONSULTAR` **y** `SEGMENTOS_CONSULTAR` (regla anterior a la genérica) |
 | `/api/comportamiento/**` | GET | `INDICADORES_CONSULTAR` |
 | `/api/segmentacion/criterios` y `/api/segmentacion/criterios/**` | Todos | Rol `ADMINISTRADOR_CRM` **y** `SEGMENTACION_CONFIGURAR` (regla anterior a la genérica) |
 | `/api/segmentacion/clientes/*/historial-segmentos` | GET | `SEGMENTOS_CONSULTAR`; los métodos de escritura y las subrutas se deniegan antes de la regla genérica |
