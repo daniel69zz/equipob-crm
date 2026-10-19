@@ -31,6 +31,7 @@ RUTA_POR_TIPO = {
     "COMPRA_ANULADA": "compra.anulada",
     "CLIENTE_REGISTRADO": "cliente.registrado",
     "CLIENTE_ACTUALIZADO": "cliente.actualizado",
+    "MOVIMIENTO_PUNTOS": "puntos.movimiento",
 }
 RUTA_POR_DEFECTO = "compra.confirmada"
 
@@ -49,6 +50,8 @@ def contenido_a_publicar(ruta_archivo, nuevo, ahora):
             evento["compra"]["idCompra"] = f"{evento['compra']['idCompra']}-{uuid.uuid4().hex[:6]}"
         if isinstance(evento.get("anulacion"), dict) and evento["anulacion"].get("idAnulacion"):
             evento["anulacion"]["idAnulacion"] = f"{evento['anulacion']['idAnulacion']}-{uuid.uuid4().hex[:6]}"
+        if isinstance(evento.get("movimiento"), dict) and evento["movimiento"].get("idTransaccion"):
+            evento["movimiento"]["idTransaccion"] = f"{evento['movimiento']['idTransaccion']}-{uuid.uuid4().hex[:6]}"
         if isinstance(evento.get("cliente"), dict) and evento["cliente"].get("idCliente"):
             evento["cliente"]["idCliente"] = f"{evento['cliente']['idCliente']}-{uuid.uuid4().hex[:6]}"
     if ahora:
@@ -91,7 +94,7 @@ def main():
     parser.add_argument("archivos", nargs="+", help="archivos con el contenido de cada evento")
     parser.add_argument("--veces", type=int, default=1, help="cuántas veces publicar cada archivo (por defecto 1)")
     parser.add_argument("--nuevo", action="store_true",
-                        help="genera identificadores nuevos (idEvento, idCompra o idCliente) en cada publicación")
+                        help="genera identificadores nuevos (idEvento, idCompra, idTransaccion o idCliente) en cada publicación")
     parser.add_argument("--ahora", action="store_true",
                         help="usa la fecha actual como fecha del cambio (para que un evento de cliente se aplique)")
     parser.add_argument("--url", default="http://localhost:15672", help="API de administración de RabbitMQ")

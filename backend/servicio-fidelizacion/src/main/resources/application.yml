@@ -1,6 +1,20 @@
 server:
   port: ${PUERTO:8084}
 
+crm:
+  mensajeria:
+    # Broker de mensajería: rabbit (predeterminado) o pubsub (perfil "pubsub"). Ver docs/mensajeria/pubsub.md.
+    broker: rabbit
+  perfil:
+    # Vincula el cliente de Marketplace y Ventas de cada movimiento con su perfil del CRM (SCRUM-45).
+    url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
+    tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
+
+fidelizacion:
+  puntos:
+    # Regla de cálculo (SCRUM-386): 1 punto por cada tramo completo de este valor consumido, en bolivianos.
+    bolivianos-por-punto: ${FIDELIZACION_BOLIVIANOS_POR_PUNTO:10}
+
 spring:
   application:
     name: servicio-fidelizacion
@@ -19,7 +33,33 @@ spring:
     schemas: fidelizacion
     locations: classpath:db/migration
 
+  # Google Cloud Pub/Sub solo se activa con el perfil "pubsub" (application-pubsub.yml).
+  cloud:
+    gcp:
+      core:
+        enabled: false
+      pubsub:
+        enabled: false
+
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PUERTO:5672}
+    username: ${RABBIT_USUARIO:guest}
+    password: ${RABBIT_PASSWORD:guest}
+    listener:
+      simple:
+        # Si un mensaje no se puede ni anotar en la bitácora, se reintenta y luego va a la cola de respaldo.
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2
+
 management:
+  health:
+    pubsub:
+      enabled: false
   endpoints:
     web:
       exposure:

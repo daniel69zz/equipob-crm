@@ -1,0 +1,12 @@
+{
+  "idEvento": "4d5e6f7a-8b9c-4d0e-a1f2-3b4c5d6e7f8a",
+  "tipoEvento": "MOVIMIENTO_PUNTOS",
+  "fechaEmision": "2026-10-18T13:00:00-04:00",
+  "movimiento": {
+    "idTransaccion": "R-5001",
+    "idCliente": "CLI-5521",
+    "tipoMovimiento": "REDENCION",
+    "valorConsumido": 50.00,
+    "fecha": "2026-10-18T12:59:40-04:00"
+  }
+}
