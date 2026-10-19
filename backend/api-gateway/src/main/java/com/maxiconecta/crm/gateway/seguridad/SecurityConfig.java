@@ -36,6 +36,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_REGISTRAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTOS_CONSULTAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.SUGERENCIAS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.USUARIOS_ADMINISTRAR;
 
 /**
@@ -86,6 +87,9 @@ public class SecurityConfig {
                         // perfiles de analisis comercial, mas restrictivo que INDICADORES_CONSULTAR.
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/evolucion-consumo")
                             .hasAuthority(EVOLUCION_CONSUMO_CONSULTAR)
+                        // Sugerencia de categorias afines (SCRUM-44, SCRUM-383): mismo publico que la evolucion.
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/sugerencias-categorias")
+                            .hasAuthority(SUGERENCIAS_CONSULTAR)
                         // SCRUM-41: construcción explícita administrativa y lectura del perfil persistido.
                         .requestMatchers(HttpMethod.POST, "/api/comportamiento/clientes/*/preferencias/construir")
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
