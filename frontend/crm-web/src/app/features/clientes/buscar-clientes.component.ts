@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.directive';
 import { Permisos } from '../../core/auth/sesion';
 import { ClientesService, ResumenCliente } from './clientes.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 const NOMBRES_DE_ESTADO: Record<string, string> = {
   COMPLETO: 'Completo',
@@ -78,6 +79,9 @@ const NOMBRES_DE_ESTADO: Record<string, string> = {
                 <td><span class="etiqueta" [class]="'perfil-' + cliente.estado">{{ nombreEstado(cliente.estado) }}</span></td>
                 <td class="fecha">{{ cliente.actualizadoEn | date: 'dd/MM/yyyy HH:mm' }}</td>
                 <td class="vistas">
+                  @if (auth.puedeConsultarPreferencias()) {
+                    <a [routerLink]="['/clientes', cliente.id, 'preferencias']">Preferencias</a>
+                  }
                   <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', cliente.id, 'ficha-integral']">Ficha</a>
                   <a [routerLink]="['/clientes', cliente.id, 'historial']">Cambios</a>
                   <a *appSiTienePermiso="permisos.SEGMENTOS_CONSULTAR" [routerLink]="['/clientes', cliente.id, 'historial-segmentos']">Segmentos</a>
@@ -115,6 +119,7 @@ const NOMBRES_DE_ESTADO: Record<string, string> = {
   `,
 })
 export class BuscarClientesComponent implements OnInit {
+  readonly auth = inject(AuthService);
   private readonly servicio = inject(ClientesService);
   readonly permisos = Permisos;
 

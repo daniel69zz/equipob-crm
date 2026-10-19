@@ -1,0 +1,64 @@
+<app-pestanias-cliente [id]="clienteId()" />
+<div class="cabecera-preferencias">
+  <div>
+    <h1>Preferencias de consumo</h1>
+    <p class="subtitulo">Cliente {{ clienteId() }} · Categorías ordenadas por monto consumido, cantidad de compras y nombre.</p>
+  </div>
+  @if (estado().tipo === 'resultado') {
+    <button type="button" class="secundario" (click)="consultar()">Volver a consultar</button>
+  }
+</div>
+@if (estado(); as consulta) {
+  @switch (consulta.tipo) {
+    @case ('cargando') {
+      <div class="tarjeta estado-preferencias" role="status" aria-live="polite">Consultando preferencias…</div>
+    }
+    @case ('error') {
+      <div class="error" role="alert">
+        <p>{{ consulta.mensaje }}</p>
+        @if (consulta.reintentable) {
+          <button type="button" class="secundario" (click)="consultar()">Reintentar consulta</button>
+        }
+      </div>
+    }
+    @case ('resultado') {
+      @if (!consulta.perfil.construido) {
+        <section class="tarjeta estado-preferencias" role="status">
+          <h2>Preferencias aún no disponibles</h2>
+          <p>Todavía no se ha construido el perfil de preferencias de este cliente.</p>
+        </section>
+      } @else if (consulta.perfil.sinPreferencias || !consulta.perfil.categorias.length) {
+        <section class="tarjeta estado-preferencias" role="status">
+          <h2>Sin preferencias registradas</h2>
+          <p>Este cliente no tiene categorías preferidas en su perfil actual.</p>
+        </section>
+      } @else {
+        <section class="tarjeta principal" aria-label="Preferencia principal">
+          <span>Preferencia principal</span>
+          <h2>{{ consulta.perfil.categorias[0].categoria }}</h2>
+        </section>
+        <div class="tarjeta tabla-preferencias">
+          <table>
+            <caption>Categorías preferidas por relevancia</caption>
+            <thead><tr>
+              <th scope="col">Posición</th><th scope="col">Categoría</th>
+              <th scope="col">Compras</th><th scope="col">Unidades</th><th scope="col">Monto (Bs)</th>
+            </tr></thead>
+            <tbody>
+              @for (categoria of consulta.perfil.categorias; track categoria.posicion) {
+                <tr>
+                  <td>{{ categoria.posicion }}</td><th scope="row">{{ categoria.categoria }}</th>
+                  <td>{{ categoria.compras | number:'1.0-0' }}</td><td>{{ categoria.unidades | number:'1.0-0' }}</td>
+                  <td>{{ categoria.monto | number:'1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      @if (consulta.perfil.construidoEn) {
+        <p class="fecha-preferencias">Última actualización: {{ consulta.perfil.construidoEn | date:'dd/MM/yyyy HH:mm' }}</p>
+      }
+    }
+  }
+}

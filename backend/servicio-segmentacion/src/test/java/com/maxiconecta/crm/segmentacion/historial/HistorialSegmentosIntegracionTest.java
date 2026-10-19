@@ -215,14 +215,42 @@ class HistorialSegmentosIntegracionTest {
                 Criterio.Condicion.CONTIENE, null, null, "Libros", null), "admin");
         long cliente = CLIENTES.incrementAndGet();
         asignacion.aplicar(new MetricasCliente(UUID.randomUUID().toString(), "COMPRA_CONFIRMADA", cliente,
-                List.of(), 0L, new BigDecimal("2000"), List.of("Libros"), INICIO));
+                List.of(), 0L, new BigDecimal("2000"), List.of("Libros"), INICIO, null));
         asignacion.aplicar(new MetricasCliente(UUID.randomUUID().toString(), "COMPRA_ANULADA", cliente,
-                List.of(), 0L, new BigDecimal("100"), List.of("Libros"), INICIO.plusSeconds(1)));
+                List.of(), 0L, new BigDecimal("100"), List.of("Libros"), INICIO.plusSeconds(1), null));
         var filas = historial.consultar(cliente, 0, 20).contenido();
         assertThat(filas.get(0).regla().get("id").asLong()).isEqualTo(categoria.id());
         assertThat(filas.get(0).regla().get("categoria").asText()).isEqualTo("Libros");
         assertThat(filas.get(1).regla().get("indicador").asText()).isEqualTo("VALOR");
         assertThat(filas.get(1).metricas().get("valor").decimalValue()).isEqualByComparingTo("2000");
+    }
+
+    @Test void clasificacionPorFrecuenciaParticipaEnLaAsignacionYQuedaEnLaReglaHistorica() {
+        criterios.cambiarEstado(bajo.id(), false, bajo.version(), "admin");
+        criterios.cambiarEstado(alto.id(), false, alto.version(), "admin");
+        var clasificacion = criterios.crear(new SolicitudCriterio("Frecuencia clasificada", "",
+                Criterio.Indicador.CLASIFICACION_FRECUENCIA, Criterio.Condicion.IGUAL,
+                null, null, null, null, "FRECUENTE"), "admin");
+        criterios.crear(new SolicitudCriterio("Lectores", "", Criterio.Indicador.CATEGORIA,
+                Criterio.Condicion.CONTIENE, null, null, "Libros", null), "admin");
+        long cliente = CLIENTES.incrementAndGet();
+        asignacion.aplicar(new MetricasCliente(UUID.randomUUID().toString(), "COMPRA_CONFIRMADA", cliente,
+                List.of(), 8L, new BigDecimal("100"), List.of("Libros"), INICIO, "FRECUENTE"));
+        criterios.editar(clasificacion.id(), new SolicitudCriterio("Frecuencia clasificada", "",
+                Criterio.Indicador.CLASIFICACION_FRECUENCIA, Criterio.Condicion.IGUAL,
+                null, null, null, clasificacion.version(), "HABITUAL"), "admin");
+        asignacion.aplicar(new MetricasCliente(UUID.randomUUID().toString(), "COMPRA_CONFIRMADA", cliente,
+                List.of(), 8L, new BigDecimal("100"), List.of("Libros"), INICIO.plusSeconds(1), "FRECUENTE"));
+        var filas = historial.consultar(cliente, 0, 20).contenido();
+        assertThat(filas).hasSize(2);
+        assertThat(filas.get(0).segmentoNuevo()).isEqualTo("Lectores");
+        var original = filas.get(1);
+        assertThat(original.segmentoNuevo()).isEqualTo("Frecuencia clasificada");
+        assertThat(original.regla().get("indicador").asText()).isEqualTo("CLASIFICACION_FRECUENCIA");
+        assertThat(original.regla().get("clasificacion").asText()).isEqualTo("FRECUENTE");
+        assertThat(original.regla().get("version").asLong()).isEqualTo(clasificacion.version());
+        assertThat(original.metricas().get("clasificacionFrecuencia").asText()).isEqualTo("FRECUENTE");
+        assertThat(original.politica()).isEqualTo("VALOR_FRECUENCIA_CLASIFICACION_CATEGORIA_V2");
     }
 
     private Criterio crear(String nombre, Criterio.Indicador indicador, String minimo, String maximo) {
@@ -234,7 +262,7 @@ class HistorialSegmentosIntegracionTest {
     }
     private static MetricasCliente metricas(String evento, long cliente, long frecuencia, int segundo) {
         return new MetricasCliente(evento, "COMPRA_CONFIRMADA", cliente, List.of(), frecuencia,
-                new BigDecimal("100"), List.of(), INICIO.plusSeconds(segundo));
+                new BigDecimal("100"), List.of(), INICIO.plusSeconds(segundo), null);
     }
     private static String ruta(long cliente) { return "/api/segmentacion/clientes/" + cliente + "/historial-segmentos"; }
 }

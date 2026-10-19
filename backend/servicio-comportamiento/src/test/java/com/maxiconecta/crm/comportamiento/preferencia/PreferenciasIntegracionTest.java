@@ -123,6 +123,35 @@ class PreferenciasIntegracionTest {
     }
 
     @Test
+    void consultarRepetidamenteNoCambiaLaVersionNiLaTrazabilidad() throws Exception {
+        compra("CLI-A", "Hogar", "100");
+        var anterior = servicio.actualizarPorEvento(42, "scrum43-lectura", "COMPRA_CONFIRMADA").perfil();
+        var historia = servicio.actualizaciones(42);
+        for (int i = 0; i < 3; i++) {
+            mvc.perform(get(RUTA)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.version").value(anterior.version()))
+                    .andExpect(jsonPath("$.categorias[*].categoria", contains("Hogar")));
+        }
+        assertThat(servicio.consultar(42)).isEqualTo(anterior);
+        assertThat(servicio.actualizaciones(42)).isEqualTo(historia);
+    }
+
+    @Test
+    void consultaPropagaErroresDeIdentidadSinConfundirlosConPreferenciasVacias() throws Exception {
+        compra("CLI-A", "Hogar", "100");
+        var anterior = servicio.construir(42);
+        for (HttpStatus estado : List.of(HttpStatus.BAD_REQUEST, HttpStatus.NOT_FOUND,
+                HttpStatus.CONFLICT, HttpStatus.SERVICE_UNAVAILABLE)) {
+            org.mockito.Mockito.doThrow(new PreferenciasException(estado, "Identidad no disponible"))
+                    .when(identificadores).obtener(42);
+            mvc.perform(get(RUTA)).andExpect(status().is(estado.value()))
+                    .andExpect(jsonPath("$.mensaje").value("Identidad no disponible"));
+        }
+        org.mockito.Mockito.doReturn(List.of(new Identificador("CLI-A"))).when(identificadores).obtener(42);
+        assertThat(servicio.consultar(42)).isEqualTo(anterior);
+    }
+
+    @Test
     void clienteSinIdentificadoresNoRecibeComprasDeOtros() throws Exception {
         compra("OTRO", "Deportes", "200");
         when(identificadores.obtener(42)).thenReturn(List.of());

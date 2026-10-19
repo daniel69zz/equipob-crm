@@ -1,7 +1,7 @@
 # Google Cloud Pub/Sub como broker alternativo a RabbitMQ
 
-Los servicios que intercambian eventos (`servicio-perfil`, `servicio-comportamiento` y
-`servicio-segmentacion`) pueden consumir y publicar sus eventos con **RabbitMQ** (predeterminado) o con
+Los servicios que intercambian eventos (`servicio-perfil`, `servicio-comportamiento`,
+`servicio-segmentacion` y `servicio-fidelizacion`) pueden consumir y publicar sus eventos con **RabbitMQ** (predeterminado) o con
 **Google Cloud Pub/Sub**. El broker se elige por configuración, sin cambiar el código ni los contratos de
 `docs/contratos-eventos/`: los mensajes, el procesamiento, la idempotencia y la bitácora son los mismos.
 
@@ -37,12 +37,14 @@ suscripción y la routing key viaja en el atributo `ruta` del mensaje, que filtr
 | `ventas.eventos` | `cliente.*` (prefijo) | `crm.perfil.clientes` | perfil |
 | `ventas.eventos` | `compra.confirmada` | `crm.comportamiento.compras` | comportamiento |
 | `ventas.eventos` | `compra.anulada` | `crm.comportamiento.anulaciones` | comportamiento |
+| `ventas.eventos` | `puntos.movimiento` | `crm.fidelizacion.movimientos` | fidelización (SCRUM-45) |
 | `crm.comportamiento.eventos` | `metricas.actualizadas` | `crm.segmentacion.metricas` | segmentación (SCRUM-26) |
 | `crm.comportamiento.eventos` | `metricas.actualizadas` | `crm.comportamiento.preferencias` | comportamiento (SCRUM-42) |
 
 **Contrato para Marketplace y Ventas con Pub/Sub:** publicar en el tópico `ventas.eventos` el mismo JSON
-de los contratos RIO-CRM-01, 02 y 05, con el atributo `ruta` igual a la routing key que usaría en
-RabbitMQ (`cliente.registrado`, `cliente.actualizado`, `compra.confirmada` o `compra.anulada`). Un mensaje
+de los contratos RIO-CRM-01, 02, 03 y 05, con el atributo `ruta` igual a la routing key que usaría en
+RabbitMQ (`cliente.registrado`, `cliente.actualizado`, `compra.confirmada`, `compra.anulada` o
+`puntos.movimiento`). Un mensaje
 sin `ruta` no llega a ninguna suscripción.
 
 `servicio-comportamiento` publica las métricas en `crm.comportamiento.eventos` con

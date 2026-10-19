@@ -25,11 +25,13 @@ public class ConsultaFichaIntegral {
     private final PuntosDelCliente puntos;
     private final NivelConsumoDelCliente nivelConsumo;
     private final CambiosComportamientoDelCliente cambiosComportamiento;
+    private final ClasificacionFrecuenciaDelCliente clasificacionFrecuencia;
 
     public ConsultaFichaIntegral(ClienteRepository clientes, ClienteOrigenRepository origenes,
                                  HistorialComprasCliente historialCompras, SegmentoDelCliente segmento,
                                  PuntosDelCliente puntos, NivelConsumoDelCliente nivelConsumo,
-                                 CambiosComportamientoDelCliente cambiosComportamiento) {
+                                 CambiosComportamientoDelCliente cambiosComportamiento,
+                                 ClasificacionFrecuenciaDelCliente clasificacionFrecuencia) {
         this.clientes = clientes;
         this.origenes = origenes;
         this.historialCompras = historialCompras;
@@ -37,6 +39,7 @@ public class ConsultaFichaIntegral {
         this.puntos = puntos;
         this.nivelConsumo = nivelConsumo;
         this.cambiosComportamiento = cambiosComportamiento;
+        this.clasificacionFrecuencia = clasificacionFrecuencia;
     }
 
     @Transactional(readOnly = true)
@@ -50,6 +53,7 @@ public class ConsultaFichaIntegral {
                 segmento.buscar(clienteId),
                 puntos.buscar(clienteId),
                 nivelConsumo.buscar(clienteId, identificadoresOrigen),
-                cambiosComportamiento.buscar(clienteId, identificadoresOrigen));
+                cambiosComportamiento.buscar(clienteId, identificadoresOrigen),
+                clasificacionFrecuencia.buscar(clienteId, identificadoresOrigen));
     }
 }

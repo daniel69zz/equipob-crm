@@ -1,9 +1,10 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
-import { CambioCriterio, Caso, Comprobacion, Condicion, Criterio, CriteriosService, INDICADORES, CONDICIONES, Indicador, reglaTexto, SolicitudCriterio } from './criterios.service';
+import { Subscription, finalize, timeout } from 'rxjs';
+import { SimulacionSegmentacion } from './criterios.service';
+import { CambioCriterio, Caso, Clasificacion, CLASIFICACIONES, Comprobacion, Condicion, Criterio, CriteriosService, INDICADORES, CONDICIONES, Indicador, reglaTexto, SolicitudCriterio } from './criterios.service';
 
 @Component({
   selector: 'app-criterios', standalone: true, imports: [FormsModule, DatePipe],
@@ -14,7 +15,9 @@ export class CriteriosComponent {
   readonly indicadores = INDICADORES;
   readonly condiciones = CONDICIONES;
   readonly regla = reglaTexto;
-  readonly clavesIndicador: Indicador[] = ['FRECUENCIA', 'VALOR', 'CATEGORIA'];
+  readonly clavesIndicador: Indicador[] = ['FRECUENCIA', 'VALOR', 'CATEGORIA', 'CLASIFICACION_FRECUENCIA'];
+  readonly clasificaciones = CLASIFICACIONES;
+  readonly clavesClasificacion: Clasificacion[] = ['OCASIONAL', 'HABITUAL', 'FRECUENTE'];
   readonly numericas: Condicion[] = ['ENTRE', 'MAYOR_IGUAL', 'MENOR_IGUAL', 'IGUAL'];
   readonly criterios = signal<Criterio[]>([]);
   readonly cargando = signal(false);
@@ -32,6 +35,10 @@ export class CriteriosComponent {
   readonly resultado = signal<Comprobacion | null>(null);
   readonly comprobando = signal(false);
   readonly errorCaso = signal('');
+  readonly simulacion = signal<SimulacionSegmentacion | null>(null);
+  readonly simulando = signal(false);
+  readonly errorSimulacion = signal('');
+  private peticionSimulacion?: Subscription;
   readonly busqueda = signal('');
   readonly filtroIndicador = signal('');
   readonly filtroEstado = signal('');
@@ -43,9 +50,31 @@ export class CriteriosComponent {
   formulario: SolicitudCriterio = this.vacio();
   valorCaso: number | null = null;
   categoriasCaso = '';
+  clasificacionCaso: Clasificacion | null = null;
   private consultaHistorial = 0;
 
-  constructor() { this.cargar(); }
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.peticionSimulacion?.unsubscribe());
+    this.cargar();
+  }
+
+  invalidarSimulacion() {
+    this.peticionSimulacion?.unsubscribe();
+    this.simulacion.set(null); this.errorSimulacion.set(''); this.simulando.set(false);
+  }
+  cancelarEditor() { this.invalidarSimulacion(); this.abierto.set(false); }
+  simular() {
+    this.invalidarSimulacion(); this.errorFormulario.set(''); this.simulando.set(true);
+    // Captura el borrador; los cambios de formulario cancelan esta petición y su resultado.
+    const regla = { ...this.formulario };
+    this.peticionSimulacion = this.api.simular(regla, this.editando()?.id).pipe(
+      timeout(65000), finalize(() => this.simulando.set(false)),
+    ).subscribe({
+      next: resultado => this.simulacion.set(resultado),
+      error: e => this.errorSimulacion.set(e.name === 'TimeoutError'
+        ? 'La simulación tardó demasiado. Puede volver a intentarlo.' : this.mensaje(e)),
+    });
+  }
 
   cargar() {
     this.cargando.set(true); this.error.set('');
@@ -54,27 +83,35 @@ export class CriteriosComponent {
     });
   }
   nuevo() {
+    this.invalidarSimulacion();
     this.editando.set(null); this.formulario = this.vacio(); this.errorFormulario.set(''); this.abierto.set(true);
   }
   editar(c: Criterio) {
+    this.invalidarSimulacion();
     this.editando.set(c);
     this.formulario = { nombre: c.nombre, descripcion: c.descripcion, indicador: c.indicador,
       condicion: c.condicion, minimo: c.minimo, maximo: c.condicion === 'IGUAL' ? null : c.maximo,
-      categoria: c.categoria, version: c.version };
+      categoria: c.categoria, version: c.version, clasificacion: c.clasificacion ?? null };
     this.errorFormulario.set(''); this.abierto.set(true);
   }
   cambiarIndicador() {
-    this.formulario.condicion = this.formulario.indicador === 'CATEGORIA' ? 'CONTIENE' : 'ENTRE';
-    this.cambiarCondicion(); this.formulario.categoria = null;
+    this.invalidarSimulacion();
+    this.formulario.condicion = this.formulario.indicador === 'CATEGORIA' ? 'CONTIENE'
+      : this.formulario.indicador === 'CLASIFICACION_FRECUENCIA' ? 'IGUAL' : 'ENTRE';
+    this.cambiarCondicion(); this.formulario.categoria = null; this.formulario.clasificacion = null;
   }
-  cambiarCondicion() { this.formulario.minimo = null; this.formulario.maximo = null; }
+  cambiarCondicion() { this.invalidarSimulacion(); this.formulario.minimo = null; this.formulario.maximo = null; }
   guardar() {
+    if (this.simulando() || this.guardando()) return;
     this.errorFormulario.set('');
     if (!this.formulario.nombre.trim()) { this.errorFormulario.set('Indique el nombre del criterio.'); return; }
     if (this.formulario.indicador === 'CATEGORIA' && !this.formulario.categoria?.trim()) {
       this.errorFormulario.set('Indique la categoría consumida.'); return;
     }
-    if (this.formulario.indicador !== 'CATEGORIA' &&
+    if (this.formulario.indicador === 'CLASIFICACION_FRECUENCIA' && !this.formulario.clasificacion) {
+      this.errorFormulario.set('Seleccione la clasificación por frecuencia.'); return;
+    }
+    if (this.formulario.indicador !== 'CATEGORIA' && this.formulario.indicador !== 'CLASIFICACION_FRECUENCIA' &&
         ((this.formulario.condicion !== 'MENOR_IGUAL' && this.formulario.minimo === null) ||
          (['ENTRE', 'MENOR_IGUAL'].includes(this.formulario.condicion) && this.formulario.maximo === null))) {
       this.errorFormulario.set('Complete los límites de la condición.'); return;
@@ -83,7 +120,7 @@ export class CriteriosComponent {
     const editado = this.editando();
     const solicitud = editado ? this.api.editar(editado.id, this.formulario) : this.api.crear(this.formulario);
     solicitud.pipe(finalize(() => this.guardando.set(false))).subscribe({
-      next: c => { this.actualizar(c); this.abierto.set(false); this.exito.set(`Criterio «${c.nombre}» ${editado ? 'actualizado' : 'creado'}.`); this.verDetalle(c); },
+      next: c => { this.invalidarSimulacion(); this.actualizar(c); this.abierto.set(false); this.exito.set(`Criterio «${c.nombre}» ${editado ? 'actualizado' : 'creado'}.`); this.verDetalle(c); },
       error: e => this.errorFormulario.set(this.mensaje(e)),
     });
   }
@@ -99,6 +136,7 @@ export class CriteriosComponent {
   verDetalle(c: Criterio) {
     const consulta = ++this.consultaHistorial;
     this.seleccionado.set(c); this.resultado.set(null); this.errorCaso.set(''); this.valorCaso = null; this.categoriasCaso = '';
+    this.clasificacionCaso = null;
     this.historial.set([]); this.errorHistorial.set(''); this.cargandoHistorial.set(true);
     this.api.historial(c.id).subscribe({
       next: datos => { if (consulta === this.consultaHistorial) { this.historial.set(datos); this.cargandoHistorial.set(false); } },
@@ -110,6 +148,7 @@ export class CriteriosComponent {
     this.resultado.set(null); this.errorCaso.set('');
     const caso: Caso = c.indicador === 'CATEGORIA'
       ? { categorias: this.categoriasCaso.split(',').map(v => v.trim()).filter(Boolean) }
+      : c.indicador === 'CLASIFICACION_FRECUENCIA' ? { clasificacion: this.clasificacionCaso }
       : c.indicador === 'FRECUENCIA' ? { frecuencia: this.valorCaso } : { valor: this.valorCaso };
     this.comprobando.set(true);
     this.api.comprobar(c.id, caso).pipe(finalize(() => this.comprobando.set(false))).subscribe({

@@ -1,4 +1,5 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.directive';
 import { Permisos } from '../../core/auth/sesion';
 import { RouterLink, RouterLinkActive } from '@angular/router';
@@ -12,6 +13,9 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     <nav class="navegacion" aria-label="Vistas del cliente">
       <a class="volver" routerLink="/clientes">← Clientes</a>
       <div class="pestanias" role="tablist">
+        @if (auth.puedeConsultarPreferencias()) {
+          <a [routerLink]="['/clientes', id(), 'preferencias']" routerLinkActive="activa" role="tab">Preferencias</a>
+        }
         <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', id(), 'ficha-integral']" routerLinkActive="activa" role="tab">Ficha integral</a>
         <a [routerLink]="['/clientes', id(), 'historial']" routerLinkActive="activa" role="tab">Historial de cambios</a>
         <a *appSiTienePermiso="permisos.SEGMENTOS_CONSULTAR" [routerLink]="['/clientes', id(), 'historial-segmentos']" routerLinkActive="activa" role="tab">Historial de segmentos</a>
@@ -40,6 +44,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   `,
 })
 export class PestaniasClienteComponent {
+  readonly auth = inject(AuthService);
   /** Identificador del cliente en el CRM. */
   readonly id = input.required<string | number>();
 

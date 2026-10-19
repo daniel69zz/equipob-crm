@@ -212,6 +212,38 @@ class AsignacionSegmentoIntegracionTest {
         assertThat(cambiosAuditados(cliente)).isEmpty();
     }
 
+    // --- SCRUM-38: la clasificación por frecuencia que llega con las métricas ---
+
+    @Test
+    void laClasificacionPorFrecuenciaDeLasMetricasSeGuardaYAsignaSuCriterio() {
+        jdbc.update("DELETE FROM segmentacion.criterio WHERE nombre = 'Lectores'");
+        Criterio frecuentes = criterios.crear(new SolicitudCriterio("Clientes frecuentes", "",
+                Indicador.CLASIFICACION_FRECUENCIA, Condicion.IGUAL, null, null, null, null, "FRECUENTE"), "admin");
+        long cliente = CLIENTES.incrementAndGet();
+        String idEvento = UUID.randomUUID().toString();
+        Map<String, Object> mensaje = datos(idEvento, cliente, 1, "50.00", INICIO, "COMPRA_CONFIRMADA", "Libros");
+        mensaje.put("clasificacionFrecuencia", "FRECUENTE");
+        publicar(escribir(mensaje));
+        esperarEvento(idEvento);
+
+        assertThat(segmento(cliente)).isEqualTo("Clientes frecuentes");
+        assertThat(jdbc.queryForObject("SELECT clasificacion_frecuencia FROM segmentacion.metricas_cliente "
+                + "WHERE cliente_id = ?", String.class, cliente)).isEqualTo("FRECUENTE");
+        assertThat(jdbc.queryForObject("SELECT indicador FROM segmentacion.segmento_cliente WHERE cliente_id = ?",
+                String.class, cliente)).isEqualTo("CLASIFICACION_FRECUENCIA");
+        assertThat(frecuentes.clasificacion()).isEqualTo("FRECUENTE");
+    }
+
+    @Test
+    void unaClasificacionDesconocidaVaALaColaDeRespaldo() {
+        Map<String, Object> mensaje = datos(UUID.randomUUID().toString(), CLIENTES.incrementAndGet(), 1, "50.00",
+                INICIO, "COMPRA_CONFIRMADA");
+        mensaje.put("clasificacionFrecuencia", "VIP");
+        publicar(escribir(mensaje));
+
+        await().atMost(Duration.ofSeconds(15)).until(() -> mensajesEnRespaldo() == 1);
+    }
+
     // --- Orden de los mensajes ---
 
     @Test

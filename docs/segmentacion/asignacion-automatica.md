@@ -43,6 +43,7 @@ segmento.
 | `valor` | Valor acumulado vigente, en bolivianos (`docs/compra/valor-acumulado.md`). |
 | `categorias` | Categorías con consumo vigente, de mayor a menor monto (SCRUM-18). |
 | `calculadasEn` | Momento del cálculo; ordena los mensajes del mismo cliente. |
+| `clasificacionFrecuencia` | `OCASIONAL`, `HABITUAL`, `FRECUENTE` o `null` sin compras vigentes (SCRUM-38). |
 
 Las métricas se calculan sobre **todas** las compras vinculadas al perfil del cliente, igual que los
 indicadores de la ficha. Una compra cuyo cliente todavía no tiene perfil (vinculación pendiente) no
@@ -53,7 +54,8 @@ publica métricas: no hay perfil donde guardar el segmento.
 Los criterios de un mismo indicador no se superponen (SCRUM-25), pero un cliente puede cumplir a la
 vez uno de frecuencia, uno de valor y uno o varios de categoría. Se asigna **un solo segmento**:
 
-1. **Valor** antes que **frecuencia**, y frecuencia antes que **categoría**. El valor acumulado es la
+1. **Valor** antes que **frecuencia**, frecuencia antes que **clasificación por frecuencia** (SCRUM-38) y
+   esta antes que **categoría**. El valor acumulado es la
    medida más directa del aporte del cliente; la frecuencia describe su hábito; la categoría, su
    preferencia.
 2. Entre varios criterios de categoría, gana el de la categoría en la que el cliente **más consumió**

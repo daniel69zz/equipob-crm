@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { preferenciasGuard } from './core/auth/auth.guards';
+import { PreferenciasComponent } from './features/clientes/preferencias.component';
 import { administradorSegmentacionGuard, autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.guards';
 import { CriteriosComponent } from './features/segmentacion/criterios.component';
 import { Permisos } from './core/auth/sesion';
@@ -28,6 +30,7 @@ export const routes: Routes = [
     component: LayoutComponent,
     canActivate: [autenticadoGuard],
     children: [
+      { path: 'clientes/:id/preferencias', component: PreferenciasComponent, canActivate: [preferenciasGuard] },
       { path: '', component: InicioComponent },
       { path: 'segmentacion/criterios', component: CriteriosComponent, canActivate: [administradorSegmentacionGuard] },
       {

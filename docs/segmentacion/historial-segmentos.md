@@ -10,13 +10,13 @@ El sistema conserva una fila por asignación inicial, cambio efectivo o retiro d
 - Recálculo sin cambio: no escribe historial, aunque el criterio haya cambiado de versión.
 - Mensaje duplicado o desactualizado: no agrega historial.
 
-La política actual prioriza valor, frecuencia y categoría; los desempates usan el orden de consumo de categorías y luego el criterio más antiguo. La instantánea registra `VALOR_FRECUENCIA_CATEGORIA_V1`. La edición de criterios mantiene su propia auditoría.
+La política actual prioriza valor, frecuencia, clasificación por frecuencia (SCRUM-38) y categoría; los desempates usan el orden de consumo de categorías y luego el criterio más antiguo. La instantánea registra `VALOR_FRECUENCIA_CLASIFICACION_CATEGORIA_V2`. La edición de criterios mantiene su propia auditoría.
 
 ## Persistencia y transacción
 
 `segmentacion.historial_segmento` contiene cliente, fecha, operación, segmento anterior/nuevo, regla, métricas, política, motivo, evento de origen y vínculo único al evento de auditoría. `regla` guarda la copia completa del criterio, incluidos identificador, versión, nombre, indicador, condición, límites y categoría. No consulta el criterio actual para explicar cambios anteriores.
 
-La migración `V5__historial_segmentos.sql` crea la tabla y el índice `(cliente_id, fecha DESC, id DESC)`. V4 está reservada por la clasificación por frecuencia en el main remoto. El esquema de auditoría del gateway debe estar migrado antes de iniciar segmentación, como ya requiere SCRUM-26.
+La migración `V5__historial_segmentos.sql` crea la tabla y el índice `(cliente_id, fecha DESC, id DESC)`, después de V4 de clasificación por frecuencia. El esquema de auditoría del gateway debe estar migrado antes de iniciar segmentación, como ya requiere SCRUM-26.
 
 La asignación bloquea el cliente y escribe segmento, auditoría, historial y marca de evento en una sola transacción. La unicidad `(cliente_id, id_evento)` y `auditoria_evento_id` evita duplicados. El fallo de cualquiera de las escrituras revierte toda la operación. No hay claves foráneas al criterio ni al perfil que puedan borrar el historial en cascada.
 

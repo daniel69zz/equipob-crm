@@ -46,7 +46,7 @@ public class AuditoriaSegmentos {
         // Serializar los records completos también conserva campos nuevos del contrato de métricas/reglas.
         detalle.set("regla", nuevo == null ? json.nullNode() : json.valueToTree(nuevo));
         if (nuevo == null) detalle.set("criteriosEvaluados", json.valueToTree(evaluados));
-        detalle.put("politica", "VALOR_FRECUENCIA_CATEGORIA_V1");
+        detalle.put("politica", "VALOR_FRECUENCIA_CLASIFICACION_CATEGORIA_V2");
         detalle.put("motivo", nuevo == null ? "SIN_CRITERIO_COINCIDENTE" : "CRITERIO_COINCIDENTE");
         ObjectNode usadas = json.valueToTree(metricas);
         usadas.set("categorias", json.valueToTree(metricas.categoriasOVacio()));

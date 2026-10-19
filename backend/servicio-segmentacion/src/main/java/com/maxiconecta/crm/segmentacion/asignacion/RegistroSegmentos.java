@@ -52,11 +52,13 @@ public class RegistroSegmentos {
         jdbc.update(conexion -> {
             var sentencia = conexion.prepareStatement("""
                     INSERT INTO segmentacion.metricas_cliente
-                        (cliente_id, frecuencia, valor, categorias, calculadas_en, id_evento_origen)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                        (cliente_id, frecuencia, valor, categorias, calculadas_en, id_evento_origen,
+                         clasificacion_frecuencia)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (cliente_id) DO UPDATE SET frecuencia = EXCLUDED.frecuencia, valor = EXCLUDED.valor,
                         categorias = EXCLUDED.categorias, calculadas_en = EXCLUDED.calculadas_en,
-                        id_evento_origen = EXCLUDED.id_evento_origen, actualizadas_en = now()
+                        id_evento_origen = EXCLUDED.id_evento_origen,
+                        clasificacion_frecuencia = EXCLUDED.clasificacion_frecuencia, actualizadas_en = now()
                     """);
             Array categorias = conexion.createArrayOf("text", metricas.categoriasOVacio().toArray());
             sentencia.setLong(1, metricas.idCliente());
@@ -65,6 +67,7 @@ public class RegistroSegmentos {
             sentencia.setArray(4, categorias);
             sentencia.setTimestamp(5, Timestamp.from(metricas.calculadasEn().toInstant()));
             sentencia.setString(6, metricas.idEvento());
+            sentencia.setString(7, metricas.clasificacionFrecuencia());
             return sentencia;
         });
     }

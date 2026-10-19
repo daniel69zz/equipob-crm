@@ -28,7 +28,7 @@ export interface PuntosFidelizacion {
         } @else {
           <strong>{{ datos.saldo | number: '1.0-0' }} pts</strong>
           <small>
-            Nivel {{ datos.nivel }}
+            {{ datos.nivel ? 'Nivel ' + datos.nivel : 'Sin nivel asignado' }}
             @if (datos.actualizadoEn) {
               · actualizado {{ datos.actualizadoEn | date: 'dd/MM/yyyy HH:mm' }}
             }

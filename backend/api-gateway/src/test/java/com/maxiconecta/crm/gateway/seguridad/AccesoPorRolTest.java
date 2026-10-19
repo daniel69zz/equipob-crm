@@ -330,6 +330,19 @@ class AccesoPorRolTest {
     }
 
     @Test
+    void simulacionSoloPermiteAdministradorConPermisoDeConfiguracion() throws Exception {
+        String ruta = "/api/segmentacion/criterios/simular";
+        mvc.perform(post(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(post(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        mvc.perform(post(ruta).header("Authorization", bearer("sin-permiso", "ADMINISTRADOR_CRM", List.of())))
+                .andExpect(status().isForbidden());
+        for (String rol : List.of("AGENTE_ATENCION", "GERENTE_COMERCIAL", "ANALISTA_DATOS")) {
+            mvc.perform(post(ruta).header("Authorization", bearer("otro-" + rol, rol, List.of("SEGMENTACION_CONFIGURAR")))
+                    .header("X-Usuario-Rol", "ADMINISTRADOR_CRM")).andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
     void servicioCaidoDevuelve503SinInvalidarLaSesion() throws Exception {
         String token = bearerAdministrador();
         mvc.perform(get("/api/segmentacion/prueba-disponibilidad").header("Authorization", token))
@@ -381,9 +394,11 @@ class AccesoPorRolTest {
             mvc.perform(get(ruta).header("Authorization", bearer("sin-permiso", rol, List.of("INDICADORES_CONSULTAR"))))
                     .andExpect(status().isForbidden());
         }
-        mvc.perform(get(ruta).header("Authorization", bearer("gerente", "GERENTE_COMERCIAL",
-                        List.of("FICHA_INTEGRAL_CONSULTAR", "INDICADORES_CONSULTAR"))))
-                .andExpect(status().isForbidden());
+        for (String rol : List.of("GERENTE_COMERCIAL", "ANALISTA_DATOS", "OTRO_ROL")) {
+            mvc.perform(get(ruta).header("Authorization", bearer("denegado", rol,
+                            List.of("FICHA_INTEGRAL_CONSULTAR", "INDICADORES_CONSULTAR"))))
+                    .andExpect(status().isForbidden());
+        }
     }
 
     @Test
