@@ -172,6 +172,8 @@ class AsignacionSegmentoIntegracionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM segmentacion.evento_procesado WHERE id_evento = ?",
                 Long.class, idEvento)).isEqualTo(1);
         assertThat(cambiosAuditados(cliente)).hasSize(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM segmentacion.historial_segmento WHERE cliente_id=?",
+                Long.class, cliente)).isEqualTo(1);
     }
 
     // --- Criterio 4: al anular una compra el segmento se reevalúa y cambia si corresponde ---
@@ -237,6 +239,8 @@ class AsignacionSegmentoIntegracionTest {
         assertThat(auditados).extracting(fila -> fila.get("operacion"))
                 .containsExactly("SEGMENTO_ASIGNADO", "SEGMENTO_CAMBIADO", "SEGMENTO_RETIRADO");
         assertThat(auditados).allSatisfy(fila -> assertThat(fila.get("usuario")).isEqualTo("sistema"));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM segmentacion.historial_segmento WHERE cliente_id=?",
+                Long.class, cliente)).isEqualTo(3);
 
         JsonNode detalle = json.readTree((String) auditados.get(1).get("detalle"));
         assertThat(detalle.at("/anterior/segmento").asText()).isEqualTo("Lectores");
