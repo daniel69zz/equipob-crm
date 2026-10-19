@@ -55,7 +55,7 @@ public class AsignacionSegmento {
 
         registro.guardarMetricas(metricas);
         Optional<Criterio> elegido = ReglaPrioridadSegmento.elegir(criterios.activos(), metricas.frecuencia(),
-                metricas.valor(), metricas.categoriasOVacio());
+                metricas.valor(), metricas.categoriasOVacio(), metricas.clasificacionFrecuencia());
         SegmentoActual anterior = registro.segmento(clienteId).orElse(null);
         actualizar(clienteId, anterior, elegido.orElse(null), metricas);
         registro.registrarEvento(metricas.idEvento(), clienteId, Resultado.APLICADO.name());

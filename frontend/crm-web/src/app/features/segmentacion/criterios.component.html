@@ -26,9 +26,16 @@
           <div><label for="condicion-criterio">Condición</label>
             <select id="condicion-criterio" name="condicion" [(ngModel)]="formulario.condicion" (ngModelChange)="cambiarCondicion()">
               @if (formulario.indicador === 'CATEGORIA') { <option value="CONTIENE">Ha consumido la categoría</option> }
+              @else if (formulario.indicador === 'CLASIFICACION_FRECUENCIA') { <option value="IGUAL">Igual a</option> }
               @else { @for (clave of numericas; track clave) { <option [value]="clave">{{ condiciones[clave] }}</option> } }
             </select></div>
-          @if (formulario.indicador === 'CATEGORIA') {
+          @if (formulario.indicador === 'CLASIFICACION_FRECUENCIA') {
+            <div class="ancho"><label for="clasificacion-criterio">Clasificación por frecuencia</label>
+              <select id="clasificacion-criterio" name="clasificacion" [(ngModel)]="formulario.clasificacion" (ngModelChange)="invalidarSimulacion()">
+                <option [ngValue]="null" disabled>Seleccione una clasificación</option>
+                @for (clave of clavesClasificacion; track clave) { <option [ngValue]="clave">{{ clasificaciones[clave] }}</option> }
+              </select></div>
+          } @else if (formulario.indicador === 'CATEGORIA') {
             <div class="ancho"><label for="categoria-criterio">Categoría consumida</label>
               <input id="categoria-criterio" name="categoria" maxlength="100" [(ngModel)]="formulario.categoria" placeholder="Ej. Electrónica" />
               <small>Coincidencia exacta; se ignoran mayúsculas, tildes y espacios adicionales.</small></div>
@@ -45,7 +52,7 @@
           <div class="ancho"><label for="descripcion-criterio">Descripción (opcional)</label>
             <textarea id="descripcion-criterio" name="descripcion" maxlength="500" rows="2" [(ngModel)]="formulario.descripcion"></textarea></div>
         </div>
-        <p class="ayuda">{{ formulario.indicador === 'FRECUENCIA' ? 'Frecuencia: cantidad acumulada de compras vigentes, en números enteros.' : formulario.indicador === 'VALOR' ? 'Valor: suma acumulada vigente, en bolivianos, descontando anulaciones y devoluciones.' : 'Categoría: nombre de una categoría con consumo vigente.' }}
+        <p class="ayuda">{{ formulario.indicador === 'FRECUENCIA' ? 'Frecuencia: cantidad acumulada de compras vigentes, en números enteros.' : formulario.indicador === 'VALOR' ? 'Valor: suma acumulada vigente, en bolivianos, descontando anulaciones y devoluciones.' : formulario.indicador === 'CLASIFICACION_FRECUENCIA' ? 'Clasificación: ocasional, habitual o frecuente según las compras vigentes del cliente.' : 'Categoría: nombre de una categoría con consumo vigente.' }}
           Los criterios activos del mismo indicador no pueden superponerse. Los límites están incluidos.</p>
         @if (errorFormulario()) { <p class="error" role="alert">{{ errorFormulario() }}</p> }
         <div class="acciones">
@@ -122,7 +129,13 @@
     <div class="prueba">
       <h3>Comprobar un caso</h3><p>Introduce un dato de prueba para comprobar esta regla guardada. Esta consulta no asigna segmentos ni modifica clientes.</p>
       <form (ngSubmit)="comprobar()">
-        @if (c.indicador === 'CATEGORIA') {
+        @if (c.indicador === 'CLASIFICACION_FRECUENCIA') {
+          <div><label for="caso-clasificacion">Clasificación del caso</label>
+            <select id="caso-clasificacion" name="clasificacionCaso" [(ngModel)]="clasificacionCaso">
+              <option [ngValue]="null" disabled>Seleccione una clasificación</option>
+              @for (clave of clavesClasificacion; track clave) { <option [ngValue]="clave">{{ clasificaciones[clave] }}</option> }
+            </select></div>
+        } @else if (c.indicador === 'CATEGORIA') {
           <div><label for="caso-categorias">Categorías consumidas (separadas por coma)</label><input id="caso-categorias" name="categoriasCaso" [(ngModel)]="categoriasCaso" placeholder="Electrónica, Libros" /></div>
         } @else {
           <div><label for="caso-valor">{{ c.indicador === 'FRECUENCIA' ? 'Compras vigentes del caso' : 'Valor acumulado del caso (Bs)' }}</label>

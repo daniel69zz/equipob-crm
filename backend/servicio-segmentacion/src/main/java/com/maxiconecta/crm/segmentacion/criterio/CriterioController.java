@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/segmentacion/criterios")
@@ -62,11 +63,13 @@ public class CriterioController {
         var criterio = service.obtener(id);
         if ((criterio.indicador() == Criterio.Indicador.FRECUENCIA && caso.frecuencia() == null)
                 || (criterio.indicador() == Criterio.Indicador.VALOR && caso.valor() == null)
-                || (criterio.indicador() == Criterio.Indicador.CATEGORIA && caso.categorias() == null)) {
+                || (criterio.indicador() == Criterio.Indicador.CATEGORIA && caso.categorias() == null)
+                || (criterio.indicador() == Criterio.Indicador.CLASIFICACION_FRECUENCIA && caso.clasificacion() == null)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Indique el dato del indicador que desea comprobar");
         }
         return new Comprobacion(criterio.id(), criterio.version(), criterio.activo(),
-                ReglasCriterio.cumple(criterio, caso.frecuencia(), caso.valor(), caso.categorias()));
+                ReglasCriterio.cumple(criterio, caso.frecuencia(), caso.valor(), caso.categorias(),
+                        caso.clasificacion() == null ? null : caso.clasificacion().strip().toUpperCase(Locale.ROOT)));
     }
 
     // El Gateway elimina las cabeceras suministradas por el cliente y añade la identidad vigente.
@@ -84,6 +87,7 @@ public class CriterioController {
     public record Estado(@NotNull Boolean activo, @NotNull @PositiveOrZero Long version) { }
     public record Caso(@DecimalMin("0") @Digits(integer = 12, fraction = 0) BigDecimal frecuencia,
                        @DecimalMin("0") @Digits(integer = 12, fraction = 2) BigDecimal valor,
-                       @Size(max = 100) List<@NotBlank @Size(max = 100) String> categorias) { }
+                       @Size(max = 100) List<@NotBlank @Size(max = 100) String> categorias,
+                       @Size(max = 20) String clasificacion) { }
     public record Comprobacion(long criterioId, long version, boolean activo, boolean cumple) { }
 }

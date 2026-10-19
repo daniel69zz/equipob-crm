@@ -65,6 +65,14 @@ incrementa atómicamente al registrar una compra confirmada.
 | ------ | ------------------------------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia`, `valorAcumulado` y `nivelConsumo`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`); el nivel de consumo (`nivel`, `valorAcumulado`, `sinNivel`) clasifica ese valor como BAJO, MEDIO o ALTO. Usa el parámetro repetible `identificador` |
 
+## Clasificación por frecuencia (SCRUM-38)
+
+`GET /api/comportamiento/clientes/{id}/indicadores` incluye `clasificacionFrecuencia`: OCASIONAL (1 a 3
+compras vigentes), HABITUAL (4 a 9) o FRECUENTE (10 o más), calculada sobre la frecuencia de SCRUM-37, o
+"sin clasificación" sin compras vigentes. Umbrales configurables con
+`CLASIFICACION_FRECUENCIA_UMBRAL_HABITUAL` y `CLASIFICACION_FRECUENCIA_UMBRAL_FRECUENTE`. También viaja en
+las métricas que se publican para la segmentación. Reglas en `docs/compra/clasificacion-frecuencia.md`.
+
 ## Valor consumido por periodo (SCRUM-39)
 
 Diseño, validaciones y formato de la respuesta en `docs/compra/consumo-por-periodo.md`; diagramas en

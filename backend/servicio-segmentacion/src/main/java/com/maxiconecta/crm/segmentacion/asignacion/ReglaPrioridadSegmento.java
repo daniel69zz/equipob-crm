@@ -13,7 +13,7 @@ import java.util.Optional;
  * Elige un único segmento cuando el cliente cumple varios criterios activos (SCRUM-260,
  * docs/segmentacion/asignacion-automatica.md):
  * <ol>
- *   <li>valor antes que frecuencia, y frecuencia antes que categoría;</li>
+ *   <li>valor, frecuencia, clasificación por frecuencia (SCRUM-38) y categoría, en ese orden;</li>
  *   <li>entre criterios de categoría, el de la categoría en la que más consumió el cliente;</li>
  *   <li>si aún empatan, el criterio más antiguo (menor id).</li>
  * </ol>
@@ -22,16 +22,22 @@ import java.util.Optional;
 public final class ReglaPrioridadSegmento {
 
     private static final List<Indicador> ORDEN_INDICADORES = List.of(Indicador.VALOR, Indicador.FRECUENCIA,
-            Indicador.CATEGORIA);
+            Indicador.CLASIFICACION_FRECUENCIA, Indicador.CATEGORIA);
 
     private ReglaPrioridadSegmento() {
     }
 
     public static Optional<Criterio> elegir(List<Criterio> criterios, long frecuencia, BigDecimal valor,
                                             List<String> categoriasPorConsumo) {
+        return elegir(criterios, frecuencia, valor, categoriasPorConsumo, null);
+    }
+
+    /** Igual que la anterior, con la clasificación por frecuencia del cliente, o {@code null} si no tiene. */
+    public static Optional<Criterio> elegir(List<Criterio> criterios, long frecuencia, BigDecimal valor,
+                                            List<String> categoriasPorConsumo, String clasificacion) {
         BigDecimal frecuenciaDecimal = BigDecimal.valueOf(frecuencia);
         return criterios.stream()
-                .filter(c -> ReglasCriterio.cumple(c, frecuenciaDecimal, valor, categoriasPorConsumo))
+                .filter(c -> ReglasCriterio.cumple(c, frecuenciaDecimal, valor, categoriasPorConsumo, clasificacion))
                 .min(Comparator.comparingInt((Criterio c) -> ORDEN_INDICADORES.indexOf(c.indicador()))
                         .thenComparingInt(c -> posicionDeCategoria(c, categoriasPorConsumo))
                         .thenComparingLong(Criterio::id));

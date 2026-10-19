@@ -40,6 +40,7 @@ public class AuditoriaSegmentos {
         usadas.put("frecuencia", metricas.frecuencia());
         usadas.put("valor", metricas.valor());
         usadas.set("categorias", json.valueToTree(metricas.categoriasOVacio()));
+        usadas.put("clasificacionFrecuencia", metricas.clasificacionFrecuencia());
         usadas.put("calculadasEn", metricas.calculadasEn().toString());
         detalle.put("idEvento", metricas.idEvento());
         detalle.put("tipoEventoOrigen", metricas.tipoEventoOrigen());
