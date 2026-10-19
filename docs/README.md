@@ -3,6 +3,7 @@
 - [Simulación de segmentación (SCRUM-29)](segmentacion/simulacion.md): flujo, contrato, límites y nueve subtareas; [diagramas](segmentacion/simulacion-diagramas.md) y [verificación](segmentacion/simulacion-verificacion.md).
 
 - [Consulta de preferencias (SCRUM-43)](preferencias/consulta-preferencias.md): pantalla, acceso por rol, integración y pruebas; [diagramas](preferencias/consulta-diagramas.md).
+- [Sugerencia de categorías afines (SCRUM-44)](preferencias/sugerencia-categorias.md): criterio de afinidad por segmento, motivos sin sugerencias, API, permisos y pruebas; [diagramas](preferencias/sugerencia-categorias-diagramas.md).
 
 - `preferencias/`: construcción y persistencia del perfil de preferencias (SCRUM-41), regla de relevancia, diagramas y prueba manual por API, y su actualización automática con cada compra o anulación con trazabilidad por evento (SCRUM-42).
 

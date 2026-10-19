@@ -3,6 +3,7 @@ package com.maxiconecta.crm.comportamiento.configuracion;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
@@ -12,7 +13,9 @@ import java.time.Duration;
 @Configuration
 public class ConfiguracionPerfil {
 
+    /** Principal: los clientes de servicio-perfil lo reciben sin calificador. */
     @Bean
+    @Primary
     RestClient restClientePerfil(RestClient.Builder builder,
                               @Value("${crm.perfil.url}") String url,
                               @Value("${crm.perfil.tiempo-espera}") Duration tiempoEspera) {

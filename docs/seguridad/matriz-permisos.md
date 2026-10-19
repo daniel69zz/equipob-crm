@@ -10,6 +10,7 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 | `CLIENTE_EDITAR` | Modificar perfiles, consentimiento y unificar duplicados |
 | `INDICADORES_CONSULTAR` | Consultar historial de compras e indicadores de comportamiento |
 | `EVOLUCION_CONSUMO_CONSULTAR` | Consultar la evolución del consumo del cliente por categoría (SCRUM-32) |
+| `SUGERENCIAS_CONSULTAR` | Consultar las categorías afines sugeridas para un cliente (SCRUM-44) |
 | `EVENTOS_REPROCESAR` | Ver la bitácora de ingesta y reprocesar eventos fallidos |
 | `SEGMENTOS_CONSULTAR` | Consultar segmentos y clientes por segmento |
 | `SEGMENTACION_CONFIGURAR` | Configurar criterios y reglas de segmentación |
@@ -28,6 +29,7 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 | `CLIENTE_EDITAR` | ✅ | | |
 | `INDICADORES_CONSULTAR` | ✅ | ✅ | ✅ |
 | `EVOLUCION_CONSUMO_CONSULTAR` | ✅ | | ✅ |
+| `SUGERENCIAS_CONSULTAR` | ✅ | | ✅ |
 | `EVENTOS_REPROCESAR` | ✅ | | |
 | `SEGMENTOS_CONSULTAR` | ✅ | | ✅ |
 | `SEGMENTACION_CONFIGURAR` | ✅ | | |
@@ -52,6 +54,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/perfil/**` | GET | `CLIENTE_CONSULTAR` |
 | `/api/perfil/**` | POST, PUT, PATCH, DELETE | `CLIENTE_EDITAR` |
 | `/api/comportamiento/clientes/*/evolucion-consumo` | GET | `EVOLUCION_CONSUMO_CONSULTAR` |
+| `/api/comportamiento/clientes/*/sugerencias-categorias` | GET | `SUGERENCIAS_CONSULTAR` |
 | `/api/comportamiento/clientes/*/preferencias/construir` | POST | Rol `ADMINISTRADOR_CRM` y `CLIENTE_EDITAR` |
 | `/api/comportamiento/clientes/*/preferencias` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `FICHA_INTEGRAL_CONSULTAR` |
 | `/api/comportamiento/**` | GET | `INDICADORES_CONSULTAR` |

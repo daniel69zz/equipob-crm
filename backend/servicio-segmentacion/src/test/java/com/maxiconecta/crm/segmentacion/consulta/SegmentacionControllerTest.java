@@ -50,4 +50,27 @@ class SegmentacionControllerTest {
                 .andExpect(jsonPath("$.sinDatos").value(true))
                 .andExpect(jsonPath("$.segmento").value(org.hamcrest.Matchers.nullValue()));
     }
+
+    @Test
+    void listaLosCompanerosDelSegmentoSinIncluirAlCliente() throws Exception {
+        when(segmentos.findById(42L)).thenReturn(Optional.of(
+                new SegmentoCliente(42L, "FRECUENTE", OffsetDateTime.parse("2026-09-01T10:00:00Z"))));
+        when(segmentos.companeros("FRECUENTE", 42L)).thenReturn(java.util.List.of(7L, 15L));
+
+        mvc.perform(get("/api/segmentacion/clientes/42/segmento/miembros"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segmento").value("FRECUENTE"))
+                .andExpect(jsonPath("$.sinDatos").value(false))
+                .andExpect(jsonPath("$.clientes").value(org.hamcrest.Matchers.contains(7, 15)));
+    }
+
+    @Test
+    void sinSegmentoNoHayMiembros() throws Exception {
+        when(segmentos.findById(7L)).thenReturn(Optional.empty());
+
+        mvc.perform(get("/api/segmentacion/clientes/7/segmento/miembros"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sinDatos").value(true))
+                .andExpect(jsonPath("$.clientes").isEmpty());
+    }
 }

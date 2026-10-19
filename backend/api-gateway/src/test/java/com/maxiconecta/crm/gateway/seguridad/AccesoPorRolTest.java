@@ -282,6 +282,32 @@ class AccesoPorRolTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Sugerencia de categorías afines (SCRUM-44, SCRUM-383): solo Administrador y Gerente Comercial ---
+
+    @Test
+    void elAdministradorYElGerenteComercialPuedenConsultarLasSugerencias() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/sugerencias-categorias";
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "SUGERENCIAS_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "SUGERENCIAS_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elAgenteNoPuedeConsultarLasSugerenciasAunqueConsulteLosIndicadores() throws Exception {
+        String agente = bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE);
+
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias").header("Authorization", agente))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias").header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test

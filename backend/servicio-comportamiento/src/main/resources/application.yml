@@ -8,6 +8,10 @@ crm:
   perfil:
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
+  segmentacion:
+    # Segmento y compañeros de segmento para la sugerencia de categorías afines (SCRUM-44).
+    url: ${SERVICIO_SEGMENTACION_URL:http://localhost:8083}
+    tiempo-espera: ${SEGMENTACION_TIEMPO_ESPERA:2s}
 
 spring:
   application:
@@ -87,6 +91,13 @@ comportamiento:
     umbral: ${CAMBIO_COMPORTAMIENTO_UMBRAL:0.5}
     # Cuándo se evalúa a todos los clientes (SCRUM-34); por defecto, una vez al día de madrugada.
     cron: ${CAMBIO_COMPORTAMIENTO_CRON:0 0 4 * * *}
+  sugerencias:
+    # Sugerencia de categorías afines (SCRUM-380): una categoría se sugiere si la compran al menos
+    # minimo-clientes compañeros de segmento y al menos esa proporción (afinidad-minima) del segmento.
+    minimo-clientes: ${SUGERENCIAS_MINIMO_CLIENTES:2}
+    afinidad-minima: ${SUGERENCIAS_AFINIDAD_MINIMA:0.20}
+    # Cantidad de categorías sugeridas por cliente.
+    maximo: ${SUGERENCIAS_MAXIMO:5}
   cohortes:
     # Zona horaria en la que se cuentan los meses de las cohortes de primera compra (SCRUM-327).
     zona: ${COHORTES_ZONA:America/La_Paz}
