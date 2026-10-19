@@ -14,6 +14,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       <div class="pestanias" role="tablist">
         <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', id(), 'ficha-integral']" routerLinkActive="activa" role="tab">Ficha integral</a>
         <a [routerLink]="['/clientes', id(), 'historial']" routerLinkActive="activa" role="tab">Historial de cambios</a>
+        <a *appSiTienePermiso="permisos.SEGMENTOS_CONSULTAR" [routerLink]="['/clientes', id(), 'historial-segmentos']" routerLinkActive="activa" role="tab">Historial de segmentos</a>
         <a [routerLink]="['/clientes', id(), 'compras']" routerLinkActive="activa" role="tab">Compras e indicadores</a>
         <a *appSiTienePermiso="permisos.EVOLUCION_CONSUMO_CONSULTAR" [routerLink]="['/clientes', id(), 'evolucion-consumo']" routerLinkActive="activa" role="tab">Evolución por categoría</a>
         <a [routerLink]="['/clientes', id(), 'consentimiento']" routerLinkActive="activa" role="tab">Consentimiento</a>
@@ -27,7 +28,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     }
     .volver { font-size: 0.9rem; }
     .pestanias {
-      display: inline-flex; gap: 0.25rem; padding: 0.25rem; border-radius: 10px;
+      display: inline-flex; flex-wrap: wrap; max-width: 100%; gap: 0.25rem; padding: 0.25rem; border-radius: 10px;
       background: #e9edf6; border: 1px solid var(--color-borde);
     }
     .pestanias a {

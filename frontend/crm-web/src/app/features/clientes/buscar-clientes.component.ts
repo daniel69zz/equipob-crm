@@ -80,6 +80,7 @@ const NOMBRES_DE_ESTADO: Record<string, string> = {
                 <td class="vistas">
                   <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', cliente.id, 'ficha-integral']">Ficha</a>
                   <a [routerLink]="['/clientes', cliente.id, 'historial']">Cambios</a>
+                  <a *appSiTienePermiso="permisos.SEGMENTOS_CONSULTAR" [routerLink]="['/clientes', cliente.id, 'historial-segmentos']">Segmentos</a>
                   <a [routerLink]="['/clientes', cliente.id, 'compras']">Compras</a>
                   <a [routerLink]="['/clientes', cliente.id, 'consentimiento']">Consentimiento</a>
                 </td>
