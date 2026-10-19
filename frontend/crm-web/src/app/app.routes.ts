@@ -14,6 +14,7 @@ import { EvolucionConsumoComponent } from './features/clientes/evolucion-consumo
 import { FichaIntegralComponent } from './features/clientes/ficha-integral.component';
 import { HistorialCambiosComponent } from './features/clientes/historial-cambios.component';
 import { HistorialComprasComponent } from './features/clientes/historial-compras.component';
+import { SugerenciasComponent } from './features/clientes/sugerencias.component';
 import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
 import { RolesComponent } from './features/admin/roles.component';
 import { UsuariosComponent } from './features/admin/usuarios.component';
@@ -67,6 +68,12 @@ export const routes: Routes = [
         component: EvolucionConsumoComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.EVOLUCION_CONSUMO_CONSULTAR },
+      },
+      {
+        path: 'clientes/:id/sugerencias',
+        component: SugerenciasComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.SUGERENCIAS_CONSULTAR },
       },
       {
         path: 'clientes-inactivos',
