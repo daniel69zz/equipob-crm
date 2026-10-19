@@ -74,6 +74,29 @@ class ReglaPrioridadSegmentoTest {
         assertThat(elegir(9, "5000")).contains(ALTO_VALOR);
     }
 
+    // --- SCRUM-38: la clasificación por frecuencia va después de la frecuencia y antes de la categoría ---
+
+    private static final Criterio CLIENTES_FRECUENTES = new Criterio(8L, "Clientes frecuentes", "",
+            Indicador.CLASIFICACION_FRECUENCIA, Condicion.IGUAL, null, null, null, true, 0, null, null, "admin",
+            "FRECUENTE");
+
+    @Test
+    void laClasificacionVaDespuesDeLaFrecuenciaYAntesDeLaCategoria() {
+        List<Criterio> criterios = List.of(LECTORES, CLIENTES_FRECUENTES, FRECUENTES);
+        assertThat(ReglaPrioridadSegmento.elegir(criterios, 12, BigDecimal.ZERO, List.of("Libros"), "FRECUENTE"))
+                .contains(FRECUENTES);
+        assertThat(ReglaPrioridadSegmento.elegir(List.of(LECTORES, CLIENTES_FRECUENTES), 12, BigDecimal.ZERO,
+                List.of("Libros"), "FRECUENTE")).contains(CLIENTES_FRECUENTES);
+    }
+
+    @Test
+    void sinClasificacionNoSeCumpleElCriterioDeClasificacion() {
+        assertThat(ReglaPrioridadSegmento.elegir(List.of(CLIENTES_FRECUENTES), 12, BigDecimal.ZERO, List.of(), null))
+                .isEmpty();
+        assertThat(ReglaPrioridadSegmento.elegir(List.of(CLIENTES_FRECUENTES), 12, BigDecimal.ZERO, List.of()))
+                .isEmpty();
+    }
+
     private static Optional<Criterio> elegir(long frecuencia, String valor, String... categorias) {
         return ReglaPrioridadSegmento.elegir(TODOS, frecuencia, new BigDecimal(valor), List.of(categorias));
     }

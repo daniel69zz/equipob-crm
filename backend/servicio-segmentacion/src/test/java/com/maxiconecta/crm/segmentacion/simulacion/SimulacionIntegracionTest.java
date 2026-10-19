@@ -91,6 +91,16 @@ class SimulacionIntegracionTest {
         fila(resultado, valor.nombre(), 0, 1); fila(resultado, "Frecuencia", 0, 1); fila(resultado, "Electrónica", 0, 1);
     }
 
+    @Test void simulaUnCriterioPorClasificacionConLaClasificacionDeLasMetricas() {
+        metrica(1, 12, "100"); metrica(2, 5, "100"); metrica(3, 0, "0");
+        jdbc.update("UPDATE segmentacion.metricas_cliente SET clasificacion_frecuencia='FRECUENTE' WHERE cliente_id=1");
+        jdbc.update("UPDATE segmentacion.metricas_cliente SET clasificacion_frecuencia='HABITUAL' WHERE cliente_id=2");
+        var regla = new SolicitudCriterio("Frecuentes", "", Indicador.CLASIFICACION_FRECUENCIA, Condicion.IGUAL,
+                null, null, null, null, "FRECUENTE");
+        var resultado = simulador.simular(new SolicitudSimulacion(null, regla));
+        fila(resultado, "Frecuentes", 0, 1); fila(resultado, "Sin segmento", 3, 2);
+    }
+
     @Test void inactivoConservaSuEstadoYNoParticipaEnLaDistribucion() {
         var c = criterios.crear(regla("Inactivo", Indicador.FRECUENCIA, "1", "5", null), "admin");
         c = criterios.cambiarEstado(c.id(), false, c.version(), "admin");

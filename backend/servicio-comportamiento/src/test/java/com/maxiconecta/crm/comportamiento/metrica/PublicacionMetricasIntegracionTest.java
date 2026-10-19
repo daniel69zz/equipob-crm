@@ -110,6 +110,8 @@ class PublicacionMetricasIntegracionTest {
         assertThat(metricas.get("valor").decimalValue()).isEqualByComparingTo("350.50");
         assertThat(textos(metricas.get("categorias"))).containsExactly("Electrónica", "Accesorios");
         assertThat(metricas.get("calculadasEn").asText()).isNotBlank();
+        // SCRUM-38: la clasificación por frecuencia viaja con las métricas para los criterios de segmentación.
+        assertThat(metricas.get("clasificacionFrecuencia").asText()).isEqualTo("OCASIONAL");
     }
 
     @Test
@@ -156,6 +158,7 @@ class PublicacionMetricasIntegracionTest {
         assertThat(total.get("frecuencia").asLong()).isZero();
         assertThat(total.get("valor").decimalValue()).isEqualByComparingTo("0");
         assertThat(textos(total.get("categorias"))).isEmpty();
+        assertThat(total.get("clasificacionFrecuencia").isNull()).isTrue();
     }
 
     // --- Sin perfil o con error: no se publica ---
