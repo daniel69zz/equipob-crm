@@ -165,7 +165,7 @@ class CriteriosIntegrationTest {
         var c = crear("Auditado", Indicador.FRECUENCIA, "1", "2");
         long id = service.historial(c.id()).get(0).id();
         for (String sql : List.of("UPDATE auditoria.evento SET usuario='otro' WHERE id=" + id,
-                "DELETE FROM auditoria.evento WHERE id=" + id, "TRUNCATE auditoria.evento")) {
+                "DELETE FROM auditoria.evento WHERE id=" + id, "TRUNCATE auditoria.evento, segmentacion.historial_segmento")) {
             assertThatThrownBy(() -> jdbc.execute(sql)).hasMessageContaining("solo lectura");
         }
         assertThat(service.historial(c.id())).hasSize(1);

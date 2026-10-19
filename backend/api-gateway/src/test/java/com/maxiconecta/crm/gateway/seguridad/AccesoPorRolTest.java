@@ -427,6 +427,24 @@ class AccesoPorRolTest {
         }
     }
 
+    @Test
+    void historialSegmentosExigePermisoDeConsultaYRechazaTodaEscrituraInclusoDelAdministrador() throws Exception {
+        String ruta = "/api/segmentacion/clientes/42/historial-segmentos";
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(get(ruta).header("Authorization", bearer("agente", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta).header("Authorization", bearer("gerente", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        for (String metodo : List.of("POST", "PUT", "PATCH", "DELETE")) {
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request(
+                            org.springframework.http.HttpMethod.valueOf(metodo), ruta)
+                    .header("Authorization", bearerAdministrador())).andExpect(status().isForbidden());
+        }
+        mvc.perform(get(ruta + "/1").header("Authorization", bearerAdministrador()))
+                .andExpect(status().isForbidden());
+    }
+
     private static List<String> agregar(List<String> permisos, String extra) {
         return Stream.concat(permisos.stream(), Stream.of(extra)).toList();
     }

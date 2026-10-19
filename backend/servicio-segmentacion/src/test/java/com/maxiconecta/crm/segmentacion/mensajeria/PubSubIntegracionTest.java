@@ -103,6 +103,8 @@ class PubSubIntegracionTest {
         await().atMost(Duration.ofSeconds(30)).until(() -> segmento(502).equals(List.of("Habituales")));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM segmentacion.evento_procesado WHERE id_evento = ?",
                 Long.class, idEvento)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM segmentacion.historial_segmento WHERE id_evento = ?",
+                Long.class, idEvento)).isEqualTo(1);
     }
 
     @Test

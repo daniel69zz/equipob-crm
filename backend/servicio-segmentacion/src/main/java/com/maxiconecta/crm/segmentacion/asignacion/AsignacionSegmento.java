@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -54,28 +55,30 @@ public class AsignacionSegmento {
         }
 
         registro.guardarMetricas(metricas);
-        Optional<Criterio> elegido = ReglaPrioridadSegmento.elegir(criterios.activos(), metricas.frecuencia(),
+        List<Criterio> evaluados = criterios.activos();
+        Optional<Criterio> elegido = ReglaPrioridadSegmento.elegir(evaluados, metricas.frecuencia(),
                 metricas.valor(), metricas.categoriasOVacio(), metricas.clasificacionFrecuencia());
         SegmentoActual anterior = registro.segmento(clienteId).orElse(null);
-        actualizar(clienteId, anterior, elegido.orElse(null), metricas);
+        actualizar(clienteId, anterior, elegido.orElse(null), metricas, evaluados);
         registro.registrarEvento(metricas.idEvento(), clienteId, Resultado.APLICADO.name());
         return Resultado.APLICADO;
     }
 
-    private void actualizar(long clienteId, SegmentoActual anterior, Criterio nuevo, MetricasCliente metricas) {
+    private void actualizar(long clienteId, SegmentoActual anterior, Criterio nuevo, MetricasCliente metricas,
+                            List<Criterio> evaluados) {
         if (nuevo == null) {
             if (anterior != null) {
                 registro.retirar(clienteId);
-                auditoria.registrar(Operacion.SEGMENTO_RETIRADO, clienteId, anterior, null, metricas);
+                auditoria.registrar(Operacion.SEGMENTO_RETIRADO, clienteId, anterior, null, metricas, evaluados);
             }
             return;
         }
         if (anterior == null) {
             registro.asignar(clienteId, nuevo, metricas.idEvento());
-            auditoria.registrar(Operacion.SEGMENTO_ASIGNADO, clienteId, null, nuevo, metricas);
+            auditoria.registrar(Operacion.SEGMENTO_ASIGNADO, clienteId, null, nuevo, metricas, evaluados);
         } else if (!Objects.equals(anterior.criterioId(), nuevo.id()) || !anterior.segmento().equals(nuevo.nombre())) {
             registro.asignar(clienteId, nuevo, metricas.idEvento());
-            auditoria.registrar(Operacion.SEGMENTO_CAMBIADO, clienteId, anterior, nuevo, metricas);
+            auditoria.registrar(Operacion.SEGMENTO_CAMBIADO, clienteId, anterior, nuevo, metricas, evaluados);
         }
     }
 

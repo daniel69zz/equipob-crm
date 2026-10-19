@@ -13,6 +13,7 @@ import { ConsentimientoComponent } from './features/clientes/consentimiento.comp
 import { EvolucionConsumoComponent } from './features/clientes/evolucion-consumo.component';
 import { FichaIntegralComponent } from './features/clientes/ficha-integral.component';
 import { HistorialCambiosComponent } from './features/clientes/historial-cambios.component';
+import { HistorialSegmentosComponent } from './features/clientes/historial-segmentos.component';
 import { HistorialComprasComponent } from './features/clientes/historial-compras.component';
 import { SugerenciasComponent } from './features/clientes/sugerencias.component';
 import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
@@ -50,6 +51,12 @@ export const routes: Routes = [
         component: HistorialCambiosComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.CLIENTE_CONSULTAR },
+      },
+      {
+        path: 'clientes/:id/historial-segmentos',
+        component: HistorialSegmentosComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.SEGMENTOS_CONSULTAR },
       },
       {
         path: 'clientes/:id/consentimiento',
