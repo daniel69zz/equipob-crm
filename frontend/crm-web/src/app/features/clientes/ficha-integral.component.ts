@@ -6,6 +6,7 @@ import { CambiosComportamientoComponent } from './cambios-comportamiento.compone
 import { Compra } from './compras.service';
 import { FichaIntegral, FichaIntegralService } from './ficha-integral.service';
 import { NivelConsumoComponent } from './nivel-consumo.component';
+import { ClasificacionFrecuenciaComponent } from './clasificacion-frecuencia.component';
 import { PuntosFidelizacionComponent } from './puntos-fidelizacion.component';
 import { PestaniasClienteComponent } from './pestanias-cliente.component';
 
@@ -29,7 +30,7 @@ const NOMBRES_DE_TIPO_DIRECCION: Record<string, string> = {
 @Component({
   selector: 'app-ficha-integral',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, NivelConsumoComponent, CambiosComportamientoComponent, PuntosFidelizacionComponent, PestaniasClienteComponent],
+  imports: [DatePipe, DecimalPipe, RouterLink, NivelConsumoComponent, ClasificacionFrecuenciaComponent, CambiosComportamientoComponent, PuntosFidelizacionComponent, PestaniasClienteComponent],
   template: `
     <app-pestanias-cliente [id]="id()" />
     <h1>Ficha integral del cliente</h1>
@@ -86,6 +87,8 @@ const NOMBRES_DE_TIPO_DIRECCION: Record<string, string> = {
       </section>
 
       <app-nivel-consumo [nivel]="datos.nivelConsumo" />
+
+      <app-clasificacion-frecuencia [clasificacion]="datos.clasificacionFrecuencia" />
 
       <app-cambios-comportamiento [cambios]="datos.cambiosComportamiento" />
 
