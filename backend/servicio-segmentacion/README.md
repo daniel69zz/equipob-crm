@@ -35,8 +35,11 @@ mvn test
 
 Las pruebas de integración requieren Docker y usan PostgreSQL real mediante Testcontainers.
 No se omiten si falta Docker: el fallo indica que no pudo verificarse esa parte.
-El historial de cambios de segmento (SCRUM-30) es otra historia; usa la auditoría
-`SEGMENTO_CLIENTE` que registra la asignación automática.
+**SCRUM-30:** historial de cambios de segmento con regla y versión originales, paginación y
+protección de solo inserción. Consulta: `GET /api/segmentacion/clientes/{clienteId}/historial-segmentos`,
+con `SEGMENTOS_CONSULTAR`. La pantalla está en Clientes → Historial de segmentos.
+Modelo, carga histórica, permisos, diagramas y pruebas:
+[historial de segmentos](../../docs/segmentacion/historial-segmentos.md).
 
 ## Mensajería con Google Cloud Pub/Sub
 
