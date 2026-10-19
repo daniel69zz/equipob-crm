@@ -1,0 +1,49 @@
+classDiagram
+    class PreferenciasController {
+        +construir(clienteId) PerfilPreferencias
+        +consultar(clienteId) PerfilPreferencias
+    }
+    class PerfilesPreferencias {
+        +construir(clienteId) PerfilPreferencias
+        +consultar(clienteId) PerfilPreferencias
+    }
+    class IdentificadoresPreferencias {
+        +obtener(clienteId) List~Identificador~
+    }
+    class AgregadoConsumoCategorias {
+        +consumirTodo(identificadores) ConsumoEnRango
+    }
+    class ConstructorPreferencias {
+        +construir(consumo) List~CategoriaPreferida~
+    }
+    class RankingCategorias {
+        +calcular(compradas, devueltas) List~CategoriaConsumida~
+    }
+    class PerfilPreferenciasRepository {
+        +bloquear(clienteId)
+        +guardar(clienteId, fecha, categorias) PerfilPreferencias
+        +obtener(clienteId) PerfilPreferencias
+    }
+    class PerfilPreferencias {
+        +long clienteId
+        +boolean construido
+        +boolean sinPreferencias
+        +OffsetDateTime construidoEn
+        +long version
+        +String criterio
+    }
+    class CategoriaPreferida {
+        +int posicion
+        +String categoria
+        +long compras
+        +long unidades
+        +BigDecimal monto
+    }
+    PreferenciasController --> PerfilesPreferencias
+    PerfilesPreferencias --> IdentificadoresPreferencias
+    PerfilesPreferencias --> AgregadoConsumoCategorias
+    PerfilesPreferencias --> ConstructorPreferencias
+    ConstructorPreferencias --> RankingCategorias : reutiliza SCRUM-18
+    PerfilesPreferencias --> PerfilPreferenciasRepository
+    PerfilPreferenciasRepository --> PerfilPreferencias
+    PerfilPreferencias "1" *-- "0..*" CategoriaPreferida

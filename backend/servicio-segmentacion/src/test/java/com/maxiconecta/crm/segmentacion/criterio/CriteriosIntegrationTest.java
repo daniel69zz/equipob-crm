@@ -36,6 +36,8 @@ class CriteriosIntegrationTest {
         r.add("spring.datasource.url", postgres::getJdbcUrl);
         r.add("spring.datasource.username", postgres::getUsername);
         r.add("spring.datasource.password", postgres::getPassword);
+        // Estas pruebas no usan RabbitMQ: la asignación automática se prueba en AsignacionSegmentoIntegracionTest.
+        r.add("spring.rabbitmq.listener.simple.auto-startup", () -> "false");
     }
     @Autowired CriterioService service;
     @Autowired JdbcTemplate jdbc;
@@ -163,7 +165,7 @@ class CriteriosIntegrationTest {
         var c = crear("Auditado", Indicador.FRECUENCIA, "1", "2");
         long id = service.historial(c.id()).get(0).id();
         for (String sql : List.of("UPDATE auditoria.evento SET usuario='otro' WHERE id=" + id,
-                "DELETE FROM auditoria.evento WHERE id=" + id, "TRUNCATE auditoria.evento")) {
+                "DELETE FROM auditoria.evento WHERE id=" + id, "TRUNCATE auditoria.evento, segmentacion.historial_segmento")) {
             assertThatThrownBy(() -> jdbc.execute(sql)).hasMessageContaining("solo lectura");
         }
         assertThat(service.historial(c.id())).hasSize(1);
@@ -218,6 +220,58 @@ class CriteriosIntegrationTest {
         mvc.perform(admin(post("/api/segmentacion/criterios/" + c.id() + "/comprobar"))
                 .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // --- SCRUM-340: clasificación por frecuencia (SCRUM-38) como indicador de los criterios ---
+
+    @Test void creaUnCriterioPorClasificacionYLoEvaluaSoloConEsaClasificacion() {
+        var c = service.crear(clasificacion("Clientes frecuentes", " frecuente "), "admin");
+        assertThat(c.indicador()).isEqualTo(Indicador.CLASIFICACION_FRECUENCIA);
+        assertThat(c.clasificacion()).isEqualTo("FRECUENTE");
+        assertThat(ReglasCriterio.cumple(c, new BigDecimal(12), BigDecimal.ZERO, List.of(), "FRECUENTE")).isTrue();
+        assertThat(ReglasCriterio.cumple(c, new BigDecimal(12), BigDecimal.ZERO, List.of(), "HABITUAL")).isFalse();
+        assertThat(ReglasCriterio.cumple(c, new BigDecimal(12), BigDecimal.ZERO, List.of(), null)).isFalse();
+        assertThat(ReglasCriterio.cumple(c, new BigDecimal(12), BigDecimal.ZERO, List.of())).isFalse();
+    }
+
+    @Test void dosCriteriosConLaMismaClasificacionSeSuperponenYOtraClasificacionNo() {
+        service.crear(clasificacion("Habituales A", "HABITUAL"), "admin");
+        assertThatThrownBy(() -> service.crear(clasificacion("Habituales B", "habitual"), "admin"))
+                .isInstanceOf(ResponseStatusException.class).hasMessageContaining("superpone");
+        service.crear(clasificacion("Ocasionales", "OCASIONAL"), "admin");
+        crear("Frecuencia numérica", Indicador.FRECUENCIA, "4", "9");
+        assertThat(service.listar(true, Indicador.CLASIFICACION_FRECUENCIA)).hasSize(2);
+    }
+
+    @Test void rechazaClasificacionesDesconocidasCondicionesORangos() {
+        assertThatThrownBy(() -> service.crear(clasificacion("Vip", "VIP"), "admin")).hasMessageContaining("OCASIONAL");
+        assertThatThrownBy(() -> service.crear(new SolicitudCriterio("Mal", "", Indicador.CLASIFICACION_FRECUENCIA,
+                Condicion.ENTRE, null, null, null, null, "FRECUENTE"), "admin")).hasMessageContaining("IGUAL");
+        assertThatThrownBy(() -> service.crear(new SolicitudCriterio("Mal", "", Indicador.CLASIFICACION_FRECUENCIA,
+                Condicion.IGUAL, BigDecimal.ONE, BigDecimal.ONE, null, null, "FRECUENTE"), "admin")).hasMessageContaining("rangos");
+        assertThatThrownBy(() -> service.crear(new SolicitudCriterio("Mal", "", Indicador.FRECUENCIA, Condicion.ENTRE,
+                BigDecimal.ONE, BigDecimal.TEN, null, null, "FRECUENTE"), "admin")).hasMessageContaining("clasificación");
+    }
+
+    @Test void apiCreaYCompruebaUnCriterioPorClasificacion() throws Exception {
+        String cuerpo = "{\"nombre\":\"Frecuentes\",\"indicador\":\"CLASIFICACION_FRECUENCIA\","
+                + "\"condicion\":\"IGUAL\",\"clasificacion\":\"FRECUENTE\"}";
+        String respuesta = mvc.perform(admin(post("/api/segmentacion/criterios")).contentType(MediaType.APPLICATION_JSON)
+                        .content(cuerpo))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.clasificacion").value("FRECUENTE"))
+                .andReturn().getResponse().getContentAsString();
+        long id = json.readTree(respuesta).get("id").asLong();
+        mvc.perform(admin(post("/api/segmentacion/criterios/" + id + "/comprobar"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"clasificacion\":\"frecuente\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.cumple").value(true));
+        mvc.perform(admin(post("/api/segmentacion/criterios/" + id + "/comprobar"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"frecuencia\":12}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    private SolicitudCriterio clasificacion(String nombre, String clasificacion) {
+        return new SolicitudCriterio(nombre, "", Indicador.CLASIFICACION_FRECUENCIA, Condicion.IGUAL, null, null, null,
+                null, clasificacion);
     }
 
     private Criterio crear(String nombre, Indicador indicador, String min, String max) {

@@ -4,7 +4,9 @@ import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
+import com.maxiconecta.crm.comportamiento.consumo.ClasificadorConsumo;
 import com.maxiconecta.crm.comportamiento.inactividad.DetectorClientesInactivos;
+import com.maxiconecta.crm.comportamiento.metrica.PublicadorMetricas;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorEventos;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
  * {@link CompraDuplicadaException} sin tocar el historial. Ver docs/ingesta/idempotencia-eventos-venta.md.
  * <p>
  * La clave se reserva antes de guardar la compra (ver {@link ControlIdempotencia}).
+ * <p>
+ * Al confirmarse, publica las métricas del cliente para que Segmentación reevalúe su segmento
+ * (SCRUM-26, {@link PublicadorMetricas}).
  */
 @Service
 public class ProcesadorCompras {
@@ -29,11 +34,14 @@ public class ProcesadorCompras {
     private final ClientePerfiles perfiles;
     private final FrecuenciaCompraRepository frecuencias;
     private final DetectorClientesInactivos inactividad;
+    private final ClasificadorConsumo consumo;
+    private final PublicadorMetricas metricas;
 
     public ProcesadorCompras(EventoRecibidoRepository eventos, CompraRepository compras,
                              EventoProcesadoRepository procesados, LectorEventos lector, ValidadorEventos validador,
                              ClientePerfiles perfiles, FrecuenciaCompraRepository frecuencias,
-                             DetectorClientesInactivos inactividad) {
+                             DetectorClientesInactivos inactividad, ClasificadorConsumo consumo,
+                             PublicadorMetricas metricas) {
         this.eventos = eventos;
         this.compras = compras;
         this.idempotencia = new ControlIdempotencia(procesados);
@@ -42,6 +50,8 @@ public class ProcesadorCompras {
         this.perfiles = perfiles;
         this.frecuencias = frecuencias;
         this.inactividad = inactividad;
+        this.consumo = consumo;
+        this.metricas = metricas;
     }
 
     @Transactional
@@ -64,6 +74,8 @@ public class ProcesadorCompras {
         frecuencias.incrementar(datos.idCliente());
         recibido.marcarProcesado();
         inactividad.reactivar(datos.idCliente());
+        consumo.reclasificar(datos.idCliente());
+        metricas.programar(evento.idEvento(), evento.tipoEvento(), guardada);
         return guardada;
     }
 }

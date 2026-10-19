@@ -1,6 +1,8 @@
 package com.maxiconecta.crm.comportamiento.indicador;
 
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
+import com.maxiconecta.crm.comportamiento.consumo.NivelConsumoCliente;
+import com.maxiconecta.crm.comportamiento.frecuencia.ClasificacionFrecuenciaCliente;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,11 +31,12 @@ public class IndicadoresController {
                                           @RequestParam(name = "identificador", required = false) List<String> identificadores) {
         List<Identificador> ids = Identificador.parsearTodos(identificadores);
         return new IndicadoresCliente(consulta.ticketPromedio(ids), consulta.recencia(ids), consulta.frecuencia(ids),
-                consulta.valorAcumulado(ids));
+                consulta.valorAcumulado(ids), consulta.nivelConsumo(ids), consulta.clasificacionFrecuencia(ids));
     }
 
     /** Cada indicador es un campo propio, para que los nuevos se sumen sin cambiar los existentes. */
     public record IndicadoresCliente(TicketPromedio ticketPromedio, RecenciaCompra recencia, long frecuencia,
-                                     ValorAcumulado valorAcumulado) {
+                                     ValorAcumulado valorAcumulado, NivelConsumoCliente nivelConsumo,
+                                     ClasificacionFrecuenciaCliente clasificacionFrecuencia) {
     }
 }

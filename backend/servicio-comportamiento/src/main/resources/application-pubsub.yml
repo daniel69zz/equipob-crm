@@ -1,0 +1,34 @@
+# Perfil "pubsub": usa Google Cloud Pub/Sub en lugar de RabbitMQ (docs/mensajeria/pubsub.md).
+# Activar con SPRING_PROFILES_ACTIVE=pubsub.
+
+spring:
+  cloud:
+    gcp:
+      core:
+        enabled: true
+      project-id: ${PUBSUB_PROYECTO:crm-maxiconecta}
+      pubsub:
+        enabled: true
+        # Con el emulador local (gcloud beta emulators pubsub start); vacío para Google Cloud real.
+        emulator-host: ${PUBSUB_EMULADOR:}
+  rabbitmq:
+    listener:
+      simple:
+        # Los receptores de RabbitMQ no se inician: los mensajes llegan por las suscripciones de Pub/Sub.
+        auto-startup: false
+
+crm:
+  mensajeria:
+    broker: pubsub
+    pubsub:
+      # Crea al arrancar los tópicos y suscripciones que faltan (con su tópico de respaldo).
+      crear-recursos: ${PUBSUB_CREAR_RECURSOS:true}
+      # Entregas fallidas antes de que Pub/Sub pase el mensaje al tópico de respaldo.
+      max-intentos: ${PUBSUB_MAX_INTENTOS:5}
+
+management:
+  health:
+    rabbit:
+      enabled: false
+    pubsub:
+      enabled: true

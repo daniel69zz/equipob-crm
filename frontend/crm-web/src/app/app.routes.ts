@@ -1,15 +1,21 @@
 import { Routes } from '@angular/router';
+import { preferenciasGuard } from './core/auth/auth.guards';
+import { PreferenciasComponent } from './features/clientes/preferencias.component';
 import { administradorSegmentacionGuard, autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.guards';
 import { CriteriosComponent } from './features/segmentacion/criterios.component';
 import { Permisos } from './core/auth/sesion';
+import { RetencionCohortesComponent } from './features/analisis/retencion-cohortes.component';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
 import { ClientesInactivosComponent } from './features/clientes/clientes-inactivos.component';
 import { ConsentimientoComponent } from './features/clientes/consentimiento.component';
+import { EvolucionConsumoComponent } from './features/clientes/evolucion-consumo.component';
 import { FichaIntegralComponent } from './features/clientes/ficha-integral.component';
 import { HistorialCambiosComponent } from './features/clientes/historial-cambios.component';
+import { HistorialSegmentosComponent } from './features/clientes/historial-segmentos.component';
 import { HistorialComprasComponent } from './features/clientes/historial-compras.component';
+import { SugerenciasComponent } from './features/clientes/sugerencias.component';
 import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
 import { RolesComponent } from './features/admin/roles.component';
 import { UsuariosComponent } from './features/admin/usuarios.component';
@@ -25,6 +31,7 @@ export const routes: Routes = [
     component: LayoutComponent,
     canActivate: [autenticadoGuard],
     children: [
+      { path: 'clientes/:id/preferencias', component: PreferenciasComponent, canActivate: [preferenciasGuard] },
       { path: '', component: InicioComponent },
       { path: 'segmentacion/criterios', component: CriteriosComponent, canActivate: [administradorSegmentacionGuard] },
       {
@@ -46,6 +53,12 @@ export const routes: Routes = [
         data: { permiso: Permisos.CLIENTE_CONSULTAR },
       },
       {
+        path: 'clientes/:id/historial-segmentos',
+        component: HistorialSegmentosComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.SEGMENTOS_CONSULTAR },
+      },
+      {
         path: 'clientes/:id/consentimiento',
         component: ConsentimientoComponent,
         canActivate: [permisoGuard],
@@ -58,8 +71,26 @@ export const routes: Routes = [
         data: { permiso: Permisos.INDICADORES_CONSULTAR },
       },
       {
+        path: 'clientes/:id/evolucion-consumo',
+        component: EvolucionConsumoComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.EVOLUCION_CONSUMO_CONSULTAR },
+      },
+      {
+        path: 'clientes/:id/sugerencias',
+        component: SugerenciasComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.SUGERENCIAS_CONSULTAR },
+      },
+      {
         path: 'clientes-inactivos',
         component: ClientesInactivosComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.INDICADORES_CONSULTAR },
+      },
+      {
+        path: 'analisis/cohortes',
+        component: RetencionCohortesComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.INDICADORES_CONSULTAR },
       },

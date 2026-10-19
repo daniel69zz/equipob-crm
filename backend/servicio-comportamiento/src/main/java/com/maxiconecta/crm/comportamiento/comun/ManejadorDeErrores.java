@@ -2,6 +2,7 @@ package com.maxiconecta.crm.comportamiento.comun;
 
 import com.maxiconecta.crm.comportamiento.ingesta.EventoNoEncontradoException;
 import com.maxiconecta.crm.comportamiento.ingesta.EventoNoReprocesableException;
+import com.maxiconecta.crm.comportamiento.preferencia.PreferenciasException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,11 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class ManejadorDeErrores {
+
+    @ExceptionHandler(PreferenciasException.class)
+    public ResponseEntity<ApiError> preferencias(PreferenciasException ex, HttpServletRequest solicitud) {
+        return respuesta(ex.estado(), ex.getMessage(), solicitud);
+    }
 
     @ExceptionHandler(ReglaNegocioException.class)
     public ResponseEntity<ApiError> reglaNegocio(ReglaNegocioException ex, HttpServletRequest solicitud) {

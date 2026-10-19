@@ -1,0 +1,19 @@
+.subtitulo, .transicion span { color: var(--color-texto-suave); }
+.cambio { margin-bottom: 1rem; overflow-wrap: anywhere; }
+.cambio header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
+.cambio time { color: var(--color-texto-suave); font-size: .9rem; }
+.transicion { display: flex; align-items: center; gap: 1.25rem; margin-top: 1rem; }
+.transicion div { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.transicion span { font-size: .85rem; }
+.transicion strong { font-size: 1.1rem; }
+.regla { color: var(--color-primario); }
+.aviso { color: var(--color-aviso); font-size: .9rem; }
+details { border-top: 1px solid var(--color-borde); padding-top: .75rem; }
+summary { cursor: pointer; font-weight: 600; }
+.paginacion { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .75rem; }
+@media (max-width: 540px) {
+  .transicion { align-items: flex-start; gap: .75rem; }
+  .transicion div { flex: 1; }
+  .paginacion { justify-content: flex-start; }
+  .paginacion span { width: 100%; }
+}

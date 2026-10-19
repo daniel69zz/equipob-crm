@@ -295,6 +295,57 @@ class AccesoPorRolTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Evolución del consumo por categoría (SCRUM-32, SCRUM-305): solo Administrador y Gerente Comercial ---
+
+    @Test
+    void elAdministradorYElGerenteComercialPuedenConsultarLaEvolucionDelConsumo() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/evolucion-consumo";
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "EVOLUCION_CONSUMO_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "EVOLUCION_CONSUMO_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elAgenteNoPuedeConsultarLaEvolucionDelConsumoAunqueConsulteLosIndicadores() throws Exception {
+        String agente = bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE);
+
+        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").header("Authorization", agente))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get("/api/comportamiento/clientes/42/evolucion-consumo").header("Authorization", agente))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/evolucion-consumo"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // --- Sugerencia de categorías afines (SCRUM-44, SCRUM-383): solo Administrador y Gerente Comercial ---
+
+    @Test
+    void elAdministradorYElGerenteComercialPuedenConsultarLasSugerencias() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/sugerencias-categorias";
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "SUGERENCIAS_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "SUGERENCIAS_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elAgenteNoPuedeConsultarLasSugerenciasAunqueConsulteLosIndicadores() throws Exception {
+        String agente = bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE);
+
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias").header("Authorization", agente))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias").header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test
@@ -343,6 +394,19 @@ class AccesoPorRolTest {
     }
 
     @Test
+    void simulacionSoloPermiteAdministradorConPermisoDeConfiguracion() throws Exception {
+        String ruta = "/api/segmentacion/criterios/simular";
+        mvc.perform(post(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(post(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        mvc.perform(post(ruta).header("Authorization", bearer("sin-permiso", "ADMINISTRADOR_CRM", List.of())))
+                .andExpect(status().isForbidden());
+        for (String rol : List.of("AGENTE_ATENCION", "GERENTE_COMERCIAL", "ANALISTA_DATOS")) {
+            mvc.perform(post(ruta).header("Authorization", bearer("otro-" + rol, rol, List.of("SEGMENTACION_CONFIGURAR")))
+                    .header("X-Usuario-Rol", "ADMINISTRADOR_CRM")).andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
     void servicioCaidoDevuelve503SinInvalidarLaSesion() throws Exception {
         String token = bearerAdministrador();
         mvc.perform(get("/api/segmentacion/prueba-disponibilidad").header("Authorization", token))
@@ -361,6 +425,62 @@ class AccesoPorRolTest {
 
     private static ResultMatcher pasaElControlDeAcceso() {
         return resultado -> assertThat(resultado.getResponse().getStatus()).isNotIn(401, 403);
+    }
+
+    @Test
+    void construirPreferenciasExigeAdministradorYPermisoDeEdicion() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/preferencias/construir";
+        mvc.perform(post(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(post(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        mvc.perform(post(ruta).header("Authorization", bearer("sin-permiso", "ADMINISTRADOR_CRM", List.of())))
+                .andExpect(status().isForbidden());
+        for (String rol : List.of("AGENTE_ATENCION", "GERENTE_COMERCIAL")) {
+            mvc.perform(post(ruta).header("Authorization", bearer("otro", rol, List.of("CLIENTE_EDITAR"))))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void preferenciasPersistidasSoloSeConsultanConRolYPermisoDeFicha() throws Exception {
+        verificarAccesoDePreferencias("/api/comportamiento/clientes/42/preferencias");
+    }
+
+    @Test
+    void laTrazabilidadDeLasPreferenciasTieneElMismoAccesoQueElPerfil() throws Exception {
+        verificarAccesoDePreferencias("/api/comportamiento/clientes/42/preferencias/actualizaciones");
+    }
+
+    private void verificarAccesoDePreferencias(String ruta) throws Exception {
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        for (String rol : List.of("ADMINISTRADOR_CRM", "AGENTE_ATENCION")) {
+            mvc.perform(get(ruta).header("Authorization", bearer("consulta", rol, List.of("FICHA_INTEGRAL_CONSULTAR"))))
+                    .andExpect(pasaElControlDeAcceso());
+            mvc.perform(get(ruta).header("Authorization", bearer("sin-permiso", rol, List.of("INDICADORES_CONSULTAR"))))
+                    .andExpect(status().isForbidden());
+        }
+        for (String rol : List.of("GERENTE_COMERCIAL", "ANALISTA_DATOS", "OTRO_ROL")) {
+            mvc.perform(get(ruta).header("Authorization", bearer("denegado", rol,
+                            List.of("FICHA_INTEGRAL_CONSULTAR", "INDICADORES_CONSULTAR"))))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void historialSegmentosExigePermisoDeConsultaYRechazaTodaEscrituraInclusoDelAdministrador() throws Exception {
+        String ruta = "/api/segmentacion/clientes/42/historial-segmentos";
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(get(ruta).header("Authorization", bearer("agente", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta).header("Authorization", bearer("gerente", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        for (String metodo : List.of("POST", "PUT", "PATCH", "DELETE")) {
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request(
+                            org.springframework.http.HttpMethod.valueOf(metodo), ruta)
+                    .header("Authorization", bearerAdministrador())).andExpect(status().isForbidden());
+        }
+        mvc.perform(get(ruta + "/1").header("Authorization", bearerAdministrador()))
+                .andExpect(status().isForbidden());
     }
 
     private static List<String> agregar(List<String> permisos, String extra) {

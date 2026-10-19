@@ -15,7 +15,8 @@ public class CriterioRepository {
             Criterio.Indicador.valueOf(r.getString("indicador")), Criterio.Condicion.valueOf(r.getString("condicion")),
             r.getBigDecimal("minimo"), r.getBigDecimal("maximo"), r.getString("categoria"), r.getBoolean("activo"),
             r.getLong("version"), r.getObject("creado_en", OffsetDateTime.class),
-            r.getObject("actualizado_en", OffsetDateTime.class), r.getString("actualizado_por"));
+            r.getObject("actualizado_en", OffsetDateTime.class), r.getString("actualizado_por"),
+            r.getString("clasificacion"));
 
     public CriterioRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
@@ -24,6 +25,11 @@ public class CriterioRepository {
 
     public List<Criterio> listar() { return jdbc.query("SELECT * FROM segmentacion.criterio ORDER BY id DESC", MAPPER); }
 
+    /** Criterios vigentes para la asignación automática (SCRUM-26), del más antiguo al más nuevo. */
+    public List<Criterio> activos() {
+        return jdbc.query("SELECT * FROM segmentacion.criterio WHERE activo ORDER BY id", MAPPER);
+    }
+
     public Optional<Criterio> obtener(long id) {
         return jdbc.query("SELECT * FROM segmentacion.criterio WHERE id = ?", MAPPER, id).stream().findFirst();
     }
@@ -31,21 +37,23 @@ public class CriterioRepository {
     public Criterio crear(SolicitudCriterio s, String usuario) {
         return jdbc.queryForObject("""
                 INSERT INTO segmentacion.criterio
-                  (nombre, nombre_clave, descripcion, indicador, condicion, minimo, maximo, categoria, categoria_clave, actualizado_por)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
+                  (nombre, nombre_clave, descripcion, indicador, condicion, minimo, maximo, categoria, categoria_clave,
+                   actualizado_por, clasificacion)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *
                 """, MAPPER, s.nombre(), ReglasCriterio.clave(s.nombre()), s.descripcion(), s.indicador().name(),
                 s.condicion().name(), s.minimo(), s.maximo(), s.categoria(),
-                s.categoria() == null ? null : ReglasCriterio.clave(s.categoria()), usuario);
+                s.categoria() == null ? null : ReglasCriterio.clave(s.categoria()), usuario, s.clasificacion());
     }
 
     public Criterio editar(long id, SolicitudCriterio s, String usuario) {
         return jdbc.queryForObject("""
                 UPDATE segmentacion.criterio SET nombre=?, nombre_clave=?, descripcion=?, indicador=?, condicion=?,
-                  minimo=?, maximo=?, categoria=?, categoria_clave=?, version=version+1, actualizado_en=now(), actualizado_por=?
+                  minimo=?, maximo=?, categoria=?, categoria_clave=?, clasificacion=?, version=version+1,
+                  actualizado_en=now(), actualizado_por=?
                 WHERE id=? RETURNING *
                 """, MAPPER, s.nombre(), ReglasCriterio.clave(s.nombre()), s.descripcion(), s.indicador().name(),
                 s.condicion().name(), s.minimo(), s.maximo(), s.categoria(),
-                s.categoria() == null ? null : ReglasCriterio.clave(s.categoria()), usuario, id);
+                s.categoria() == null ? null : ReglasCriterio.clave(s.categoria()), s.clasificacion(), usuario, id);
     }
 
     public Criterio cambiarEstado(long id, boolean activo, String usuario) {

@@ -57,6 +57,15 @@ class FichaIntegralIntegracionTest {
     @MockBean
     private PuntosDelCliente puntosDelCliente;
 
+    @MockBean
+    private NivelConsumoDelCliente nivelConsumoDelCliente;
+
+    @MockBean
+    private CambiosComportamientoDelCliente cambiosComportamientoDelCliente;
+
+    @MockBean
+    private ClasificacionFrecuenciaDelCliente clasificacionFrecuenciaDelCliente;
+
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
@@ -76,13 +85,31 @@ class FichaIntegralIntegracionTest {
                 new CompraResponse(null, "C-1", null, "CONFIRMADA", List.of())));
         when(segmentoDelCliente.buscar(anyLong())).thenReturn(new SegmentoResponse("FRECUENTE", null, false));
         when(puntosDelCliente.buscar(anyLong())).thenReturn(new PuntosResponse(350, "PLATA", null, false));
+        when(nivelConsumoDelCliente.buscar(anyLong(), any()))
+                .thenReturn(new NivelConsumoResponse("ALTO", new java.math.BigDecimal("5230.00"), false));
+        when(cambiosComportamientoDelCliente.buscar(anyLong(), any())).thenReturn(new CambiosComportamientoResponse(
+                "CON_VARIACION", null, List.of(new CambiosComportamientoResponse.Alerta("MONTO", "DISMINUCION",
+                new java.math.BigDecimal("100.00"), new java.math.BigDecimal("400.00"),
+                new java.math.BigDecimal("-0.75"), null, null, null, "El monto de compra bajó un 75 %")), false));
+        when(clasificacionFrecuenciaDelCliente.buscar(anyLong(), any()))
+                .thenReturn(new ClasificacionFrecuenciaResponse("FRECUENTE", 12L, false));
 
         mvc.perform(get("/api/perfil/clientes/" + cliente.getId() + "/ficha-integral"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.datosPersonales.nombres").value("Ana"))
                 .andExpect(jsonPath("$.historialCompras[0].referencia").value("C-1"))
                 .andExpect(jsonPath("$.segmento.segmento").value("FRECUENTE"))
-                .andExpect(jsonPath("$.puntos.saldo").value(350));
+                .andExpect(jsonPath("$.puntos.saldo").value(350))
+                .andExpect(jsonPath("$.nivelConsumo.nivel").value("ALTO"))
+                .andExpect(jsonPath("$.nivelConsumo.valorAcumulado").value(5230.00))
+                .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(false))
+                .andExpect(jsonPath("$.cambiosComportamiento.estado").value("CON_VARIACION"))
+                .andExpect(jsonPath("$.cambiosComportamiento.alertas[0].tipo").value("MONTO"))
+                .andExpect(jsonPath("$.cambiosComportamiento.alertas[0].valorHabitual").value(400.00))
+                .andExpect(jsonPath("$.cambiosComportamiento.sinDatos").value(false))
+                .andExpect(jsonPath("$.clasificacionFrecuencia.clasificacion").value("FRECUENTE"))
+                .andExpect(jsonPath("$.clasificacionFrecuencia.frecuencia").value(12))
+                .andExpect(jsonPath("$.clasificacionFrecuencia.sinDatos").value(false));
     }
 
     @Test
@@ -93,12 +120,18 @@ class FichaIntegralIntegracionTest {
         when(historialCompras.buscar(any(), any())).thenReturn(List.of());
         when(segmentoDelCliente.buscar(anyLong())).thenReturn(new SegmentoResponse(null, null, true));
         when(puntosDelCliente.buscar(anyLong())).thenReturn(new PuntosResponse(null, null, null, true));
+        when(nivelConsumoDelCliente.buscar(anyLong(), any())).thenReturn(new NivelConsumoResponse(null, null, true));
+        when(cambiosComportamientoDelCliente.buscar(anyLong(), any())).thenReturn(CambiosComportamientoResponse.SIN_DATOS);
+        when(clasificacionFrecuenciaDelCliente.buscar(anyLong(), any())).thenReturn(ClasificacionFrecuenciaResponse.SIN_DATOS);
 
         mvc.perform(get("/api/perfil/clientes/" + cliente.getId() + "/ficha-integral"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.datosPersonales.nombres").value("Bruno"))
                 .andExpect(jsonPath("$.segmento.sinDatos").value(true))
-                .andExpect(jsonPath("$.puntos.sinDatos").value(true));
+                .andExpect(jsonPath("$.puntos.sinDatos").value(true))
+                .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(true))
+                .andExpect(jsonPath("$.cambiosComportamiento.sinDatos").value(true))
+                .andExpect(jsonPath("$.clasificacionFrecuencia.sinDatos").value(true));
     }
 
     @Test

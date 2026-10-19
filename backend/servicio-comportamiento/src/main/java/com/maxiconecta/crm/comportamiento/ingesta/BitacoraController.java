@@ -77,8 +77,8 @@ public class BitacoraController {
     }
 
     /**
-     * Reinyecta un mensaje de la cola de respaldo indicada: {@code compras} (por defecto) o
-     * {@code anulaciones}.
+     * Reinyecta un mensaje de la cola de respaldo indicada: {@code compras} (por defecto),
+     * {@code anulaciones} o {@code preferencias} (SCRUM-42).
      */
     @PostMapping("/respaldo/reinyectar")
     public ResponseEntity<ReinyeccionResponse> reinyectarRespaldo(
@@ -94,7 +94,7 @@ public class BitacoraController {
         try {
             return ReinyectorMensajesRespaldo.ColaRespaldo.valueOf(cola.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new ReglaNegocioException("Cola de respaldo desconocida: " + cola + " (se espera compras o anulaciones)");
+            throw new ReglaNegocioException("Cola de respaldo desconocida: " + cola + " (se espera compras, anulaciones o preferencias)");
         }
     }
 

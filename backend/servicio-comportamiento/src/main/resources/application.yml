@@ -2,11 +2,15 @@ server:
   port: ${PUERTO:8082}
 
 crm:
+  mensajeria:
+    # Broker de mensajería: rabbit (predeterminado) o pubsub (perfil "pubsub"). Ver docs/mensajeria/pubsub.md.
+    broker: rabbit
   perfil:
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
-  # Clientes de un segmento, para comparar periodos solo con ellos (SCRUM-40).
   segmentacion:
+    # Clientes de un segmento, para comparar periodos solo con ellos (SCRUM-40), y compañeros de
+    # segmento para la sugerencia de categorías afines (SCRUM-44).
     url: ${SERVICIO_SEGMENTACION_URL:http://localhost:8083}
     tiempo-espera: ${SEGMENTACION_TIEMPO_ESPERA:2s}
 
@@ -27,6 +31,14 @@ spring:
   flyway:
     schemas: comportamiento
     locations: classpath:db/migration
+
+  # Google Cloud Pub/Sub solo se activa con el perfil "pubsub" (application-pubsub.yml).
+  cloud:
+    gcp:
+      core:
+        enabled: false
+      pubsub:
+        enabled: false
 
   rabbitmq:
     host: ${RABBIT_HOST:localhost}
@@ -53,7 +65,48 @@ comportamiento:
     # Cuándo corre la identificación automática (SCRUM-297); por defecto, una vez al día de madrugada.
     cron: ${INACTIVIDAD_CRON:0 0 3 * * *}
 
+  evolucion:
+    # Zona horaria del negocio con la que cada compra se asigna a su mes, trimestre o año (SCRUM-32).
+    zona-horaria: ${EVOLUCION_ZONA_HORARIA:America/La_Paz}
+
+  nivel-consumo:
+    # Valor acumulado (en bolivianos) desde el que un cliente es de consumo medio y alto (SCRUM-270).
+    umbral-medio: ${NIVEL_CONSUMO_UMBRAL_MEDIO:500}
+    umbral-alto: ${NIVEL_CONSUMO_UMBRAL_ALTO:5000}
+    # Cuándo se reclasifica a todos los clientes (SCRUM-268); por defecto, una vez al día de madrugada.
+    cron: ${NIVEL_CONSUMO_CRON:0 30 3 * * *}
+
+  clasificacion-frecuencia:
+    # Compras vigentes desde las que un cliente es habitual y frecuente; con al menos una, ocasional (SCRUM-341).
+    umbral-habitual: ${CLASIFICACION_FRECUENCIA_UMBRAL_HABITUAL:4}
+    umbral-frecuente: ${CLASIFICACION_FRECUENCIA_UMBRAL_FRECUENTE:10}
+
+  cambio-comportamiento:
+    # Periodo actual y línea base de la detección de cambios de comportamiento (SCRUM-316):
+    # se comparan los últimos ventana-dias con el promedio por periodo de los periodos-base anteriores.
+    ventana-dias: ${CAMBIO_COMPORTAMIENTO_VENTANA_DIAS:90}
+    periodos-base: ${CAMBIO_COMPORTAMIENTO_PERIODOS_BASE:3}
+    # Compras vigentes mínimas en la línea base para no quedar "sin línea base" (SCRUM-318).
+    minimo-compras-base: ${CAMBIO_COMPORTAMIENTO_MINIMO_COMPRAS_BASE:3}
+    # Desvío relativo (0.5 = 50 %) desde el que una variación es relevante; mayor que 0 y como máximo 1.
+    umbral: ${CAMBIO_COMPORTAMIENTO_UMBRAL:0.5}
+    # Cuándo se evalúa a todos los clientes (SCRUM-34); por defecto, una vez al día de madrugada.
+    cron: ${CAMBIO_COMPORTAMIENTO_CRON:0 0 4 * * *}
+  sugerencias:
+    # Sugerencia de categorías afines (SCRUM-380): una categoría se sugiere si la compran al menos
+    # minimo-clientes compañeros de segmento y al menos esa proporción (afinidad-minima) del segmento.
+    minimo-clientes: ${SUGERENCIAS_MINIMO_CLIENTES:2}
+    afinidad-minima: ${SUGERENCIAS_AFINIDAD_MINIMA:0.20}
+    # Cantidad de categorías sugeridas por cliente.
+    maximo: ${SUGERENCIAS_MAXIMO:5}
+  cohortes:
+    # Zona horaria en la que se cuentan los meses de las cohortes de primera compra (SCRUM-327).
+    zona: ${COHORTES_ZONA:America/La_Paz}
+
 management:
+  health:
+    pubsub:
+      enabled: false
   endpoints:
     web:
       exposure:

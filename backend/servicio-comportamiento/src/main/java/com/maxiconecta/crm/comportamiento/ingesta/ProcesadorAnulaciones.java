@@ -5,7 +5,9 @@ import com.maxiconecta.crm.comportamiento.compra.AnulacionRepository;
 import com.maxiconecta.crm.comportamiento.compra.Compra;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
+import com.maxiconecta.crm.comportamiento.consumo.ClasificadorConsumo;
 import com.maxiconecta.crm.comportamiento.inactividad.DetectorClientesInactivos;
+import com.maxiconecta.crm.comportamiento.metrica.PublicadorMetricas;
 import com.maxiconecta.crm.comportamiento.compra.TipoAnulacion;
 import com.maxiconecta.crm.comportamiento.validacion.ValidadorAnulaciones;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,9 @@ import java.util.Map;
  * La clave de idempotencia se reserva antes de comparar con la compra: un reenvío de una anulación
  * ya aplicada queda DESCARTADO, aunque la compra ya esté anulada. Si después una regla falla, la
  * transacción se revierte y la clave queda libre para el reproceso.
+ * <p>
+ * Al confirmarse, publica las métricas del cliente ya descontadas para que Segmentación reevalúe
+ * su segmento (SCRUM-536, {@link PublicadorMetricas}).
  */
 @Service
 public class ProcesadorAnulaciones {
@@ -36,11 +41,14 @@ public class ProcesadorAnulaciones {
     private final ValidadorAnulaciones validador;
     private final FrecuenciaCompraRepository frecuencias;
     private final DetectorClientesInactivos inactividad;
+    private final ClasificadorConsumo consumo;
+    private final PublicadorMetricas metricas;
 
     public ProcesadorAnulaciones(EventoRecibidoRepository eventos, CompraRepository compras,
                                  AnulacionRepository anulaciones, ControlIdempotencia idempotencia,
                                  LectorEventos lector, ValidadorAnulaciones validador,
-                                 FrecuenciaCompraRepository frecuencias, DetectorClientesInactivos inactividad) {
+                                 FrecuenciaCompraRepository frecuencias, DetectorClientesInactivos inactividad,
+                                 ClasificadorConsumo consumo, PublicadorMetricas metricas) {
         this.eventos = eventos;
         this.compras = compras;
         this.anulaciones = anulaciones;
@@ -49,6 +57,8 @@ public class ProcesadorAnulaciones {
         this.validador = validador;
         this.frecuencias = frecuencias;
         this.inactividad = inactividad;
+        this.consumo = consumo;
+        this.metricas = metricas;
     }
 
     @Transactional
@@ -85,7 +95,10 @@ public class ProcesadorAnulaciones {
             frecuencias.decrementar(compra.getIdClienteOrigen());
             inactividad.reevaluar(compra.getIdClienteOrigen());
         }
+        // Tanto la anulación total como la devolución parcial cambian el valor acumulado.
+        consumo.reclasificar(compra.getIdClienteOrigen());
         recibido.marcarProcesado();
+        metricas.programar(evento.idEvento(), evento.tipoEvento(), compra);
         return guardada;
     }
 
