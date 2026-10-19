@@ -1,0 +1,12 @@
+{
+  "idEvento": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+  "tipoEvento": "MOVIMIENTO_PUNTOS",
+  "fechaEmision": "2026-10-18T12:00:00-04:00",
+  "movimiento": {
+    "idTransaccion": "V-100999",
+    "idCliente": "CLI-5521",
+    "tipoMovimiento": "ACUMULACION",
+    "valorConsumido": -40.00,
+    "fecha": "2026-10-18T11:59:30-04:00"
+  }
+}

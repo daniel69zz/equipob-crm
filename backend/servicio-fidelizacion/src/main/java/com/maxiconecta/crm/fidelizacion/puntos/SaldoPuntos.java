@@ -8,9 +8,9 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 
 /**
- * Saldo y nivel de puntos vigentes de un cliente (SCRUM-154). Las reglas de acumulación, canje y
- * vigencia no son parte de esta historia: este servicio solo responde la consulta síncrona del
- * saldo ya calculado, que consolida la ficha integral (SCRUM-10, contrato RIO-CRM-04).
+ * Saldo y nivel de puntos vigentes de un cliente (SCRUM-154), que consolida la ficha integral
+ * (SCRUM-10, contrato RIO-CRM-04). El saldo lo acumulan los movimientos RIO-CRM-03 (SCRUM-45,
+ * {@code movimiento.ProcesadorMovimientos}); el nivel es SCRUM-49 y puede faltar.
  */
 @Entity
 @Table(schema = "fidelizacion", name = "saldo_puntos")
@@ -20,9 +20,8 @@ public class SaldoPuntos {
     private Long clienteId;
 
     @Column(nullable = false)
-    private int saldo;
+    private long saldo;
 
-    @Column(nullable = false)
     private String nivel;
 
     @Column(nullable = false)
@@ -31,7 +30,7 @@ public class SaldoPuntos {
     protected SaldoPuntos() {
     }
 
-    public SaldoPuntos(Long clienteId, int saldo, String nivel, OffsetDateTime actualizadoEn) {
+    public SaldoPuntos(Long clienteId, long saldo, String nivel, OffsetDateTime actualizadoEn) {
         this.clienteId = clienteId;
         this.saldo = saldo;
         this.nivel = nivel;
@@ -42,7 +41,7 @@ public class SaldoPuntos {
         return clienteId;
     }
 
-    public int getSaldo() {
+    public long getSaldo() {
         return saldo;
     }
 

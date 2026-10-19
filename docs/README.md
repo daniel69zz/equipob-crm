@@ -6,6 +6,7 @@
 
 - `preferencias/`: construcción y persistencia del perfil de preferencias (SCRUM-41), regla de relevancia, diagramas y prueba manual por API, y su actualización automática con cada compra o anulación con trazabilidad por evento (SCRUM-42).
 
+- `fidelizacion/`: acumulación de puntos de fidelización por los movimientos RIO-CRM-03, con su regla de cálculo, idempotencia, reproceso, detalle por transacción y diagramas (SCRUM-45).
 - `mensajeria/`: Google Cloud Pub/Sub como broker alternativo a RabbitMQ, elegible por configuración (perfil `pubsub`).
 - `contratos-eventos/`: contratos de los eventos que intercambian el CRM y el módulo Marketplace y Ventas, su única integración.
 - `seguridad/`: catálogo de roles, matriz de permisos, alcance de la auditoría y convención de rutas para datos de clientes.
