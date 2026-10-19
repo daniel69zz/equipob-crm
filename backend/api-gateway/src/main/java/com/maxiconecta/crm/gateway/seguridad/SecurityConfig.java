@@ -103,6 +103,10 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(SEGMENTACION_CONFIGURAR)))
+                        .requestMatchers(HttpMethod.GET, "/api/segmentacion/clientes/*/historial-segmentos")
+                            .hasAuthority(SEGMENTOS_CONSULTAR)
+                        .requestMatchers("/api/segmentacion/clientes/*/historial-segmentos",
+                                "/api/segmentacion/clientes/*/historial-segmentos/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/segmentacion/**").hasAuthority(SEGMENTOS_CONSULTAR)
                         .requestMatchers("/api/segmentacion/**").hasAuthority(SEGMENTACION_CONFIGURAR)
 
