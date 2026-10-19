@@ -31,7 +31,7 @@ solo el dato introducido contra una regla persistida, sin modificar clientes ni 
 | id | Secuencia PostgreSQL, identificador interno |
 | nombre | Obligatorio, hasta 100 caracteres; único incluso entre inactivos |
 | descripcion | Opcional, hasta 500 caracteres |
-| indicador | `FRECUENCIA`, `VALOR`, `CATEGORIA` |
+| indicador | `FRECUENCIA`, `VALOR`, `CATEGORIA`, `CLASIFICACION_FRECUENCIA` (SCRUM-38, condición `IGUAL` y `clasificacion`; ver `docs/compra/clasificacion-frecuencia.md`) |
 | condicion | `ENTRE`, `MAYOR_IGUAL`, `MENOR_IGUAL`, `IGUAL`, `CONTIENE` |
 | minimo / maximo | No negativos; hasta 12 enteros y 2 decimales; frecuencia sin fracciones |
 | categoria | Nombre obligatorio de hasta 100 caracteres solo para CATEGORIA |
