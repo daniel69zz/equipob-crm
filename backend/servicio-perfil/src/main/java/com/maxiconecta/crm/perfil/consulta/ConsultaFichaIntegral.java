@@ -13,7 +13,8 @@ import java.util.List;
 /**
  * Consolida la ficha integral del cliente (SCRUM-10, SCRUM-154): sus datos personales (SCRUM-152),
  * historial de compras (SCRUM-151), segmento (SCRUM-149), puntos de fidelización, nivel de consumo
- * (SCRUM-566) y alertas de cambio de comportamiento (SCRUM-567), en una sola consulta.
+ * (SCRUM-566), alertas de cambio de comportamiento (SCRUM-567) y riesgo de abandono (SCRUM-325), en una
+ * sola consulta.
  */
 @Service
 public class ConsultaFichaIntegral {
@@ -26,12 +27,14 @@ public class ConsultaFichaIntegral {
     private final NivelConsumoDelCliente nivelConsumo;
     private final CambiosComportamientoDelCliente cambiosComportamiento;
     private final ClasificacionFrecuenciaDelCliente clasificacionFrecuencia;
+    private final RiesgoAbandonoDelCliente riesgoAbandono;
 
     public ConsultaFichaIntegral(ClienteRepository clientes, ClienteOrigenRepository origenes,
                                  HistorialComprasCliente historialCompras, SegmentoDelCliente segmento,
                                  PuntosDelCliente puntos, NivelConsumoDelCliente nivelConsumo,
                                  CambiosComportamientoDelCliente cambiosComportamiento,
-                                 ClasificacionFrecuenciaDelCliente clasificacionFrecuencia) {
+                                 ClasificacionFrecuenciaDelCliente clasificacionFrecuencia,
+                                 RiesgoAbandonoDelCliente riesgoAbandono) {
         this.clientes = clientes;
         this.origenes = origenes;
         this.historialCompras = historialCompras;
@@ -40,6 +43,7 @@ public class ConsultaFichaIntegral {
         this.nivelConsumo = nivelConsumo;
         this.cambiosComportamiento = cambiosComportamiento;
         this.clasificacionFrecuencia = clasificacionFrecuencia;
+        this.riesgoAbandono = riesgoAbandono;
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +58,7 @@ public class ConsultaFichaIntegral {
                 puntos.buscar(clienteId),
                 nivelConsumo.buscar(clienteId, identificadoresOrigen),
                 cambiosComportamiento.buscar(clienteId, identificadoresOrigen),
-                clasificacionFrecuencia.buscar(clienteId, identificadoresOrigen));
+                clasificacionFrecuencia.buscar(clienteId, identificadoresOrigen),
+                riesgoAbandono.buscar(clienteId, identificadoresOrigen));
     }
 }

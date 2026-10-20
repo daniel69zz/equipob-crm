@@ -5,11 +5,13 @@ import java.util.List;
 /**
  * Ficha integral del cliente (SCRUM-10, SCRUM-154): datos personales, historial de compras,
  * segmento, puntos de fidelización, nivel de consumo, alertas de cambio de comportamiento y clasificación por frecuencia (SCRUM-38) en una sola respuesta. Cada bloque es un campo propio para
- * que los que aún no respondan (CA2) no impidan cargar el resto.
+ * que los que aún no respondan (CA2) no impidan cargar el resto. {@code riesgoAbandono} es el riesgo
+ * de abandono con sus factores (SCRUM-325).
  */
 public record FichaIntegralResponse(DatosPersonalesResponse datosPersonales, List<CompraResponse> historialCompras,
                                     SegmentoResponse segmento, PuntosResponse puntos,
                                     NivelConsumoResponse nivelConsumo,
                                     CambiosComportamientoResponse cambiosComportamiento,
-                                    ClasificacionFrecuenciaResponse clasificacionFrecuencia) {
+                                    ClasificacionFrecuenciaResponse clasificacionFrecuencia,
+                                    RiesgoAbandonoResponse riesgoAbandono) {
 }
