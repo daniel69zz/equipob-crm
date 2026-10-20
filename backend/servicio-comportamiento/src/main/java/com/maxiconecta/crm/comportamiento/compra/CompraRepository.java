@@ -28,4 +28,8 @@ public interface CompraRepository extends JpaRepository<Compra, Long>, JpaSpecif
      */
     @Query("select distinct c.idClienteOrigen from Compra c where c.idCliente = :idCliente order by c.idClienteOrigen")
     List<String> identificadoresDe(@Param("idCliente") Long idCliente);
+
+    /** Perfiles con al menos una compra vinculada, para republicar sus métricas a la segmentación. */
+    @Query("select distinct c.idCliente from Compra c where c.idCliente is not null order by c.idCliente")
+    List<Long> clientesConCompras();
 }
