@@ -3,6 +3,7 @@ package com.maxiconecta.crm.comportamiento.preferencia;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
 import com.maxiconecta.crm.comportamiento.metrica.MetricasCliente;
+import com.maxiconecta.crm.comportamiento.metrica.RepublicacionMetricas;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
@@ -23,6 +24,9 @@ import java.util.Set;
  * Un mensaje inválido, de un cliente inexistente o consolidado, o con un consumo inconsistente va
  * directo a la cola de respaldo. Si el servicio de Perfil no responde, se reintenta y, agotados los
  * reintentos, también va a respaldo para su reproceso.
+ * <p>
+ * Las métricas republicadas a mano ({@link RepublicacionMetricas#TIPO}) no vienen de una compra ni
+ * de una anulación: se confirman sin tocar el perfil.
  */
 @Component
 public class ReceptorPreferencias {
@@ -47,6 +51,9 @@ public class ReceptorPreferencias {
     /** Mismo tratamiento para RabbitMQ y para Pub/Sub (docs/mensajeria/pubsub.md). */
     public void procesar(byte[] contenido) {
         MetricasCliente metricas = leer(contenido);
+        if (RepublicacionMetricas.TIPO.equals(metricas.tipoEventoOrigen())) {
+            return;
+        }
         try {
             PerfilesPreferencias.Actualizacion actualizacion = perfiles.actualizarPorEvento(metricas.idCliente(),
                     metricas.idEvento(), metricas.tipoEventoOrigen());
@@ -71,7 +78,8 @@ public class ReceptorPreferencias {
         }
         if (metricas == null || metricas.idEvento() == null || metricas.idEvento().isBlank()
                 || metricas.idEvento().length() > LARGO_MAXIMO_ID_EVENTO || metricas.idCliente() <= 0
-                || !TIPOS.contains(metricas.tipoEventoOrigen())) {
+                || !(TIPOS.contains(metricas.tipoEventoOrigen())
+                        || RepublicacionMetricas.TIPO.equals(metricas.tipoEventoOrigen()))) {
             throw new AmqpRejectAndDontRequeueException(
                     "Mensaje de métricas incompleto: se requieren idEvento, idCliente y tipoEventoOrigen");
         }

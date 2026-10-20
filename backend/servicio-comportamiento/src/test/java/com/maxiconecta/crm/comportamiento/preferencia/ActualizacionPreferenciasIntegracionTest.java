@@ -5,6 +5,7 @@ import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
 import com.maxiconecta.crm.comportamiento.ingesta.EventoRecibidoRepository;
+import com.maxiconecta.crm.comportamiento.metrica.RepublicacionMetricas;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -213,6 +214,18 @@ class ActualizacionPreferenciasIntegracionTest {
         await().atMost(Duration.ofSeconds(15)).until(() -> mensajesEnRespaldo() == 1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM comportamiento.perfil_preferencias", Long.class))
                 .isZero();
+    }
+
+    @Test
+    void lasMetricasRepublicadasSeConfirmanSinTocarElPerfil() throws Exception {
+        publicarMetricas(metricas("recalculo-1", CLIENTE, RepublicacionMetricas.TIPO));
+        // Control: cuando se aplica, la republicación ya se procesó (una sola cola, en orden).
+        publicarMetricas(metricas("control-1", CLIENTE, "COMPRA_CONFIRMADA"));
+        esperarVersion(1);
+
+        assertThat(actualizaciones()).singleElement()
+                .satisfies(fila -> assertThat(fila.get("id_evento")).isEqualTo("control-1"));
+        assertThat(mensajesEnRespaldo()).isZero();
     }
 
     @Test
