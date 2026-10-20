@@ -32,6 +32,7 @@ class ConsultaFichaIntegralTest {
     private NivelConsumoDelCliente nivelConsumo;
     private CambiosComportamientoDelCliente cambiosComportamiento;
     private ClasificacionFrecuenciaDelCliente clasificacionFrecuencia;
+    private RiesgoAbandonoDelCliente riesgoAbandono;
     private ConsultaFichaIntegral consulta;
 
     @BeforeEach
@@ -44,8 +45,9 @@ class ConsultaFichaIntegralTest {
         nivelConsumo = mock(NivelConsumoDelCliente.class);
         cambiosComportamiento = mock(CambiosComportamientoDelCliente.class);
         clasificacionFrecuencia = mock(ClasificacionFrecuenciaDelCliente.class);
+        riesgoAbandono = mock(RiesgoAbandonoDelCliente.class);
         consulta = new ConsultaFichaIntegral(clientes, origenes, historialCompras, segmento, puntos, nivelConsumo,
-                cambiosComportamiento, clasificacionFrecuencia);
+                cambiosComportamiento, clasificacionFrecuencia, riesgoAbandono);
     }
 
     @Test
@@ -69,6 +71,10 @@ class ConsultaFichaIntegralTest {
         when(cambiosComportamiento.buscar(eq(42L), any())).thenReturn(cambiosRespuesta);
         ClasificacionFrecuenciaResponse clasificacionRespuesta = new ClasificacionFrecuenciaResponse("HABITUAL", 5L, false);
         when(clasificacionFrecuencia.buscar(eq(42L), any())).thenReturn(clasificacionRespuesta);
+        RiesgoAbandonoResponse riesgoRespuesta = new RiesgoAbandonoResponse("ALTO", new java.math.BigDecimal("67.78"),
+                false, null, null, List.of(new RiesgoAbandonoResponse.Factor("RECENCIA",
+                new java.math.BigDecimal("27.78"), new java.math.BigDecimal("50"), "50 días sin comprar")), false);
+        when(riesgoAbandono.buscar(eq(42L), any())).thenReturn(riesgoRespuesta);
 
         FichaIntegralResponse ficha = consulta.obtener(42L);
 
@@ -79,6 +85,7 @@ class ConsultaFichaIntegralTest {
         assertThat(ficha.nivelConsumo()).isEqualTo(nivelRespuesta);
         assertThat(ficha.cambiosComportamiento()).isEqualTo(cambiosRespuesta);
         assertThat(ficha.clasificacionFrecuencia()).isEqualTo(clasificacionRespuesta);
+        assertThat(ficha.riesgoAbandono()).isEqualTo(riesgoRespuesta);
     }
 
     @Test
@@ -93,6 +100,7 @@ class ConsultaFichaIntegralTest {
         when(nivelConsumo.buscar(eq(7L), any())).thenReturn(new NivelConsumoResponse(null, null, true));
         when(cambiosComportamiento.buscar(eq(7L), any())).thenReturn(CambiosComportamientoResponse.SIN_DATOS);
         when(clasificacionFrecuencia.buscar(eq(7L), any())).thenReturn(ClasificacionFrecuenciaResponse.SIN_DATOS);
+        when(riesgoAbandono.buscar(eq(7L), any())).thenReturn(RiesgoAbandonoResponse.SIN_DATOS);
 
         FichaIntegralResponse ficha = consulta.obtener(7L);
 
@@ -102,6 +110,7 @@ class ConsultaFichaIntegralTest {
         assertThat(ficha.nivelConsumo().sinDatos()).isTrue();
         assertThat(ficha.cambiosComportamiento().sinDatos()).isTrue();
         assertThat(ficha.clasificacionFrecuencia().sinDatos()).isTrue();
+        assertThat(ficha.riesgoAbandono().sinDatos()).isTrue();
     }
 
     @Test
@@ -111,6 +120,6 @@ class ConsultaFichaIntegralTest {
         assertThatThrownBy(() -> consulta.obtener(99L)).isInstanceOf(RecursoNoEncontradoException.class);
 
         verifyNoInteractions(historialCompras, segmento, puntos, nivelConsumo, cambiosComportamiento,
-                clasificacionFrecuencia);
+                clasificacionFrecuencia, riesgoAbandono);
     }
 }

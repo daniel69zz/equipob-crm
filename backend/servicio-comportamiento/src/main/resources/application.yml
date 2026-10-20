@@ -102,6 +102,18 @@ comportamiento:
   cohortes:
     # Zona horaria en la que se cuentan los meses de las cohortes de primera compra (SCRUM-327).
     zona: ${COHORTES_ZONA:America/La_Paz}
+  riesgo-abandono:
+    # Puntos máximos de cada factor del riesgo de abandono (SCRUM-324); deben sumar 100.
+    peso-recencia: ${RIESGO_ABANDONO_PESO_RECENCIA:50}
+    peso-frecuencia: ${RIESGO_ABANDONO_PESO_FRECUENCIA:25}
+    peso-valor: ${RIESGO_ABANDONO_PESO_VALOR:25}
+    # Puntos que suma una disminución de frecuencia o monto detectada (SCRUM-34).
+    penalizacion-cambio: ${RIESGO_ABANDONO_PENALIZACION_CAMBIO:15}
+    # Puntaje desde el que el riesgo es medio y alto.
+    umbral-medio: ${RIESGO_ABANDONO_UMBRAL_MEDIO:35}
+    umbral-alto: ${RIESGO_ABANDONO_UMBRAL_ALTO:65}
+    # Recálculo de todos los clientes (SCRUM-322): por defecto, después de la detección de cambios (04:00).
+    cron: ${RIESGO_ABANDONO_CRON:0 30 4 * * *}
 
 management:
   health:

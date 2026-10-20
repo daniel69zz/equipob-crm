@@ -66,6 +66,9 @@ class FichaIntegralIntegracionTest {
     @MockBean
     private ClasificacionFrecuenciaDelCliente clasificacionFrecuenciaDelCliente;
 
+    @MockBean
+    private RiesgoAbandonoDelCliente riesgoAbandonoDelCliente;
+
     @BeforeEach
     void limpiarBase() {
         jdbc.execute("SET session_replication_role = replica; "
@@ -93,6 +96,11 @@ class FichaIntegralIntegracionTest {
                 new java.math.BigDecimal("-0.75"), null, null, null, "El monto de compra bajó un 75 %")), false));
         when(clasificacionFrecuenciaDelCliente.buscar(anyLong(), any()))
                 .thenReturn(new ClasificacionFrecuenciaResponse("FRECUENTE", 12L, false));
+        // SCRUM-323: el riesgo de abandono llega a la ficha con los factores que lo explican.
+        when(riesgoAbandonoDelCliente.buscar(anyLong(), any())).thenReturn(new RiesgoAbandonoResponse("ALTO",
+                new java.math.BigDecimal("67.78"), false, null, null, List.of(new RiesgoAbandonoResponse.Factor(
+                "CAMBIO_COMPORTAMIENTO", new java.math.BigDecimal("15"), new java.math.BigDecimal("15"),
+                "Bajó su frecuencia o su monto de compra en los últimos 90 días")), false));
 
         mvc.perform(get("/api/perfil/clientes/" + cliente.getId() + "/ficha-integral"))
                 .andExpect(status().isOk())
@@ -109,7 +117,11 @@ class FichaIntegralIntegracionTest {
                 .andExpect(jsonPath("$.cambiosComportamiento.sinDatos").value(false))
                 .andExpect(jsonPath("$.clasificacionFrecuencia.clasificacion").value("FRECUENTE"))
                 .andExpect(jsonPath("$.clasificacionFrecuencia.frecuencia").value(12))
-                .andExpect(jsonPath("$.clasificacionFrecuencia.sinDatos").value(false));
+                .andExpect(jsonPath("$.clasificacionFrecuencia.sinDatos").value(false))
+                .andExpect(jsonPath("$.riesgoAbandono.nivel").value("ALTO"))
+                .andExpect(jsonPath("$.riesgoAbandono.puntaje").value(67.78))
+                .andExpect(jsonPath("$.riesgoAbandono.factores[0].factor").value("CAMBIO_COMPORTAMIENTO"))
+                .andExpect(jsonPath("$.riesgoAbandono.sinDatos").value(false));
     }
 
     @Test
@@ -123,6 +135,7 @@ class FichaIntegralIntegracionTest {
         when(nivelConsumoDelCliente.buscar(anyLong(), any())).thenReturn(new NivelConsumoResponse(null, null, true));
         when(cambiosComportamientoDelCliente.buscar(anyLong(), any())).thenReturn(CambiosComportamientoResponse.SIN_DATOS);
         when(clasificacionFrecuenciaDelCliente.buscar(anyLong(), any())).thenReturn(ClasificacionFrecuenciaResponse.SIN_DATOS);
+        when(riesgoAbandonoDelCliente.buscar(anyLong(), any())).thenReturn(RiesgoAbandonoResponse.SIN_DATOS);
 
         mvc.perform(get("/api/perfil/clientes/" + cliente.getId() + "/ficha-integral"))
                 .andExpect(status().isOk())
@@ -131,7 +144,8 @@ class FichaIntegralIntegracionTest {
                 .andExpect(jsonPath("$.puntos.sinDatos").value(true))
                 .andExpect(jsonPath("$.nivelConsumo.sinDatos").value(true))
                 .andExpect(jsonPath("$.cambiosComportamiento.sinDatos").value(true))
-                .andExpect(jsonPath("$.clasificacionFrecuencia.sinDatos").value(true));
+                .andExpect(jsonPath("$.clasificacionFrecuencia.sinDatos").value(true))
+                .andExpect(jsonPath("$.riesgoAbandono.sinDatos").value(true));
     }
 
     @Test

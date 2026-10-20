@@ -6,6 +6,7 @@ import { ClasificacionFrecuenciaFicha } from './clasificacion-frecuencia.compone
 import { Compra } from './compras.service';
 import { NivelConsumoFicha } from './nivel-consumo.component';
 import { PuntosFidelizacion } from './puntos-fidelizacion.component';
+import { RiesgoAbandonoFicha } from './riesgo-abandono.component';
 
 export interface DireccionFicha {
   idDireccion: string;
@@ -43,6 +44,8 @@ export interface FichaIntegral {
   nivelConsumo: NivelConsumoFicha | null;
   cambiosComportamiento: CambiosComportamientoFicha | null;
   clasificacionFrecuencia: ClasificacionFrecuenciaFicha | null;
+  /** Riesgo de abandono con los factores que lo explican (SCRUM-35). */
+  riesgoAbandono: RiesgoAbandonoFicha | null;
 }
 
 /**
