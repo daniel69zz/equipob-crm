@@ -1,6 +1,11 @@
 server:
   port: ${PUERTO:8083}
 
+segmentacion:
+  simulacion:
+    max-clientes: ${SIMULACION_MAX_CLIENTES:100000}
+    max-segundos: ${SIMULACION_MAX_SEGUNDOS:10}
+
 spring:
   application:
     name: servicio-segmentacion
@@ -19,6 +24,14 @@ spring:
     schemas: segmentacion
     locations: classpath:db/migration
 
+  # Google Cloud Pub/Sub solo se activa con el perfil "pubsub" (application-pubsub.yml).
+  cloud:
+    gcp:
+      core:
+        enabled: false
+      pubsub:
+        enabled: false
+
   rabbitmq:
     host: ${RABBIT_HOST:localhost}
     port: ${RABBIT_PUERTO:5672}
@@ -36,12 +49,18 @@ spring:
           multiplier: 2
 
 management:
+  health:
+    pubsub:
+      enabled: false
   endpoints:
     web:
       exposure:
         include: health
 
 crm:
+  mensajeria:
+    # Broker de mensajería: rabbit (predeterminado) o pubsub (perfil "pubsub"). Ver docs/mensajeria/pubsub.md.
+    broker: rabbit
   # Nombres de los clientes del listado por segmento (SCRUM-277).
   perfil:
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}

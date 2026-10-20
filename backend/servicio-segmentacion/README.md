@@ -3,6 +3,7 @@
 Servicio Spring Boot del CRM MaxiConecta, propietario del esquema `segmentacion`.
 
 - Consulta del segmento asignado para la ficha integral del cliente (SCRUM-149).
+- Consulta interna de los clientes de un segmento, `GET /api/segmentacion/segmentos/miembros?segmento=` (SCRUM-357), que usa la comparación de periodos por segmento (`docs/compra/comparacion-periodos.md`). El listado para usuarios es `GET /api/segmentacion/clientes` (SCRUM-28).
 - **SCRUM-25:** alta, edición, activación y desactivación de criterios por frecuencia, valor acumulado y categoría.
 - Rechazo de rangos inválidos y superposiciones, con control de concurrencia y versiones.
 - Auditoría transaccional con fotos antes/después en el esquema compartido de solo inserción.
@@ -42,5 +43,13 @@ mvn test
 
 Las pruebas de integración requieren Docker y usan PostgreSQL real mediante Testcontainers.
 No se omiten si falta Docker: el fallo indica que no pudo verificarse esa parte.
-El historial de cambios de segmento (SCRUM-30) es otra historia; usa la auditoría
-`SEGMENTO_CLIENTE` que registra la asignación automática.
+**SCRUM-30:** historial de cambios de segmento con regla y versión originales, paginación y
+protección de solo inserción. Consulta: `GET /api/segmentacion/clientes/{clienteId}/historial-segmentos`,
+con `SEGMENTOS_CONSULTAR`. La pantalla está en Clientes → Historial de segmentos.
+Modelo, carga histórica, permisos, diagramas y pruebas:
+[historial de segmentos](../../docs/segmentacion/historial-segmentos.md).
+
+## Mensajería con Google Cloud Pub/Sub
+
+Por defecto usa RabbitMQ. Con `SPRING_PROFILES_ACTIVE=pubsub` consume y publica sus eventos en Google
+Cloud Pub/Sub, con los mismos nombres de tópicos y suscripciones. Ver `docs/mensajeria/pubsub.md`.

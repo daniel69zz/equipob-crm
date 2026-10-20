@@ -36,6 +36,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_REGISTRAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTOS_CONSULTAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.SUGERENCIAS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.USUARIOS_ADMINISTRAR;
 
 /**
@@ -86,21 +87,36 @@ public class SecurityConfig {
                         // perfiles de analisis comercial, mas restrictivo que INDICADORES_CONSULTAR.
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/evolucion-consumo")
                             .hasAuthority(EVOLUCION_CONSUMO_CONSULTAR)
+                        // Sugerencia de categorias afines (SCRUM-44, SCRUM-383): mismo publico que la evolucion.
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/sugerencias-categorias")
+                            .hasAuthority(SUGERENCIAS_CONSULTAR)
                         // SCRUM-41: construcción explícita administrativa y lectura del perfil persistido.
                         .requestMatchers(HttpMethod.POST, "/api/comportamiento/clientes/*/preferencias/construir")
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(CLIENTE_EDITAR)))
-                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/preferencias")
+                        // SCRUM-42: la trazabilidad de las actualizaciones tiene el mismo acceso que el perfil.
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/clientes/*/preferencias",
+                                "/api/comportamiento/clientes/*/preferencias/actualizaciones")
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole("ADMINISTRADOR_CRM", "AGENTE_ATENCION"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(FICHA_INTEGRAL_CONSULTAR)))
+                        // Comparar periodos por segmento (SCRUM-40): ademas de los indicadores, exige poder
+                        // consultar segmentos (el agente de atencion compara clientes, no segmentos).
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/comparacion-periodos")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(INDICADORES_CONSULTAR),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(SEGMENTOS_CONSULTAR)))
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/**").hasAuthority(INDICADORES_CONSULTAR)
 
                         .requestMatchers("/api/segmentacion/criterios", "/api/segmentacion/criterios/**")
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(SEGMENTACION_CONFIGURAR)))
+                        .requestMatchers(HttpMethod.GET, "/api/segmentacion/clientes/*/historial-segmentos")
+                            .hasAuthority(SEGMENTOS_CONSULTAR)
+                        .requestMatchers("/api/segmentacion/clientes/*/historial-segmentos",
+                                "/api/segmentacion/clientes/*/historial-segmentos/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/segmentacion/**").hasAuthority(SEGMENTOS_CONSULTAR)
                         .requestMatchers("/api/segmentacion/**").hasAuthority(SEGMENTACION_CONFIGURAR)
 

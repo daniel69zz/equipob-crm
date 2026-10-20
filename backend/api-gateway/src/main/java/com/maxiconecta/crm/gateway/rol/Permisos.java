@@ -11,6 +11,7 @@ public final class Permisos {
     public static final String FICHA_INTEGRAL_CONSULTAR = "FICHA_INTEGRAL_CONSULTAR";
     public static final String INDICADORES_CONSULTAR = "INDICADORES_CONSULTAR";
     public static final String EVOLUCION_CONSUMO_CONSULTAR = "EVOLUCION_CONSUMO_CONSULTAR";
+    public static final String SUGERENCIAS_CONSULTAR = "SUGERENCIAS_CONSULTAR";
     public static final String EVENTOS_REPROCESAR = "EVENTOS_REPROCESAR";
     public static final String SEGMENTOS_CONSULTAR = "SEGMENTOS_CONSULTAR";
     public static final String SEGMENTACION_CONFIGURAR = "SEGMENTACION_CONFIGURAR";

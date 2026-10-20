@@ -27,7 +27,7 @@ Aplicación Web (Angular) ──► API Gateway ──► microservicios ──�
 | `backend/servicio-fidelizacion/` | Fidelización y Puntos |
 | `backend/servicio-interacciones/` | Interacciones con el cliente |
 | `database/` | Convenciones de la base de datos y esquemas por dominio |
-| `herramientas/simulador-eventos/` | Publicador de eventos simulados en RabbitMQ |
+| `herramientas/simulador-eventos/` | Publicador de eventos simulados en RabbitMQ (o Pub/Sub con `--pubsub`) |
 | `docs/` | Documentación y contratos de eventos |
 
 ## Integración con Marketplace y Ventas

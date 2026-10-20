@@ -257,6 +257,44 @@ class AccesoPorRolTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Comparación de periodos (SCRUM-40): el cliente con INDICADORES_CONSULTAR; el segmento, además con SEGMENTOS_CONSULTAR ---
+
+    @Test
+    void laComparacionDePeriodosDeUnClienteSeConsultaConIndicadoresConsultarYSeDenieganSinEl() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/comparacion-periodos?desdeA=2026-08-01&hastaA=2026-08-31"
+                + "&desdeB=2026-09-01&hastaB=2026-09-30";
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+
+        mvc.perform(get(ruta).header("Authorization", bearer("carla", "SIN_INDICADORES", List.of("CLIENTE_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void laComparacionDePeriodosDeUnSegmentoExigeIndicadoresYSegmentosConsultar() throws Exception {
+        String ruta = "/api/comportamiento/comparacion-periodos?segmento=FRECUENTE&desdeA=2026-08-01&hastaA=2026-08-31"
+                + "&desdeB=2026-09-01&hastaB=2026-09-30";
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+
+        // El agente de atención tiene INDICADORES_CONSULTAR pero no SEGMENTOS_CONSULTAR.
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("carla", "SOLO_SEGMENTOS", List.of("CLIENTE_CONSULTAR", "SEGMENTOS_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta))
+                .andExpect(status().isUnauthorized());
+    }
+
     // --- Evolución del consumo por categoría (SCRUM-32, SCRUM-305): solo Administrador y Gerente Comercial ---
 
     @Test
@@ -279,6 +317,32 @@ class AccesoPorRolTest {
         mvc.perform(get("/api/comportamiento/clientes/42/evolucion-consumo").header("Authorization", agente))
                 .andExpect(status().isForbidden());
         mvc.perform(get("/api/comportamiento/clientes/42/evolucion-consumo"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // --- Sugerencia de categorías afines (SCRUM-44, SCRUM-383): solo Administrador y Gerente Comercial ---
+
+    @Test
+    void elAdministradorYElGerenteComercialPuedenConsultarLasSugerencias() throws Exception {
+        String ruta = "/api/comportamiento/clientes/42/sugerencias-categorias";
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "SUGERENCIAS_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "SUGERENCIAS_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elAgenteNoPuedeConsultarLasSugerenciasAunqueConsulteLosIndicadores() throws Exception {
+        String agente = bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE);
+
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias").header("Authorization", agente))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias").header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/comportamiento/clientes/42/sugerencias-categorias"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -330,6 +394,19 @@ class AccesoPorRolTest {
     }
 
     @Test
+    void simulacionSoloPermiteAdministradorConPermisoDeConfiguracion() throws Exception {
+        String ruta = "/api/segmentacion/criterios/simular";
+        mvc.perform(post(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(post(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        mvc.perform(post(ruta).header("Authorization", bearer("sin-permiso", "ADMINISTRADOR_CRM", List.of())))
+                .andExpect(status().isForbidden());
+        for (String rol : List.of("AGENTE_ATENCION", "GERENTE_COMERCIAL", "ANALISTA_DATOS")) {
+            mvc.perform(post(ruta).header("Authorization", bearer("otro-" + rol, rol, List.of("SEGMENTACION_CONFIGURAR")))
+                    .header("X-Usuario-Rol", "ADMINISTRADOR_CRM")).andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
     void servicioCaidoDevuelve503SinInvalidarLaSesion() throws Exception {
         String token = bearerAdministrador();
         mvc.perform(get("/api/segmentacion/prueba-disponibilidad").header("Authorization", token))
@@ -365,7 +442,15 @@ class AccesoPorRolTest {
 
     @Test
     void preferenciasPersistidasSoloSeConsultanConRolYPermisoDeFicha() throws Exception {
-        String ruta = "/api/comportamiento/clientes/42/preferencias";
+        verificarAccesoDePreferencias("/api/comportamiento/clientes/42/preferencias");
+    }
+
+    @Test
+    void laTrazabilidadDeLasPreferenciasTieneElMismoAccesoQueElPerfil() throws Exception {
+        verificarAccesoDePreferencias("/api/comportamiento/clientes/42/preferencias/actualizaciones");
+    }
+
+    private void verificarAccesoDePreferencias(String ruta) throws Exception {
         mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
         for (String rol : List.of("ADMINISTRADOR_CRM", "AGENTE_ATENCION")) {
             mvc.perform(get(ruta).header("Authorization", bearer("consulta", rol, List.of("FICHA_INTEGRAL_CONSULTAR"))))
@@ -373,8 +458,28 @@ class AccesoPorRolTest {
             mvc.perform(get(ruta).header("Authorization", bearer("sin-permiso", rol, List.of("INDICADORES_CONSULTAR"))))
                     .andExpect(status().isForbidden());
         }
-        mvc.perform(get(ruta).header("Authorization", bearer("gerente", "GERENTE_COMERCIAL",
-                        List.of("FICHA_INTEGRAL_CONSULTAR", "INDICADORES_CONSULTAR"))))
+        for (String rol : List.of("GERENTE_COMERCIAL", "ANALISTA_DATOS", "OTRO_ROL")) {
+            mvc.perform(get(ruta).header("Authorization", bearer("denegado", rol,
+                            List.of("FICHA_INTEGRAL_CONSULTAR", "INDICADORES_CONSULTAR"))))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void historialSegmentosExigePermisoDeConsultaYRechazaTodaEscrituraInclusoDelAdministrador() throws Exception {
+        String ruta = "/api/segmentacion/clientes/42/historial-segmentos";
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        mvc.perform(get(ruta).header("Authorization", bearer("agente", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta).header("Authorization", bearer("gerente", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        for (String metodo : List.of("POST", "PUT", "PATCH", "DELETE")) {
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request(
+                            org.springframework.http.HttpMethod.valueOf(metodo), ruta)
+                    .header("Authorization", bearerAdministrador())).andExpect(status().isForbidden());
+        }
+        mvc.perform(get(ruta + "/1").header("Authorization", bearerAdministrador()))
                 .andExpect(status().isForbidden());
     }
 

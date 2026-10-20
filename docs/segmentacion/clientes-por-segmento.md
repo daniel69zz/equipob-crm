@@ -115,7 +115,7 @@ GET /api/segmentacion/clientes?segmento=Alto valor&nivelConsumo=ALTO&orden=ultim
 | Pieza | Cambio |
 |---|---|
 | servicio-comportamiento | La foto de métricas que publica con cada compra o anulación suma `nivelConsumo` y `ultimaCompra` (`docs/segmentacion/asignacion-automatica.md`). |
-| servicio-segmentacion | Migración `V4__listado_clientes_segmento.sql`: columnas `nivel_consumo` y `ultima_compra` en `metricas_cliente` e índices por segmento y por nivel. `RegistroSegmentos` las guarda con cada foto. |
+| servicio-segmentacion | Migración `V7__listado_clientes_segmento.sql`: columnas `nivel_consumo` y `ultima_compra` en `metricas_cliente` e índices por segmento y por nivel. `RegistroSegmentos` las guarda con cada foto. |
 | servicio-perfil | `GET /api/perfil/clientes?id=42&id=43` devuelve los resúmenes de esos perfiles (como máximo 100) en una sola llamada. |
 
 Un cliente cuya última foto llegó antes de este cambio aparece con nivel y última compra vacíos hasta

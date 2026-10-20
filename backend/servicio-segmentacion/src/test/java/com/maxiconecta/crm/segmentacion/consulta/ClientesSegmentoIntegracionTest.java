@@ -344,8 +344,8 @@ class ClientesSegmentoIntegracionTest {
 
     private void aplicar(long cliente, long frecuencia, String valor, String nivel, String ultimaCompra) {
         asignacion.aplicar(new MetricasCliente("ev-" + cliente, "COMPRA_CONFIRMADA", cliente,
-                List.of("CLI-" + cliente), frecuencia, new BigDecimal(valor), List.of("Electrónica"), nivel,
-                ultimaCompra == null ? null : OffsetDateTime.parse(ultimaCompra), INICIO));
+                List.of("CLI-" + cliente), frecuencia, new BigDecimal(valor), List.of("Electrónica"), INICIO, null,
+                nivel, ultimaCompra == null ? null : OffsetDateTime.parse(ultimaCompra)));
     }
 
     private Criterio crear(String nombre, Indicador indicador, Condicion condicion, String minimo, String maximo,

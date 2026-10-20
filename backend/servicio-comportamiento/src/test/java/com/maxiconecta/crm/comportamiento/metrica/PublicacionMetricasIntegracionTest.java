@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.configuracion.ConfiguracionRabbit;
 import com.maxiconecta.crm.comportamiento.ingesta.EventoRecibidoRepository;
+import com.maxiconecta.crm.comportamiento.preferencia.IdentificadoresPreferencias;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -62,6 +63,10 @@ class PublicacionMetricasIntegracionTest {
     @MockBean
     private ClientePerfiles perfiles;
 
+    // La actualización de preferencias (SCRUM-42) también consume estas métricas; aquí no consulta Perfil.
+    @MockBean
+    private IdentificadoresPreferencias identificadores;
+
     @Autowired
     private RabbitTemplate rabbit;
 
@@ -107,6 +112,8 @@ class PublicacionMetricasIntegracionTest {
         assertThat(metricas.get("valor").decimalValue()).isEqualByComparingTo("350.50");
         assertThat(textos(metricas.get("categorias"))).containsExactly("Electrónica", "Accesorios");
         assertThat(metricas.get("calculadasEn").asText()).isNotBlank();
+        // SCRUM-38: la clasificación por frecuencia viaja con las métricas para los criterios de segmentación.
+        assertThat(metricas.get("clasificacionFrecuencia").asText()).isEqualTo("OCASIONAL");
         // SCRUM-279: el listado de clientes por segmento recibe el nivel y la última compra con la foto.
         assertThat(metricas.get("nivelConsumo").asText()).isEqualTo("BAJO");
         assertThat(instante(metricas.get("ultimaCompra"))).isEqualTo(Instant.parse("2026-09-27T19:28:10Z"));
@@ -159,6 +166,7 @@ class PublicacionMetricasIntegracionTest {
         assertThat(total.get("frecuencia").asLong()).isZero();
         assertThat(total.get("valor").decimalValue()).isEqualByComparingTo("0");
         assertThat(textos(total.get("categorias"))).isEmpty();
+        assertThat(total.get("clasificacionFrecuencia").isNull()).isTrue();
         // Sin compras vigentes queda sin nivel y sin última compra.
         assertThat(total.path("nivelConsumo").asText(null)).isNull();
         assertThat(total.path("ultimaCompra").asText(null)).isNull();

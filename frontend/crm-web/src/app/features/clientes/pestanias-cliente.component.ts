@@ -1,4 +1,5 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.directive';
 import { Permisos } from '../../core/auth/sesion';
 import { RouterLink, RouterLinkActive } from '@angular/router';
@@ -12,10 +13,15 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     <nav class="navegacion" aria-label="Vistas del cliente">
       <a class="volver" routerLink="/clientes">← Clientes</a>
       <div class="pestanias" role="tablist">
+        @if (auth.puedeConsultarPreferencias()) {
+          <a [routerLink]="['/clientes', id(), 'preferencias']" routerLinkActive="activa" role="tab">Preferencias</a>
+        }
         <a *appSiTienePermiso="permisos.FICHA_INTEGRAL_CONSULTAR" [routerLink]="['/clientes', id(), 'ficha-integral']" routerLinkActive="activa" role="tab">Ficha integral</a>
         <a [routerLink]="['/clientes', id(), 'historial']" routerLinkActive="activa" role="tab">Historial de cambios</a>
+        <a *appSiTienePermiso="permisos.SEGMENTOS_CONSULTAR" [routerLink]="['/clientes', id(), 'historial-segmentos']" routerLinkActive="activa" role="tab">Historial de segmentos</a>
         <a [routerLink]="['/clientes', id(), 'compras']" routerLinkActive="activa" role="tab">Compras e indicadores</a>
         <a *appSiTienePermiso="permisos.EVOLUCION_CONSUMO_CONSULTAR" [routerLink]="['/clientes', id(), 'evolucion-consumo']" routerLinkActive="activa" role="tab">Evolución por categoría</a>
+        <a *appSiTienePermiso="permisos.SUGERENCIAS_CONSULTAR" [routerLink]="['/clientes', id(), 'sugerencias']" routerLinkActive="activa" role="tab">Sugerencias</a>
         <a [routerLink]="['/clientes', id(), 'consentimiento']" routerLinkActive="activa" role="tab">Consentimiento</a>
       </div>
     </nav>
@@ -27,7 +33,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     }
     .volver { font-size: 0.9rem; }
     .pestanias {
-      display: inline-flex; gap: 0.25rem; padding: 0.25rem; border-radius: 10px;
+      display: inline-flex; flex-wrap: wrap; max-width: 100%; gap: 0.25rem; padding: 0.25rem; border-radius: 10px;
       background: #e9edf6; border: 1px solid var(--color-borde);
     }
     .pestanias a {
@@ -39,6 +45,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   `,
 })
 export class PestaniasClienteComponent {
+  readonly auth = inject(AuthService);
   /** Identificador del cliente en el CRM. */
   readonly id = input.required<string | number>();
 

@@ -65,6 +65,14 @@ incrementa atómicamente al registrar una compra confirmada.
 | ------ | ------------------------------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/comportamiento/clientes/{clienteId}/indicadores` | `INDICADORES_CONSULTAR` | Indicadores del cliente. Devuelve `ticketPromedio`, `recencia`, `frecuencia`, `valorAcumulado` y `nivelConsumo`. La recencia contiene la última compra vigente, la duración ISO-8601 transcurrida y `sinDatos`; frecuencia es la suma persistida de compras vigentes; el valor acumulado es la suma de lo vigente de sus compras (`valor`, `compras`, `sinDatos`); el nivel de consumo (`nivel`, `valorAcumulado`, `sinNivel`) clasifica ese valor como BAJO, MEDIO o ALTO. Usa el parámetro repetible `identificador` |
 
+## Clasificación por frecuencia (SCRUM-38)
+
+`GET /api/comportamiento/clientes/{id}/indicadores` incluye `clasificacionFrecuencia`: OCASIONAL (1 a 3
+compras vigentes), HABITUAL (4 a 9) o FRECUENTE (10 o más), calculada sobre la frecuencia de SCRUM-37, o
+"sin clasificación" sin compras vigentes. Umbrales configurables con
+`CLASIFICACION_FRECUENCIA_UMBRAL_HABITUAL` y `CLASIFICACION_FRECUENCIA_UMBRAL_FRECUENTE`. También viaja en
+las métricas que se publican para la segmentación. Reglas en `docs/compra/clasificacion-frecuencia.md`.
+
 ## Valor consumido por periodo (SCRUM-39)
 
 Diseño, validaciones y formato de la respuesta en `docs/compra/consumo-por-periodo.md`; diagramas en
@@ -77,6 +85,22 @@ con cero, `sinDatos: true` y un mensaje.
 | Método | Ruta | Permiso (en el Gateway) | Descripción |
 |---|---|---|---|
 | GET | `/api/comportamiento/clientes/{clienteId}/consumo-periodo` | `INDICADORES_CONSULTAR` | Valor consumido en el periodo. `desde` y `hasta` (obligatorias, `AAAA-MM-DD`, máx. 5 años; 400 si faltan, están al revés o tienen otro formato). Devuelve `total`, `promedio`, `compras`, `sinDatos` y `mensaje`. Usa el parámetro repetible `identificador` |
+
+## Comparación entre dos periodos (SCRUM-40)
+
+Reglas, formato de la respuesta y permisos en `docs/compra/comparacion-periodos.md`; diagramas en
+`docs/compra/comparacion-periodos-diagramas.md`. Compara la frecuencia (compras vigentes) y el valor de
+compra de un cliente, o de los clientes de un segmento, entre un periodo A (base) y un periodo B, con
+la variación absoluta y porcentual de cada métrica y su tendencia (`CRECE`, `DECAE`, `ESTABLE` o
+`NUEVO` cuando el periodo base está en cero y no hay porcentaje). Los periodos no pueden
+superponerse. Para un segmento, los clientes se consultan en `servicio-segmentacion`
+(`SERVICIO_SEGMENTACION_URL`, `SEGMENTACION_TIEMPO_ESPERA`); si no responde, la comparación
+responde 503.
+
+| Método | Ruta | Permiso (en el Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/comparacion-periodos` | `INDICADORES_CONSULTAR` | Compara un cliente. `desdeA`, `hastaA`, `desdeB` y `hastaB` obligatorias (`AAAA-MM-DD`). Usa el parámetro repetible `identificador` |
+| GET | `/api/comportamiento/comparacion-periodos` | `INDICADORES_CONSULTAR` y `SEGMENTOS_CONSULTAR` | Compara los clientes de un segmento (`segmento`, obligatorio) y los mismos cuatro parámetros de fechas. Devuelve solo agregados |
 
 ## Clientes inactivos (SCRUM-31)
 
@@ -121,7 +145,16 @@ de categorías de SCRUM-18 (monto, compras y nombre). Modelo, validaciones y alc
 | GET | `/api/comportamiento/clientes/{clienteId}/preferencias` | Administrador o Agente, y `FICHA_INTEGRAL_CONSULTAR` |
 
 La construcción verifica los identificadores con el servicio de Perfil y persiste la instantánea
-atómicamente mediante V11. GET no recalcula. La actualización por eventos corresponde a SCRUM-42.
+atómicamente mediante V11. GET no recalcula.
+
+**SCRUM-42:** el perfil también se recalcula solo con cada compra confirmada o anulación, al recibir
+las métricas que publica el servicio (cola `crm.comportamiento.preferencias`). Un evento reentregado
+no lo actualiza dos veces y cada actualización queda registrada con su fecha y su evento. Detalle en
+`docs/preferencias/actualizacion-por-eventos.md`.
+
+| Método | Ruta | Acceso en Gateway |
+|---|---|---|
+| GET | `/api/comportamiento/clientes/{clienteId}/preferencias/actualizaciones` | Igual que la consulta del perfil |
 
 ## Ejecutar en local
 
@@ -148,3 +181,8 @@ mvn test
 ```
 
 Las pruebas de integración levantan PostgreSQL y RabbitMQ con **Testcontainers**; si Docker no está disponible, se omiten.
+
+## Mensajería con Google Cloud Pub/Sub
+
+Por defecto usa RabbitMQ. Con `SPRING_PROFILES_ACTIVE=pubsub` consume y publica sus eventos en Google
+Cloud Pub/Sub, con los mismos nombres de tópicos y suscripciones. Ver `docs/mensajeria/pubsub.md`.

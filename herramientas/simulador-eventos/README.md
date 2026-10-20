@@ -7,7 +7,7 @@ Eventos a simular (según los contratos de `docs/contratos-eventos/`):
 - Alta y cambio de datos de un cliente (RIO-CRM-01) — **disponible**
 - Compra confirmada (RIO-CRM-02) — **disponible**
 - Anulación o devolución de compra (RIO-CRM-05) — **disponible**
-- Redención de puntos (RIO-CRM-03)
+- Movimiento de puntos (RIO-CRM-03): acumulación — **disponible**; redención y reversa, en SCRUM-48 y SCRUM-524
 - Casos de prueba: evento duplicado, evento con datos inválidos, evento que falla y va a la cola de fallidos
 
 ## Uso
@@ -19,6 +19,15 @@ python3 publicar.py eventos/compra-ana.json
 python3 publicar.py eventos/compra-ana.json --veces 2      # el segundo queda DESCARTADO
 python3 publicar.py eventos/compra-carlos.json --nuevo   # idEvento e idCompra nuevos
 python3 publicar.py eventos/cliente-ana-alta.json --ahora  # mismo cliente, cambio con fecha actual
+```
+
+Con `--pubsub` publica en Google Cloud Pub/Sub (el emulador en `http://localhost:8085` por defecto) en
+lugar de RabbitMQ, en el tópico `ventas.eventos` con la ruta en el atributo `ruta`
+(`docs/mensajeria/pubsub.md`):
+
+```bash
+python3 publicar.py eventos/compra-ana.json --pubsub
+python3 publicar.py eventos/compra-ana.json --pubsub --pubsub-url http://localhost:8085 --proyecto crm-maxiconecta
 ```
 
 Opciones: `--nuevo` (identificadores nuevos; en una anulación cambia `idAnulacion`, no la compra a la que apunta), `--ahora` (fecha del cambio = ahora), `--url` (por defecto `http://localhost:15672`), `--usuario`, `--password`, `--vhost`.
@@ -65,6 +74,28 @@ python3 publicar.py eventos/anulacion-total.json        # se reevalúa; cambia o
 Después de cada paso, `GET /api/segmentacion/clientes/{id}/segmento` muestra el segmento vigente y
 `auditoria.evento` (entidad `SEGMENTO_CLIENTE`) los cambios. Reglas en
 `docs/segmentacion/asignacion-automatica.md`.
+
+### Actualización del perfil de preferencias (SCRUM-42)
+
+Con el perfil del cliente creado, cada compra o anulación vuelve a calcular su perfil de
+preferencias (`GET /api/comportamiento/clientes/{id}/preferencias`) y lo registra en
+`.../preferencias/actualizaciones`; una reentrega no lo actualiza dos veces. Detalle en
+`docs/preferencias/actualizacion-por-eventos.md`.
+
+### Movimientos de puntos (RIO-CRM-03, SCRUM-45)
+
+Con `servicio-fidelizacion` y `servicio-perfil` levantados y el perfil del cliente creado
+(`cliente-ana-alta.json`):
+
+| Archivo | Resultado esperado en la bitácora de movimientos |
+|---|---|
+| `movimiento-acumulacion-ana.json` | `PROCESADO`: Bs 350,50 → 35 puntos sumados al saldo de CLI-5521 |
+| `movimiento-acumulacion-ana.json` publicado dos veces | El segundo, `DESCARTADO`: la transacción V-100234 ya acreditó sus puntos |
+| `movimiento-acumulacion-carlos.json` | `PROCESADO`: Bs 129,90 → 12 puntos (si mp-user-3307 tiene perfil) |
+| `movimiento-invalido.json` | `FALLIDO`: `valorConsumido` debe ser mayor que cero; el saldo no cambia |
+| `movimiento-redencion.json` | `FALLIDO`: la redención se procesa en SCRUM-48; queda para reproceso |
+
+Detalle en `docs/fidelizacion/acumulacion-puntos.md`.
 
 ### Clientes (RIO-CRM-01)
 

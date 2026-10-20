@@ -1,0 +1,70 @@
+classDiagram
+    class CriteriosComponent {
+        formulario
+        simulacion
+        simulando
+        simular()
+        invalidarSimulacion()
+        guardar()
+    }
+    class CriteriosService {
+        simular(regla, criterioId)
+        crear(regla)
+        editar(id, regla)
+    }
+    class CriterioController {
+        simular(solicitud, identidad)
+        crear(regla, identidad)
+        editar(id, regla, identidad)
+    }
+    class SolicitudSimulacion {
+        Long criterioId
+        SolicitudCriterio regla
+    }
+    class SimulacionSegmentacion {
+        int maxClientes
+        int maxSegundos
+        simular(solicitud) ResultadoSimulacion
+    }
+    class ResultadoSimulacion {
+        long clientesEvaluados
+        long asignacionesSinMetricas
+        long clientesQueCambiarian
+        boolean reglaActiva
+        calculadoEn
+        metricasMasAntiguas
+        metricasMasRecientes
+        long duracionMs
+    }
+    class Distribucion {
+        String clave
+        String segmento
+        boolean propuesta
+        long actual
+        long simulado
+        long diferencia
+    }
+    class CriterioService {
+        prepararSimulacion(id, regla) Criterio
+        crear(regla, usuario)
+        editar(id, regla, usuario)
+    }
+    class ReglaPrioridadSegmento {
+        elegir(criterios, frecuencia, valor, categorias)
+    }
+    CriteriosComponent --> CriteriosService
+    CriteriosService ..> CriterioController : HTTP via Gateway
+    CriterioController --> SimulacionSegmentacion
+    CriterioController --> CriterioService : guardado explicito
+    CriterioController ..> SolicitudSimulacion
+    SimulacionSegmentacion --> CriterioService : preparar sin escribir
+    SimulacionSegmentacion --> CriterioRepository : criterios activos
+    SimulacionSegmentacion --> JdbcTemplate : SELECT metricas y segmentos
+    SimulacionSegmentacion --> ReglaPrioridadSegmento
+    SimulacionSegmentacion ..> ResultadoSimulacion
+    ResultadoSimulacion "1" *-- "0..*" Distribucion
+    CriterioService --> CriterioRepository
+    CriterioService --> ReglasCriterio : normalizacion y conflictos
+    CriterioService --> AuditoriaCriterios : solo crear o editar
+    ReglaPrioridadSegmento --> ReglasCriterio : cumple
+    AsignacionSegmento --> ReglaPrioridadSegmento : misma prioridad

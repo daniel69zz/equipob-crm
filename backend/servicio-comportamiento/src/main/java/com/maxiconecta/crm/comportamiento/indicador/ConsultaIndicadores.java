@@ -5,6 +5,8 @@ import com.maxiconecta.crm.comportamiento.compra.Identificador;
 import com.maxiconecta.crm.comportamiento.compra.FrecuenciaCompraRepository;
 import com.maxiconecta.crm.comportamiento.consumo.CriterioNivelConsumo;
 import com.maxiconecta.crm.comportamiento.consumo.NivelConsumoCliente;
+import com.maxiconecta.crm.comportamiento.frecuencia.ClasificacionFrecuenciaCliente;
+import com.maxiconecta.crm.comportamiento.frecuencia.CriterioClasificacionFrecuencia;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -21,13 +23,16 @@ public class ConsultaIndicadores {
     private final Clock reloj;
     private final FrecuenciaCompraRepository frecuencias;
     private final CriterioNivelConsumo criterioNivel;
+    private final CriterioClasificacionFrecuencia criterioFrecuencia;
 
     public ConsultaIndicadores(AgregadoComprasCliente agregado, Clock reloj,
-                               FrecuenciaCompraRepository frecuencias, CriterioNivelConsumo criterioNivel) {
+                               FrecuenciaCompraRepository frecuencias, CriterioNivelConsumo criterioNivel,
+                               CriterioClasificacionFrecuencia criterioFrecuencia) {
         this.agregado = agregado;
         this.reloj = reloj;
         this.frecuencias = frecuencias;
         this.criterioNivel = criterioNivel;
+        this.criterioFrecuencia = criterioFrecuencia;
     }
 
     public TicketPromedio ticketPromedio(List<Identificador> identificadores) {
@@ -55,5 +60,13 @@ public class ConsultaIndicadores {
             return 0;
         }
         return frecuencias.sumar(identificadores.stream().map(Identificador::idClienteOrigen).toList());
+    }
+
+    /**
+     * Clasificación por frecuencia (SCRUM-38) sobre la frecuencia de SCRUM-37 de todos los
+     * identificadores del cliente, sin recalcularla (SCRUM-337): nunca queda desactualizada.
+     */
+    public ClasificacionFrecuenciaCliente clasificacionFrecuencia(List<Identificador> identificadores) {
+        return ClasificacionFrecuenciaCliente.de(frecuencia(identificadores), criterioFrecuencia);
     }
 }

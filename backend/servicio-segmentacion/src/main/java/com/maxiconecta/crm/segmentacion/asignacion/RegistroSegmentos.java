@@ -54,13 +54,15 @@ public class RegistroSegmentos {
         jdbc.update(conexion -> {
             var sentencia = conexion.prepareStatement("""
                     INSERT INTO segmentacion.metricas_cliente
-                        (cliente_id, frecuencia, valor, categorias, nivel_consumo, ultima_compra, calculadas_en,
-                         id_evento_origen)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        (cliente_id, frecuencia, valor, categorias, calculadas_en, id_evento_origen,
+                         clasificacion_frecuencia, nivel_consumo, ultima_compra)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (cliente_id) DO UPDATE SET frecuencia = EXCLUDED.frecuencia, valor = EXCLUDED.valor,
-                        categorias = EXCLUDED.categorias, nivel_consumo = EXCLUDED.nivel_consumo,
-                        ultima_compra = EXCLUDED.ultima_compra, calculadas_en = EXCLUDED.calculadas_en,
-                        id_evento_origen = EXCLUDED.id_evento_origen, actualizadas_en = now()
+                        categorias = EXCLUDED.categorias, calculadas_en = EXCLUDED.calculadas_en,
+                        id_evento_origen = EXCLUDED.id_evento_origen,
+                        clasificacion_frecuencia = EXCLUDED.clasificacion_frecuencia,
+                        nivel_consumo = EXCLUDED.nivel_consumo, ultima_compra = EXCLUDED.ultima_compra,
+                        actualizadas_en = now()
                     """);
             Array categorias = conexion.createArrayOf("text", metricas.categoriasOVacio().toArray());
             NivelConsumo nivel = metricas.nivelConsumoConocido();
@@ -68,11 +70,12 @@ public class RegistroSegmentos {
             sentencia.setLong(2, metricas.frecuencia());
             sentencia.setBigDecimal(3, metricas.valor());
             sentencia.setArray(4, categorias);
-            sentencia.setString(5, nivel == null ? null : nivel.name());
-            sentencia.setTimestamp(6, metricas.ultimaCompra() == null ? null
+            sentencia.setTimestamp(5, Timestamp.from(metricas.calculadasEn().toInstant()));
+            sentencia.setString(6, metricas.idEvento());
+            sentencia.setString(7, metricas.clasificacionFrecuencia());
+            sentencia.setString(8, nivel == null ? null : nivel.name());
+            sentencia.setTimestamp(9, metricas.ultimaCompra() == null ? null
                     : Timestamp.from(metricas.ultimaCompra().toInstant()));
-            sentencia.setTimestamp(7, Timestamp.from(metricas.calculadasEn().toInstant()));
-            sentencia.setString(8, metricas.idEvento());
             return sentencia;
         });
     }

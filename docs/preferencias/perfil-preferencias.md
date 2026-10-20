@@ -116,7 +116,8 @@ del proyecto y no deben exponerse públicamente saltándose el Gateway.
 ## Alcance y cierre
 
 SCRUM-41 entrega construcción explícita, persistencia y contrato de lectura reutilizable.
-La actualización al procesar eventos y su trazabilidad por evento corresponden a SCRUM-42.
+La actualización al procesar eventos y su trazabilidad por evento se describen en
+`actualizacion-por-eventos.md` (SCRUM-42).
 La pantalla de consulta corresponde a SCRUM-43; las recomendaciones, a SCRUM-44.
 No se modifican Angular ni sus archivos de configuración en esta entrega.
 

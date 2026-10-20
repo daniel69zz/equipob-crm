@@ -47,6 +47,7 @@ segmento.
 | `nivelConsumo` | `BAJO`, `MEDIO` o `ALTO` sobre `valor`, con los umbrales de SCRUM-27; `null` sin compras vigentes. Solo lo usa el listado de clientes por segmento (SCRUM-28), no la asignación. |
 | `ultimaCompra` | Fecha de la compra vigente más reciente (SCRUM-19); `null` sin compras vigentes. Solo para el listado de SCRUM-28. |
 | `calculadasEn` | Momento del cálculo; ordena los mensajes del mismo cliente. |
+| `clasificacionFrecuencia` | `OCASIONAL`, `HABITUAL`, `FRECUENTE` o `null` sin compras vigentes (SCRUM-38). |
 
 `nivelConsumo` y `ultimaCompra` se agregaron con SCRUM-277 y son opcionales: un mensaje que no los
 trae se aplica igual, y un nivel desconocido se guarda como "sin nivel" en vez de rechazar el mensaje.
@@ -60,7 +61,8 @@ publica métricas: no hay perfil donde guardar el segmento.
 Los criterios de un mismo indicador no se superponen (SCRUM-25), pero un cliente puede cumplir a la
 vez uno de frecuencia, uno de valor y uno o varios de categoría. Se asigna **un solo segmento**:
 
-1. **Valor** antes que **frecuencia**, y frecuencia antes que **categoría**. El valor acumulado es la
+1. **Valor** antes que **frecuencia**, frecuencia antes que **clasificación por frecuencia** (SCRUM-38) y
+   esta antes que **categoría**. El valor acumulado es la
    medida más directa del aporte del cliente; la frecuencia describe su hábito; la categoría, su
    preferencia.
 2. Entre varios criterios de categoría, gana el de la categoría en la que el cliente **más consumió**

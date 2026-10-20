@@ -172,6 +172,8 @@ class AsignacionSegmentoIntegracionTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM segmentacion.evento_procesado WHERE id_evento = ?",
                 Long.class, idEvento)).isEqualTo(1);
         assertThat(cambiosAuditados(cliente)).hasSize(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM segmentacion.historial_segmento WHERE cliente_id=?",
+                Long.class, cliente)).isEqualTo(1);
     }
 
     // --- Criterio 4: al anular una compra el segmento se reevalúa y cambia si corresponde ---
@@ -210,6 +212,38 @@ class AsignacionSegmentoIntegracionTest {
         assertThat(cambiosAuditados(cliente)).isEmpty();
     }
 
+    // --- SCRUM-38: la clasificación por frecuencia que llega con las métricas ---
+
+    @Test
+    void laClasificacionPorFrecuenciaDeLasMetricasSeGuardaYAsignaSuCriterio() {
+        jdbc.update("DELETE FROM segmentacion.criterio WHERE nombre = 'Lectores'");
+        Criterio frecuentes = criterios.crear(new SolicitudCriterio("Clientes frecuentes", "",
+                Indicador.CLASIFICACION_FRECUENCIA, Condicion.IGUAL, null, null, null, null, "FRECUENTE"), "admin");
+        long cliente = CLIENTES.incrementAndGet();
+        String idEvento = UUID.randomUUID().toString();
+        Map<String, Object> mensaje = datos(idEvento, cliente, 1, "50.00", INICIO, "COMPRA_CONFIRMADA", "Libros");
+        mensaje.put("clasificacionFrecuencia", "FRECUENTE");
+        publicar(escribir(mensaje));
+        esperarEvento(idEvento);
+
+        assertThat(segmento(cliente)).isEqualTo("Clientes frecuentes");
+        assertThat(jdbc.queryForObject("SELECT clasificacion_frecuencia FROM segmentacion.metricas_cliente "
+                + "WHERE cliente_id = ?", String.class, cliente)).isEqualTo("FRECUENTE");
+        assertThat(jdbc.queryForObject("SELECT indicador FROM segmentacion.segmento_cliente WHERE cliente_id = ?",
+                String.class, cliente)).isEqualTo("CLASIFICACION_FRECUENCIA");
+        assertThat(frecuentes.clasificacion()).isEqualTo("FRECUENTE");
+    }
+
+    @Test
+    void unaClasificacionDesconocidaVaALaColaDeRespaldo() {
+        Map<String, Object> mensaje = datos(UUID.randomUUID().toString(), CLIENTES.incrementAndGet(), 1, "50.00",
+                INICIO, "COMPRA_CONFIRMADA");
+        mensaje.put("clasificacionFrecuencia", "VIP");
+        publicar(escribir(mensaje));
+
+        await().atMost(Duration.ofSeconds(15)).until(() -> mensajesEnRespaldo() == 1);
+    }
+
     // --- Orden de los mensajes ---
 
     @Test
@@ -237,6 +271,8 @@ class AsignacionSegmentoIntegracionTest {
         assertThat(auditados).extracting(fila -> fila.get("operacion"))
                 .containsExactly("SEGMENTO_ASIGNADO", "SEGMENTO_CAMBIADO", "SEGMENTO_RETIRADO");
         assertThat(auditados).allSatisfy(fila -> assertThat(fila.get("usuario")).isEqualTo("sistema"));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM segmentacion.historial_segmento WHERE cliente_id=?",
+                Long.class, cliente)).isEqualTo(3);
 
         JsonNode detalle = json.readTree((String) auditados.get(1).get("detalle"));
         assertThat(detalle.at("/anterior/segmento").asText()).isEqualTo("Lectores");

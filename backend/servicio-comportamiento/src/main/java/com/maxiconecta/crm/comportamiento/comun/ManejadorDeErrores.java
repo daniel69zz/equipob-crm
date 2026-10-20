@@ -35,6 +35,12 @@ public class ManejadorDeErrores {
         return respuesta(HttpStatus.CONFLICT, ex.getMessage(), solicitud);
     }
 
+    @ExceptionHandler(ServicioNoDisponibleException.class)
+    public ResponseEntity<ApiError> servicioNoDisponible(ServicioNoDisponibleException ex,
+                                                          HttpServletRequest solicitud) {
+        return respuesta(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), solicitud);
+    }
+
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> parametroInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest solicitud) {
         return respuesta(HttpStatus.BAD_REQUEST, "Valor no válido para '" + ex.getName() + "': " + ex.getValue(), solicitud);
