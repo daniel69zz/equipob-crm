@@ -40,7 +40,7 @@ public class RegistroIntentosReproceso {
             case PROCESADO -> ResultadoReproceso.PROCESADO;
             case FALLIDO -> ResultadoReproceso.FALLIDO;
             case DESCARTADO -> ResultadoReproceso.DESCARTADO;
-            case RECIBIDO -> throw new IllegalArgumentException("RECIBIDO no es un resultado de reproceso");
+            case RECIBIDO, EN_ESPERA -> throw new IllegalArgumentException(estado + " no es un resultado final de reproceso");
         };
         intento.completar(resultado, causa);
         return intento;
@@ -52,5 +52,20 @@ public class RegistroIntentosReproceso {
             throw new EventoNoEncontradoException(idEvento);
         }
         return intentos.findByEvento_IdOrderByNumeroDesc(idEvento);
+    }
+
+    /** Simula el envío: solo registra una espera de revisión; nunca invoca la ingesta. */
+    @Transactional
+    public IntentoReproceso enviarARevision(Long idEvento, String usuario) {
+        EventoRecibido evento = eventos.buscarParaActualizar(idEvento)
+                .orElseThrow(() -> new EventoNoEncontradoException(idEvento));
+        if (evento.getEstado() != EstadoEvento.FALLIDO) {
+            throw new EventoNoReprocesableException("Solo se pueden enviar a revisión eventos fallidos");
+        }
+        return intentos.findByEvento_IdOrderByNumeroDesc(idEvento).stream()
+                .filter(intento -> intento.getResultado() == ResultadoReproceso.EN_PROCESO)
+                .findFirst()
+                .orElseGet(() -> intentos.saveAndFlush(new IntentoReproceso(
+                        evento, intentos.ultimoNumero(idEvento) + 1, usuario)));
     }
 }

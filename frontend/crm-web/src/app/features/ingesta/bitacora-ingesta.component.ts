@@ -1,6 +1,8 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import {
   Bitacora,
@@ -25,6 +27,7 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
   { codigo: 'RECIBIDO', nombre: 'Recibidos' },
   { codigo: 'PROCESADO', nombre: 'Procesados' },
   { codigo: 'FALLIDO', nombre: 'Fallidos' },
+  { codigo: 'EN_ESPERA', nombre: 'En espera' },
   { codigo: 'DESCARTADO', nombre: 'Duplicados' },
 ];
 
@@ -83,7 +86,17 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
     }
 
     @if (bitacora(); as datos) {
-      <p class="periodo">Periodo: {{ datos.desde | date: 'dd/MM/yyyy' }} al {{ datos.hasta | date: 'dd/MM/yyyy' }}</p>
+      <p class="periodo">
+        @if (datos.desde && datos.hasta) {
+          Periodo: {{ datos.desde | date: 'dd/MM/yyyy' }} al {{ datos.hasta | date: 'dd/MM/yyyy' }}
+        } @else if (datos.desde) {
+          Desde el {{ datos.desde | date: 'dd/MM/yyyy' }}
+        } @else if (datos.hasta) {
+          Hasta el {{ datos.hasta | date: 'dd/MM/yyyy' }}
+        } @else {
+          Todo el historial. Puede filtrar por fecha, estado o transacción.
+        }
+      </p>
       <section class="resumen">
         @for (estado of estados; track estado.codigo) {
           <article class="tarjeta" [class]="'estado-' + estado.codigo">
@@ -113,12 +126,16 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
                 <td>{{ nombreTipo(evento.tipoEvento) }}</td>
                 <td class="id">{{ evento.idTransaccion ?? '—' }}</td>
                 <td class="id">{{ evento.idEventoOrigen ?? 'sin identificador' }}</td>
-                <td><span class="etiqueta" [class]="'estado-' + evento.estado">{{ nombreEstado(evento.estado) }}</span></td>
+                <td>
+                  <span class="etiqueta" [class]="'estado-' + evento.estado">{{ nombreEstado(evento.estado) }}</span>
+                  @if (evento.enRevision) { <small class="revision">Reprocesado · En espera de revisión</small> }
+                  @else if (evento.reprocesado) { <small class="revision">Reprocesado</small> }
+                </td>
                 <td class="causa">{{ evento.causa }}</td>
                 <td class="acciones-evento">
-                  @if (evento.estado === 'FALLIDO') {
-                    <button type="button" [disabled]="procesandoId() !== null" (click)="reprocesar(evento.id)">
-                      {{ procesandoId() === evento.id ? 'Reprocesando…' : 'Reprocesar' }}
+                  @if (evento.estado === 'FALLIDO' || evento.estado === 'EN_ESPERA') {
+                    <button type="button" [disabled]="procesandoId() !== null || evento.estado === 'EN_ESPERA'" (click)="reprocesar(evento.id)">
+                      {{ procesandoId() === evento.id ? 'Enviando…' : evento.estado === 'EN_ESPERA' ? 'Reprocesado' : 'Reprocesar' }}
                     </button>
                   }
                   <button type="button" class="secundario" [disabled]="cargandoHistorialId() === evento.id"
@@ -212,6 +229,7 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
     .fecha { white-space: nowrap; }
     .id { font-family: monospace; font-size: 0.85rem; }
     .causa { color: var(--color-texto-suave); font-size: 0.9rem; }
+    .revision { display: block; margin-top: 0.3rem; color: var(--color-texto-suave); }
     .acciones-evento { display: flex; flex-direction: column; align-items: stretch; gap: 0.4rem; min-width: 145px; }
     .fila-historial > td { padding: 1rem; background: var(--color-superficie-suave); }
     .fila-historial p { margin: 0; color: var(--color-texto-suave); }
@@ -220,9 +238,11 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
     .etiqueta { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: #eef1f7; }
     .estado-PROCESADO { border-left-color: var(--color-exito); }
     .estado-FALLIDO { border-left-color: var(--color-error); }
+    .estado-EN_ESPERA { border-left-color: var(--color-aviso); }
     .estado-DESCARTADO { border-left-color: var(--color-aviso); }
     .etiqueta.estado-PROCESADO { color: var(--color-exito); background: var(--color-exito-claro); }
     .etiqueta.estado-FALLIDO { color: var(--color-error); background: var(--color-error-claro); }
+    .etiqueta.estado-EN_ESPERA { color: var(--color-aviso); background: var(--color-aviso-claro); }
     .etiqueta.estado-DESCARTADO { color: var(--color-aviso); background: var(--color-aviso-claro); }
     .etiqueta.estado-EN_PROCESO { color: var(--color-primario); background: var(--color-primario-claro); }
     .paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
@@ -230,6 +250,8 @@ const ESTADOS: { codigo: EstadoEvento; nombre: string }[] = [
 })
 export class BitacoraIngestaComponent implements OnInit, OnDestroy {
   private readonly ingesta = inject(IngestaService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private temporizadorAlerta?: ReturnType<typeof setTimeout>;
 
   readonly estados = ESTADOS;
@@ -252,7 +274,11 @@ export class BitacoraIngestaComponent implements OnInit, OnDestroy {
   readonly esUltimaPagina = computed(() => this.hastaRegistro() >= (this.bitacora()?.total ?? 0));
 
   ngOnInit(): void {
-    this.buscar(0);
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const estado = params.get('estado') ?? '';
+      this.filtro.estado = ESTADOS.some((opcion) => opcion.codigo === estado) ? estado : '';
+      this.buscar(0);
+    });
   }
 
   ngOnDestroy(): void {
@@ -291,7 +317,7 @@ export class BitacoraIngestaComponent implements OnInit, OnDestroy {
 
   nombreResultado(resultado: ResultadoReproceso): string {
     return {
-      EN_PROCESO: 'En proceso',
+      EN_PROCESO: 'En espera de revisión',
       PROCESADO: 'Procesado',
       FALLIDO: 'Fallido',
       DESCARTADO: 'Duplicado',
@@ -299,15 +325,13 @@ export class BitacoraIngestaComponent implements OnInit, OnDestroy {
   }
 
   reprocesar(idEvento: number): void {
-    if (!window.confirm(`¿Desea reprocesar el evento ${idEvento}?`)) {
-      return;
-    }
+    if (this.procesandoId() !== null) return;
     this.procesandoId.set(idEvento);
     this.mensajeOperacion.set(null);
-    this.ingesta.reprocesar(idEvento).subscribe({
-      next: (intento) => {
+    this.ingesta.enviarARevision(idEvento).subscribe({
+      next: () => {
         this.procesandoId.set(null);
-        this.mensajeOperacion.set(this.mensajePara(intento));
+        this.mensajeOperacion.set({ tipo: 'exito', texto: 'Evento enviado a revisión.' });
         this.cargarHistorial(idEvento);
         this.buscar(this.bitacora()?.pagina ?? 0);
       },
@@ -315,7 +339,7 @@ export class BitacoraIngestaComponent implements OnInit, OnDestroy {
         this.procesandoId.set(null);
         this.mensajeOperacion.set({
           tipo: 'error',
-          texto: e.error?.mensaje ?? 'No se pudo reprocesar el evento.',
+          texto: e.error?.mensaje ?? 'No se pudo enviar el evento a revisión.',
         });
       },
     });
@@ -370,22 +394,6 @@ export class BitacoraIngestaComponent implements OnInit, OnDestroy {
         });
       },
     });
-  }
-
-  private mensajePara(intento: IntentoReproceso): { tipo: 'exito' | 'error'; texto: string } {
-    if (intento.resultado === 'PROCESADO') {
-      return { tipo: 'exito', texto: `El evento ${intento.idEvento} se reprocesó correctamente.` };
-    }
-    if (intento.resultado === 'DESCARTADO') {
-      return {
-        tipo: 'exito',
-        texto: `El evento ${intento.idEvento} no se duplicó: ${intento.causa ?? 'la compra ya estaba registrada'}.`,
-      };
-    }
-    return {
-      tipo: 'error',
-      texto: `El evento ${intento.idEvento} volvió a fallar: ${intento.causa ?? 'causa no informada'}.`,
-    };
   }
 
   private static filtroVacio(): FiltroBitacora {

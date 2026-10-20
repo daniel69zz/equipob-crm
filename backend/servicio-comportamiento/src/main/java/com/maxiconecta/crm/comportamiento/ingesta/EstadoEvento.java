@@ -10,6 +10,8 @@ public enum EstadoEvento {
     PROCESADO,
     /** No se pudo procesar; queda disponible para reproceso. */
     FALLIDO,
+    /** Espera de revisión manual; se representa mediante un intento pendiente, sin procesar la compra. */
+    EN_ESPERA,
     /** No se registró porque la compra ya existía. */
     DESCARTADO
 }

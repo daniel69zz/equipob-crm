@@ -78,6 +78,28 @@ class IngestaIntegracionTest {
                 + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
     }
 
+    @Test
+    void elCatalogoDeCategoriasSeObtieneDeLasComprasSinRepetirNombres() throws Exception {
+        publicar(ejemplo("compra-ana.json"));
+        esperarEstado(1);
+        publicar(ejemplo("compra-ana.json")
+                .replace("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c", "5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7d")
+                .replace("V-100234", "V-100235"));
+        esperarEstado(2);
+        mvc.perform(get("/api/comportamiento/categorias"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0]").value("Accesorios"))
+                .andExpect(jsonPath("$[1]").value("Electrónica"));
+    }
+
+    @Test
+    void sinComprasElCatalogoDeCategoriasEstaVacio() throws Exception {
+        mvc.perform(get("/api/comportamiento/categorias"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
     // --- Criterio 1: el evento queda almacenado con cliente, fecha, monto e ítems ---
 
     @Test

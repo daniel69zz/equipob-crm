@@ -1,0 +1,11 @@
+# Solo para las pruebas: se suma a src/main/resources/application.yml con prioridad sobre él.
+# Ninguna prueba debe alcanzar el RabbitMQ de desarrollo (docker crm-rabbitmq en localhost:5672):
+# publicaría métricas y eventos de clientes de prueba o consumiría mensajes reales. Las pruebas que
+# necesitan un broker levantan su propio RabbitMQContainer con @ServiceConnection, que reemplaza
+# esta dirección; las demás fallan al conectarse y la publicación queda solo anotada en el log.
+# El dominio .invalid nunca resuelve (RFC 6761) y falla al instante, a diferencia de un puerto
+# cerrado en localhost, que en Windows tarda unos 2 s en rechazar cada intento.
+spring:
+  rabbitmq:
+    host: rabbitmq-de-pruebas.invalid
+    port: 5672

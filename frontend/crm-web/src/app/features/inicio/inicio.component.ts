@@ -1,9 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { Permisos } from '../../core/auth/sesion';
 import { IconoComponent } from '../../core/ui/icono.component';
-import { Bitacora, IngestaService } from '../ingesta/ingesta.service';
+import { Bitacora, EventoRecibido, IngestaService } from '../ingesta/ingesta.service';
+import { forkJoin } from 'rxjs';
 
 interface Modulo {
   titulo: string;
@@ -129,12 +131,53 @@ const MODULOS: Modulo[] = [
               <span class="valor">{{ datos.resumen.FALLIDO }}</span>
               <span class="nombre">Fallidos</span>
             </article>
+            <article class="indicador aviso">
+              <span class="valor">{{ datos.resumen.EN_ESPERA }}</span>
+              <span class="nombre">En espera de revisión</span>
+            </article>
           </div>
-          <p class="periodo">Últimos 7 días</p>
+          <p class="periodo">Todo el historial</p>
         } @else if (errorResumen()) {
           <p class="sin-datos">No se pudo obtener el resumen de eventos.</p>
         } @else {
           <p class="sin-datos">Cargando resumen…</p>
+        }
+      </section>
+
+      @if (notificacion(); as aviso) {
+        <div class="notificacion" [class.error-notificacion]="aviso.tipo === 'error'" role="status" aria-live="polite">
+          <span>{{ aviso.texto }}</span>
+          <button type="button" class="secundario" aria-label="Cerrar notificación" (click)="notificacion.set(null)">×</button>
+        </div>
+      }
+      <section class="resumen" aria-label="Notificaciones de eventos fallidos">
+        <header>
+          <h2>Eventos que requieren atención</h2>
+          <button type="button" class="secundario" [disabled]="cargandoFallidos() || reprocesandoId() !== null" (click)="cargarFallidos()">Actualizar</button>
+        </header>
+        @if (errorFallidos()) {
+          <p class="sin-datos" role="alert">No se pudieron consultar los eventos fallidos. Pulse Actualizar para reintentar.</p>
+        } @else if (cargandoFallidos()) {
+          <p class="sin-datos">Consultando eventos fallidos…</p>
+        } @else {
+          @for (evento of fallidos(); track evento.id) {
+            <article class="evento-fallido" [attr.aria-label]="'Evento ' + evento.id">
+              <div>
+                <strong>{{ evento.tipoEvento === 'COMPRA_ANULADA' ? 'Anulación' : 'Compra' }} · {{ evento.idTransaccion ?? 'Evento ' + evento.id }}</strong>
+                <p>{{ evento.causa ?? 'El evento no pudo procesarse.' }}</p>
+                @if (evento.enRevision) { <small>En espera de revisión</small> }
+              </div>
+              <button type="button" [disabled]="reprocesandoId() !== null || evento.estado === 'EN_ESPERA'"
+                      (click)="reprocesar(evento)">
+                {{ reprocesandoId() === evento.id ? 'Enviando…' : evento.estado === 'EN_ESPERA' ? 'Reprocesado' : 'Reprocesar' }}
+              </button>
+            </article>
+          } @empty {
+            <p class="sin-datos">No hay eventos fallidos ni en espera de revisión.</p>
+          }
+          @if (fallidos().length > 0) {
+            <a routerLink="/eventos" [queryParams]="{ estado: 'EN_ESPERA' }">Ver eventos en espera de revisión en la bitácora</a>
+          }
         }
       </section>
     }
@@ -198,6 +241,12 @@ const MODULOS: Modulo[] = [
     .valor { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
     .nombre { color: var(--color-texto-suave); font-size: 0.85rem; }
     .periodo, .sin-datos { margin: 0.75rem 0 0; color: var(--color-texto-suave); font-size: 0.82rem; }
+    .notificacion { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--color-primario); border-radius: var(--radio); background: var(--color-primario-claro); }
+    .error-notificacion { color: var(--color-error); border-color: var(--color-error); background: var(--color-error-claro); }
+    .evento-fallido { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 0; border-top: 1px solid var(--color-borde); }
+    .evento-fallido > div { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+    .evento-fallido p { margin: 0.3rem 0; color: var(--color-texto-suave); }
+    .evento-fallido small { color: var(--color-aviso); }
 
     .titulo-seccion { margin: 0 0 0.85rem; }
     section + section { margin-top: 2rem; }
@@ -226,6 +275,11 @@ export class InicioComponent implements OnInit {
 
   readonly bitacora = signal<Bitacora | null>(null);
   readonly errorResumen = signal(false);
+  readonly fallidos = signal<EventoRecibido[]>([]);
+  readonly cargandoFallidos = signal(false);
+  readonly errorFallidos = signal(false);
+  readonly reprocesandoId = signal<number | null>(null);
+  readonly notificacion = signal<{ tipo: 'exito' | 'aviso' | 'error'; texto: string } | null>(null);
 
   private readonly permisos = computed(() => this.auth.sesion()?.permisos ?? []);
   readonly puedeVerEventos = computed(() => this.permisos().includes(Permisos.EVENTOS_REPROCESAR));
@@ -242,10 +296,53 @@ export class InicioComponent implements OnInit {
     if (!this.puedeVerEventos()) {
       return;
     }
-    // Sin fechas, el servidor devuelve los últimos 7 días.
+    this.cargarResumen();
+    this.cargarFallidos();
+  }
+
+  private cargarResumen(): void {
+    this.errorResumen.set(false);
     this.ingesta.buscar({ desde: '', hasta: '', estado: '', transaccion: '' }, 0, 1).subscribe({
       next: (datos) => this.bitacora.set(datos),
       error: () => this.errorResumen.set(true),
+    });
+  }
+
+  cargarFallidos(): void {
+    this.cargandoFallidos.set(true);
+    this.errorFallidos.set(false);
+    forkJoin({
+      fallidos: this.ingesta.buscar({ desde: '', hasta: '', estado: 'FALLIDO', transaccion: '' }, 0, 5),
+      espera: this.ingesta.buscar({ desde: '', hasta: '', estado: 'EN_ESPERA', transaccion: '' }, 0, 5),
+    }).subscribe({
+      next: (datos) => {
+        this.fallidos.set([...datos.fallidos.eventos, ...datos.espera.eventos].slice(0, 5));
+        this.cargandoFallidos.set(false);
+      },
+      error: () => {
+        this.errorFallidos.set(true);
+        this.cargandoFallidos.set(false);
+      },
+    });
+  }
+
+  reprocesar(evento: EventoRecibido): void {
+    if (this.reprocesandoId() !== null || evento.estado === 'EN_ESPERA') return;
+    this.reprocesandoId.set(evento.id);
+    this.notificacion.set(null);
+    this.ingesta.enviarARevision(evento.id).subscribe({
+      next: () => {
+        this.reprocesandoId.set(null);
+        this.fallidos.update((eventos) => eventos.map((actual) => actual.id === evento.id
+          ? { ...actual, estado: 'EN_ESPERA', reprocesado: true, enRevision: true }
+          : actual));
+        this.notificacion.set({ tipo: 'exito', texto: 'Evento enviado a revisión.' });
+        this.cargarResumen();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.reprocesandoId.set(null);
+        this.notificacion.set({ tipo: 'error', texto: error.error?.mensaje ?? 'No se pudo enviar el evento a revisión. Intente nuevamente.' });
+      },
     });
   }
 }

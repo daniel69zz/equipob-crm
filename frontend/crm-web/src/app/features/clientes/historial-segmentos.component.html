@@ -61,7 +61,7 @@
   }
   @if (datos.totalElementos > 0) {
     <nav class="paginacion" aria-label="Páginas del historial de segmentos">
-      <span>Página {{ datos.pagina + 1 }} de {{ datos.totalPaginas }} · {{ datos.totalElementos }} cambios</span>
+      <span>Página {{ datos.pagina + 1 }} de {{ datos.totalPaginas }} · {{ datos.totalElementos }} {{ datos.totalElementos === 1 ? 'cambio' : 'cambios' }}</span>
       <button type="button" class="secundario" [disabled]="datos.pagina === 0" (click)="buscar(datos.pagina - 1)">Más recientes</button>
       <button type="button" class="secundario" [disabled]="datos.pagina + 1 >= datos.totalPaginas" (click)="buscar(datos.pagina + 1)">Más antiguos</button>
     </nav>

@@ -1,5 +1,16 @@
 .cabecera { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
 .cabecera button { flex-shrink:0; margin-top:1.5rem; }
+.acciones-cabecera { display:flex; gap:.6rem; align-items:center; flex-shrink:0; }
+.titulo-editor { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1rem; }
+.titulo-editor h2 { margin:0; }
+.boton-ayuda { display:grid; place-items:center; width:34px; height:34px; padding:0; border:1px solid var(--color-borde-fuerte); border-radius:50%; color:var(--color-primario); background:var(--color-primario-claro); font-weight:700; font-size:1.1rem; }
+.boton-ayuda:hover { background:var(--color-primario); color:#fff; }
+.ayuda-segmentacion { width:min(680px,calc(100vw - 2rem)); max-height:85vh; overflow-y:auto; padding:1.5rem; border:1px solid var(--color-borde); border-radius:var(--radio); background:var(--color-superficie); color:var(--color-texto); box-shadow:var(--sombra-2); }
+.ayuda-segmentacion::backdrop { background:rgba(17,26,51,.55); }
+.ayuda-segmentacion p,.ayuda-segmentacion dd { font-size:.9rem; }
+.ayuda-segmentacion dt { font-weight:650; margin-top:.75rem; }
+.ayuda-segmentacion dd { margin:.25rem 0 .75rem; color:var(--color-texto-suave); }
+.ayuda-segmentacion h3 { margin-top:1.2rem; }
 .eyebrow { color:var(--color-primario); text-transform:uppercase; letter-spacing:.08em; font-size:.72rem; font-weight:700; margin:0 0 .5rem; }
 .resumen { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.25rem; }
 .resumen article { display:flex; flex-direction:column; padding:1rem 1.25rem; }

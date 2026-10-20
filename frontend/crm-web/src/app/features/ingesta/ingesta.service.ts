@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-export type EstadoEvento = 'RECIBIDO' | 'PROCESADO' | 'FALLIDO' | 'DESCARTADO';
+export type EstadoEvento = 'RECIBIDO' | 'PROCESADO' | 'FALLIDO' | 'DESCARTADO' | 'EN_ESPERA';
 
 export interface EventoRecibido {
   id: number;
@@ -13,11 +13,13 @@ export interface EventoRecibido {
   causa: string | null;
   recibidoEn: string;
   procesadoEn: string | null;
+  reprocesado: boolean;
+  enRevision: boolean;
 }
 
 export interface Bitacora {
-  desde: string;
-  hasta: string;
+  desde: string | null;
+  hasta: string | null;
   resumen: Record<EstadoEvento, number>;
   eventos: EventoRecibido[];
   pagina: number;
@@ -37,7 +39,7 @@ export interface IntentoReproceso {
   usuario: string | null;
 }
 
-/** Filtros de la bitácora. Las fechas van en formato AAAA-MM-DD; vacías, el servidor usa los últimos 7 días. */
+/** Fechas opcionales AAAA-MM-DD. Vacías, se consulta todo el historial con paginación. */
 export interface FiltroBitacora {
   desde: string;
   hasta: string;
@@ -59,8 +61,8 @@ export class IngestaService {
     return this.http.get<Bitacora>('/api/comportamiento/eventos', { params });
   }
 
-  reprocesar(idEvento: number): Observable<IntentoReproceso> {
-    return this.http.post<IntentoReproceso>(`/api/comportamiento/eventos/${idEvento}/reprocesar`, {});
+  enviarARevision(idEvento: number): Observable<IntentoReproceso> {
+    return this.http.post<IntentoReproceso>(`/api/comportamiento/eventos/${idEvento}/revision`, {});
   }
 
   consultarIntentos(idEvento: number): Observable<IntentoReproceso[]> {

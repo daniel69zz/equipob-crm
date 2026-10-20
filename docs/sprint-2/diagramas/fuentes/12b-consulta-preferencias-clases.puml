@@ -1,0 +1,78 @@
+@startuml
+top to bottom direction
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam titleFontSize 24
+skinparam titleFontColor #173955
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #436580
+skinparam ArrowThickness 1.3
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F4F8FD
+skinparam classBorderColor #7294B3
+skinparam classFontColor #173955
+skinparam classAttributeFontSize 15
+skinparam stereotypeFontSize 13
+skinparam stereotypeFontColor #58758E
+skinparam nodesep 50
+skinparam ranksep 58
+skinparam linetype polyline
+skinparam sequenceParticipantBackgroundColor #EAF1F8
+skinparam sequenceParticipantBorderColor #7294B3
+skinparam sequenceParticipantFontSize 15
+skinparam sequenceLifeLineBorderColor #B7C8D7
+skinparam sequenceGroupBackgroundColor #F5F8FB
+skinparam sequenceGroupBorderColor #A3B8CA
+skinparam sequenceGroupFontSize 15
+skinparam sequenceMessageAlign center
+skinparam sequenceMessageFontSize 16
+skinparam sequenceArrowThickness 1.3
+skinparam maxMessageSize 300
+hide empty members
+hide circle
+title Consultar las categorías preferidas del cliente\n<size:14>Historias relacionadas: SCRUM-43</size>\n<size:14>CRM MaxiConecta | Diagrama de clases</size>
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PerfilesPreferencias.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/ReceptorPreferencias.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/ConstructorPreferencias.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PreferenciasController.java
+' Fuente: frontend/crm-web/src/app/features/clientes/preferencias.service.ts
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PerfilPreferenciasRepository.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PerfilPreferencias.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PreferenciasController.java
+class "PreferenciasController" as PreferenciasController {
+  +consultar(...) : PerfilPreferencias
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PerfilesPreferencias.java
+class "PerfilesPreferencias" as PerfilesPreferencias {
+  +consultar(...) : PerfilPreferencias
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/IdentificadoresPreferencias.java
+class "IdentificadoresPreferencias" as IdentificadoresPreferencias {
+  +obtener(...) : List<Identificador>
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PerfilPreferenciasRepository.java
+class "PerfilPreferenciasRepository" as PerfilPreferenciasRepository {
+  +obtener(...) : PerfilPreferencias
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PerfilPreferencias.java
+class "PerfilPreferencias" as PerfilPreferencias <<record>> {
+  -clienteId : long
+  -categorias : List<CategoriaPreferida>
+  -construidoEn : OffsetDateTime
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/preferencia/PerfilPreferencias.java
+class "CategoriaPreferida" as CategoriaPreferida <<record>> {
+  -posicion : int
+  -categoria : String
+  -monto : BigDecimal
+}
+
+
+PreferenciasController --> PerfilesPreferencias : solicita las preferencias
+PerfilesPreferencias --> IdentificadoresPreferencias : verifica al cliente
+PerfilesPreferencias --> PerfilPreferenciasRepository : consulta el perfil
+PerfilPreferenciasRepository ..> PerfilPreferencias : devuelve las preferencias
+PerfilPreferencias "1" *-- "0..*" CategoriaPreferida : categorias
+@enduml

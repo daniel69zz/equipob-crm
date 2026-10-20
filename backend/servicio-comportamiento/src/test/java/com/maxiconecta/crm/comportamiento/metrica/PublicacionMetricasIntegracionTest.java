@@ -77,6 +77,9 @@ class PublicacionMetricasIntegracionTest {
     private EventoRecibidoRepository eventos;
 
     @Autowired
+    private RepublicacionMetricas republicacion;
+
+    @Autowired
     private JdbcTemplate jdbc;
 
     @Autowired
@@ -170,6 +173,24 @@ class PublicacionMetricasIntegracionTest {
         // Sin compras vigentes queda sin nivel y sin última compra.
         assertThat(total.path("nivelConsumo").asText(null)).isNull();
         assertThat(total.path("ultimaCompra").asText(null)).isNull();
+    }
+
+    // --- Republicación manual de las métricas de todos los clientes ---
+
+    @Test
+    void laRepublicacionVuelveAPublicarLasMetricasVigentesConUnEventoNuevo() throws Exception {
+        publicar("compra-ana.json");
+        recibir();
+
+        assertThat(republicacion.republicarTodos().clientes()).isEqualTo(1);
+
+        JsonNode metricas = json.readTree(recibir().getBody());
+        assertThat(metricas.get("tipoEventoOrigen").asText()).isEqualTo(RepublicacionMetricas.TIPO);
+        assertThat(metricas.get("idEvento").asText()).isNotEqualTo("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c");
+        assertThat(metricas.get("idCliente").asLong()).isEqualTo(CLIENTE);
+        assertThat(metricas.get("frecuencia").asLong()).isEqualTo(1);
+        assertThat(metricas.get("valor").decimalValue()).isEqualByComparingTo("350.50");
+        assertThat(rabbit.receive(COLA_PRUEBA, 1_000)).isNull();
     }
 
     // --- Sin perfil o con error: no se publica ---

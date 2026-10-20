@@ -1,0 +1,78 @@
+@startuml
+top to bottom direction
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam titleFontSize 24
+skinparam titleFontColor #173955
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #436580
+skinparam ArrowThickness 1.3
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F4F8FD
+skinparam classBorderColor #7294B3
+skinparam classFontColor #173955
+skinparam classAttributeFontSize 15
+skinparam stereotypeFontSize 13
+skinparam stereotypeFontColor #58758E
+skinparam nodesep 50
+skinparam ranksep 58
+skinparam linetype polyline
+skinparam sequenceParticipantBackgroundColor #EAF1F8
+skinparam sequenceParticipantBorderColor #7294B3
+skinparam sequenceParticipantFontSize 15
+skinparam sequenceLifeLineBorderColor #B7C8D7
+skinparam sequenceGroupBackgroundColor #F5F8FB
+skinparam sequenceGroupBorderColor #A3B8CA
+skinparam sequenceGroupFontSize 15
+skinparam sequenceMessageAlign center
+skinparam sequenceMessageFontSize 16
+skinparam sequenceArrowThickness 1.3
+skinparam maxMessageSize 300
+hide empty members
+hide circle
+title Simular una regla de segmentación\n<size:14>Historias relacionadas: SCRUM-29</size>\n<size:14>CRM MaxiConecta | Diagrama de clases</size>
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/simulacion/SimulacionSegmentacion.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/criterio/CriterioService.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/criterio/CriterioController.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/asignacion/ReglaPrioridadSegmento.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/simulacion/SolicitudSimulacion.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/simulacion/ResultadoSimulacion.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/criterio/CriterioController.java
+class "CriterioController" as CriterioController {
+  +simular(...) : ResultadoSimulacion
+}
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/simulacion/SimulacionSegmentacion.java
+class "SimulacionSegmentacion" as SimulacionSegmentacion {
+  +simular(...) : ResultadoSimulacion
+}
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/criterio/CriterioService.java
+class "CriterioService" as CriterioService {
+  +prepararSimulacion(...) : Criterio
+}
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/asignacion/ReglaPrioridadSegmento.java
+class "ReglaPrioridadSegmento" as ReglaPrioridadSegmento {
+  {static} +elegir(...) : Optional<Criterio>
+}
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/simulacion/ResultadoSimulacion.java
+class "ResultadoSimulacion" as ResultadoSimulacion <<record>> {
+  -clientesEvaluados : long
+  -clientesQueCambiarian : long
+  -distribucion : List<Distribucion>
+}
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/simulacion/ResultadoSimulacion.java
+class "Distribucion" as Distribucion <<record>> {
+  -segmento : String
+  -actual : long
+  -simulado : long
+  -diferencia : long
+}
+
+
+CriterioController --> SimulacionSegmentacion : solicita la simulación
+SimulacionSegmentacion --> CriterioService : valida la propuesta
+SimulacionSegmentacion ..> ReglaPrioridadSegmento : calcula el segmento simulado
+SimulacionSegmentacion ..> ResultadoSimulacion : devuelve la comparación
+ResultadoSimulacion "1" *-- "0..*" Distribucion : distribucion
+@enduml

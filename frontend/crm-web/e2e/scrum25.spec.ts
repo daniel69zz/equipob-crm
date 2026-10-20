@@ -110,9 +110,13 @@ test('CA1: valor decimal y categoría se guardan y comprueban con el backend', a
   await expect(filaValor).toContainText('Inactivo');
   await formulario(page, 'Preferencia por electrónica', 'CATEGORIA');
   await page.getByLabel('Categoría consumida', { exact: true }).fill('Electrónica');
+  await page.getByRole('option', { name: 'Electrónica', exact: true }).click();
   await page.getByRole('button', { name: 'Guardar criterio' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'creado' })).toBeVisible();
-  await page.getByLabel('Categorías consumidas (separadas por coma)').fill('Libros, ELECTRONICA');
+  await page.getByLabel('Categorías consumidas del caso').fill('Libros');
+  await page.getByRole('option', { name: 'Libros', exact: true }).click();
+  await page.getByLabel('Categorías consumidas del caso').fill('electronica');
+  await page.getByRole('option', { name: 'Electrónica', exact: true }).click();
   await page.getByRole('button', { name: 'Comprobar regla' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'El caso cumple el criterio.' })).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
