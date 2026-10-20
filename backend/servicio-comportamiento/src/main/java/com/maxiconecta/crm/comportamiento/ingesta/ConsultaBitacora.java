@@ -8,7 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Consulta de la bitácora de ingesta por periodo.
@@ -19,9 +21,28 @@ public class ConsultaBitacora {
     public static final int TAMANIO_MAXIMO_PAGINA = 100;
 
     private final EventoRecibidoRepository repository;
+    private final IntentoReprocesoRepository intentos;
 
-    public ConsultaBitacora(EventoRecibidoRepository repository) {
+    public ConsultaBitacora(EventoRecibidoRepository repository, IntentoReprocesoRepository intentos) {
         this.repository = repository;
+        this.intentos = intentos;
+    }
+
+    /** Reconoce los reprocesos desde el historial persistido, incluso después de recargar. */
+    @Transactional(readOnly = true)
+    public Set<Long> reprocesados(List<EventoRecibido> eventos) {
+        if (eventos.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(intentos.eventosConIntentoFinalizado(
+                eventos.stream().map(EventoRecibido::getId).toList(), ResultadoReproceso.EN_PROCESO));
+    }
+
+    @Transactional(readOnly = true)
+    public Set<Long> enEspera(List<EventoRecibido> eventos) {
+        if (eventos.isEmpty()) return Set.of();
+        return Set.copyOf(intentos.eventosConResultado(eventos.stream().map(EventoRecibido::getId).toList(),
+                ResultadoReproceso.EN_PROCESO, EstadoEvento.FALLIDO));
     }
 
     /**

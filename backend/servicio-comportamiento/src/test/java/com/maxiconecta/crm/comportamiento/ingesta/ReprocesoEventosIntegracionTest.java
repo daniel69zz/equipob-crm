@@ -34,6 +34,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -115,6 +116,11 @@ class ReprocesoEventosIntegracionTest {
         assertThat(evento.getCausa()).isNull();
         assertThat(compras.count()).isEqualTo(1);
 
+        mvc.perform(get("/api/comportamiento/eventos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventos[0].reprocesado").value(true))
+                .andExpect(jsonPath("$.eventos[0].enRevision").value(false));
+
         mvc.perform(get("/api/comportamiento/eventos/{id}/intentos", idEvento))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].numero").value(1))
@@ -128,12 +134,24 @@ class ReprocesoEventosIntegracionTest {
                 .replace("5b7a8c1e-3f2d-4e6a-9b1c-2d3e4f5a6b7c", "id-no-es-uuid");
         Long idEvento = fallido(invalido, "EventoInvalidoException: idEvento inválido");
 
+        mvc.perform(get("/api/comportamiento/eventos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventos[0].reprocesado").value(false))
+                .andExpect(jsonPath("$.eventos[0].enRevision").value(false));
+
         mvc.perform(post("/api/comportamiento/eventos/{id}/reprocesar", idEvento)
                         .header("X-Usuario", "admin"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.numero").value(1))
                 .andExpect(jsonPath("$.resultado").value("FALLIDO"))
                 .andExpect(jsonPath("$.causa").value(org.hamcrest.Matchers.containsString("UUID")));
+
+        mvc.perform(get("/api/comportamiento/eventos").param("estado", "FALLIDO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.eventos[0].estado").value("FALLIDO"))
+                .andExpect(jsonPath("$.eventos[0].reprocesado").value(true))
+                .andExpect(jsonPath("$.eventos[0].enRevision").value(false));
         mvc.perform(post("/api/comportamiento/eventos/{id}/reprocesar", idEvento)
                         .header("X-Usuario", "operador"))
                 .andExpect(status().isOk())
@@ -250,6 +268,94 @@ class ReprocesoEventosIntegracionTest {
     void reinyectarConLaDlqVaciaDevuelve204() throws Exception {
         mvc.perform(post("/api/comportamiento/eventos/respaldo/reinyectar"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void sinFechasIncluyeEventosAntiguosYPaginaSinPerderElTotal() throws Exception {
+        Long antiguo = fallido("{}", "Evento antiguo de prueba");
+        Long reciente = fallido("{}", "Evento reciente de prueba");
+        jdbc.update("UPDATE comportamiento.evento_recibido SET recibido_en = ?::timestamptz WHERE id = ?",
+                "2026-01-15T12:00:00Z", antiguo);
+        jdbc.update("UPDATE comportamiento.evento_recibido SET recibido_en = ?::timestamptz WHERE id = ?",
+                "2026-10-20T12:00:00Z", reciente);
+
+        mvc.perform(get("/api/comportamiento/eventos").param("tamanio", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.desde").isEmpty())
+                .andExpect(jsonPath("$.hasta").isEmpty())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.resumen.FALLIDO").value(2))
+                .andExpect(jsonPath("$.eventos.length()").value(1))
+                .andExpect(jsonPath("$.eventos[0].id").value(reciente));
+        mvc.perform(get("/api/comportamiento/eventos").param("tamanio", "1").param("pagina", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.eventos[0].id").value(antiguo));
+
+        mvc.perform(get("/api/comportamiento/eventos").param("desde", "2026-10-01"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasta").isEmpty())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.eventos[0].id").value(reciente));
+        mvc.perform(get("/api/comportamiento/eventos").param("hasta", "2026-01-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.desde").isEmpty())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.eventos[0].id").value(antiguo));
+        mvc.perform(get("/api/comportamiento/eventos")
+                        .param("desde", "2026-10-14").param("hasta", "2026-10-20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1));
+        mvc.perform(get("/api/comportamiento/eventos")
+                        .param("desde", "2026-10-20").param("hasta", "2026-01-01"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void simularEnvioARevisionDejaElEventoEnEsperaSinProcesarLaCompra() throws Exception {
+        Long idEvento = fallido(ejemplo("compra-ana.json"), "Fallo temporal de prueba");
+        long comprasAntes = compras.count();
+        for (int repeticion = 0; repeticion < 2; repeticion++) {
+            mvc.perform(post("/api/comportamiento/eventos/{id}/revision", idEvento)
+                            .header("X-Usuario", "admin"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.numero").value(1))
+                    .andExpect(jsonPath("$.resultado").value("EN_PROCESO"));
+        }
+        verify(ingesta, never()).procesarRegistrado(idEvento);
+        assertThat(compras.count()).isEqualTo(comprasAntes);
+        assertThat(intentos.count()).isEqualTo(1);
+        assertThat(eventos.findById(idEvento).orElseThrow().getEstado()).isEqualTo(EstadoEvento.FALLIDO);
+        mvc.perform(get("/api/comportamiento/eventos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.resumen.FALLIDO").value(0))
+                .andExpect(jsonPath("$.resumen.EN_ESPERA").value(1))
+                .andExpect(jsonPath("$.eventos[0].estado").value("EN_ESPERA"))
+                .andExpect(jsonPath("$.eventos[0].reprocesado").value(true))
+                .andExpect(jsonPath("$.eventos[0].enRevision").value(true));
+        mvc.perform(get("/api/comportamiento/eventos").param("estado", "EN_ESPERA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1));
+        mvc.perform(get("/api/comportamiento/eventos").param("estado", "FALLIDO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0));
+        mvc.perform(post("/api/comportamiento/eventos/{id}/reprocesar", idEvento))
+                .andExpect(status().isConflict());
+        assertThat(compras.count()).isEqualTo(comprasAntes);
+    }
+
+    @Test
+    void enviarARevisionUnEventoInexistenteOProcesadoSeRechaza() throws Exception {
+        mvc.perform(post("/api/comportamiento/eventos/{id}/revision", 999L))
+                .andExpect(status().isNotFound());
+        Long idEvento = bitacora.registrarRecepcion(ejemplo("compra-ana.json"));
+        EventoRecibido evento = eventos.findById(idEvento).orElseThrow();
+        evento.marcarProcesado();
+        eventos.saveAndFlush(evento);
+        mvc.perform(post("/api/comportamiento/eventos/{id}/revision", idEvento))
+                .andExpect(status().isConflict());
+        assertThat(intentos.count()).isZero();
     }
 
     private Long fallido(String contenido, String causa) {

@@ -1,0 +1,67 @@
+@startuml
+autonumber
+hide footbox
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam titleFontSize 24
+skinparam titleFontColor #173955
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #436580
+skinparam ArrowThickness 1.3
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F4F8FD
+skinparam classBorderColor #7294B3
+skinparam classFontColor #173955
+skinparam classAttributeFontSize 15
+skinparam stereotypeFontSize 13
+skinparam stereotypeFontColor #58758E
+skinparam nodesep 50
+skinparam ranksep 58
+skinparam linetype polyline
+skinparam sequenceParticipantBackgroundColor #EAF1F8
+skinparam sequenceParticipantBorderColor #7294B3
+skinparam sequenceParticipantFontSize 15
+skinparam sequenceLifeLineBorderColor #B7C8D7
+skinparam sequenceGroupBackgroundColor #F5F8FB
+skinparam sequenceGroupBorderColor #A3B8CA
+skinparam sequenceGroupFontSize 15
+skinparam sequenceMessageAlign center
+skinparam sequenceMessageFontSize 16
+skinparam sequenceArrowThickness 1.3
+skinparam maxMessageSize 300
+hide empty members
+hide circle
+title Acumular puntos de fidelización\n<size:14>Historias relacionadas: SCRUM-45</size>\n<size:14>CRM MaxiConecta | Diagrama de secuencia</size>
+' Fuente: backend/servicio-fidelizacion/src/main/java/com/maxiconecta/crm/fidelizacion/movimiento/ProcesadorMovimientos.java
+' Fuente: backend/servicio-fidelizacion/src/main/java/com/maxiconecta/crm/fidelizacion/movimiento/IngestaMovimientos.java
+' Fuente: backend/servicio-fidelizacion/src/main/java/com/maxiconecta/crm/fidelizacion/movimiento/RegistroPuntos.java
+' Fuente: backend/servicio-fidelizacion/src/main/java/com/maxiconecta/crm/fidelizacion/movimiento/ReglaCalculoPuntos.java
+' Fuente: backend/servicio-fidelizacion/src/main/java/com/maxiconecta/crm/fidelizacion/configuracion/ConfiguracionRabbit.java
+actor "Marketplace y Ventas" as U
+queue "Pub/Sub" as MQ
+participant ReceptorMovimientos as R
+participant IngestaMovimientos as I
+participant ProcesadorMovimientos as P
+participant ReglaCalculoPuntos as C
+participant RegistroPuntos as DB
+U ->> MQ : Publicar el movimiento de puntos de la compra\npuntos.movimiento (RIO-CRM-03)
+MQ ->> R : Entregar los datos del movimiento\nrecibir(mensaje)
+R -> I : Iniciar el registro del movimiento\nrecibir(contenido)
+I -> P : Procesar el movimiento recibido\nprocesar(idEventoMovimiento, contenido)
+P -> C : Calcular puntos a partir del consumo\npuntos(valorConsumido)
+C --> P : Puntos que corresponden a la transacción
+P -> DB : Reservar la transacción para su acreditación\nreservar(...)
+alt Transacción ya acreditada
+  DB --> P : MovimientoDuplicadoException
+  P --> I : Movimiento duplicado
+else Transacción nueva
+  P -> DB : Sumar los puntos al saldo del cliente\nacreditar(clienteId, puntos)
+  DB --> P : Saldo resultante
+  P -> DB : Guardar el saldo en el detalle de la transacción\nanotarSaldoResultante(idTransaccion, tipo, saldo)
+  P --> I : Movimiento acreditado y saldo actualizado
+end
+I --> R : Movimiento atendido
+R --> MQ : Confirmar recepción del mensaje
+@enduml

@@ -1,0 +1,62 @@
+@startuml
+autonumber
+hide footbox
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam titleFontSize 24
+skinparam titleFontColor #173955
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #436580
+skinparam ArrowThickness 1.3
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F4F8FD
+skinparam classBorderColor #7294B3
+skinparam classFontColor #173955
+skinparam classAttributeFontSize 15
+skinparam stereotypeFontSize 13
+skinparam stereotypeFontColor #58758E
+skinparam nodesep 50
+skinparam ranksep 58
+skinparam linetype polyline
+skinparam sequenceParticipantBackgroundColor #EAF1F8
+skinparam sequenceParticipantBorderColor #7294B3
+skinparam sequenceParticipantFontSize 15
+skinparam sequenceLifeLineBorderColor #B7C8D7
+skinparam sequenceGroupBackgroundColor #F5F8FB
+skinparam sequenceGroupBorderColor #A3B8CA
+skinparam sequenceGroupFontSize 15
+skinparam sequenceMessageAlign center
+skinparam sequenceMessageFontSize 16
+skinparam sequenceArrowThickness 1.3
+skinparam maxMessageSize 300
+hide empty members
+hide circle
+title Consultar el consumo del cliente en un periodo\n<size:14>Historias relacionadas: SCRUM-39</size>\n<size:14>CRM MaxiConecta | Diagrama de secuencia</size>
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/periodo/ConsultaValorPorPeriodo.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/periodo/AgregadoConsumoPeriodo.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/periodo/RangoPeriodo.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/periodo/ValorPorPeriodo.java
+actor "Analista comercial" as U
+participant ValorPorPeriodoController as C
+participant ConsultaValorPorPeriodo as Q
+participant RangoPeriodo as R
+participant AgregadoConsumoPeriodo as A
+participant ValorPorPeriodo as V
+U -> C : Elegir cliente y fechas de inicio y fin\nGET /api/comportamiento/clientes/{id}/consumo-periodo
+C -> Q : Consultar el consumo de las fechas elegidas\nconsultar(identificadores, desde, hasta)
+Q -> R : Crear y validar el rango\nRangoPeriodo(desde, hasta)
+alt Fechas inválidas
+  R --> Q : Motivo del error en las fechas
+  Q --> C : Consulta rechazada
+  C --> U : Corregir el rango de fechas
+else Rango válido
+  Q -> A : Sumar compras vigentes dentro del rango\nresumir(identificadores, inicio, fin)
+  A --> Q : Cantidad de compras y monto total
+  Q -> V : Calcular el total y promedio por compra\nde(rango, zonaHoraria, resumen)
+  V --> Q : Total, promedio y cantidad de compras
+  Q --> C : ValorPorPeriodo
+  C --> U : Consumo del cliente en el periodo seleccionado
+end
+@enduml

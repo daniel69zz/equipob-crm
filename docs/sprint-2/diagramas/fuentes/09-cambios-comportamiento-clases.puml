@@ -1,0 +1,80 @@
+@startuml
+top to bottom direction
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam titleFontSize 24
+skinparam titleFontColor #173955
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #436580
+skinparam ArrowThickness 1.3
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F4F8FD
+skinparam classBorderColor #7294B3
+skinparam classFontColor #173955
+skinparam classAttributeFontSize 15
+skinparam stereotypeFontSize 13
+skinparam stereotypeFontColor #58758E
+skinparam nodesep 50
+skinparam ranksep 58
+skinparam linetype polyline
+skinparam sequenceParticipantBackgroundColor #EAF1F8
+skinparam sequenceParticipantBorderColor #7294B3
+skinparam sequenceParticipantFontSize 15
+skinparam sequenceLifeLineBorderColor #B7C8D7
+skinparam sequenceGroupBackgroundColor #F5F8FB
+skinparam sequenceGroupBorderColor #A3B8CA
+skinparam sequenceGroupFontSize 15
+skinparam sequenceMessageAlign center
+skinparam sequenceMessageFontSize 16
+skinparam sequenceArrowThickness 1.3
+skinparam maxMessageSize 300
+hide empty members
+hide circle
+title Detectar cambios en el hábito de compra\n<size:14>Historias relacionadas: SCRUM-34</size>\n<size:14>CRM MaxiConecta | Diagrama de clases</size>
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/DetectorCambiosComportamiento.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/CriterioCambioComportamiento.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/DeteccionCambiosScheduler.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/Evaluacion.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/EstadoComportamientoCliente.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/DeteccionCambioComportamiento.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/DeteccionCambiosScheduler.java
+class "DeteccionCambiosScheduler" as DeteccionCambiosScheduler {
+  +ejecutar() : void
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/DetectorCambiosComportamiento.java
+class "DetectorCambiosComportamiento" as DetectorCambiosComportamiento {
+  +detectarTodos() : ResultadoDeteccion
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/CriterioCambioComportamiento.java
+class "CriterioCambioComportamiento" as CriterioCambioComportamiento {
+  -ventanaDias : int
+  -periodosBase : int
+  -umbral : BigDecimal
+  +evaluar(...) : Evaluacion
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/EstadoComportamientoClienteRepository.java
+interface "EstadoComportamientoClienteRepository" as EstadoComportamientoClienteRepository {
+
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/DeteccionCambioComportamientoRepository.java
+interface "DeteccionCambioComportamientoRepository" as DeteccionCambioComportamientoRepository {
+
+}
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/cambio/DeteccionCambioComportamiento.java
+class "DeteccionCambioComportamiento" as DeteccionCambioComportamiento <<entity>> {
+  -idClienteOrigen : String
+  -tipo : TipoVariacion
+  -direccion : DireccionVariacion
+  -variacion : BigDecimal
+  -detectadoEn : OffsetDateTime
+}
+
+
+DeteccionCambiosScheduler --> DetectorCambiosComportamiento : inicia la revisión
+DetectorCambiosComportamiento --> CriterioCambioComportamiento : evalúa el hábito
+DetectorCambiosComportamiento --> EstadoComportamientoClienteRepository : mantiene el estado
+DetectorCambiosComportamiento --> DeteccionCambioComportamientoRepository : registra las alertas
+DeteccionCambioComportamientoRepository ..> DeteccionCambioComportamiento : persiste la variación
+@enduml

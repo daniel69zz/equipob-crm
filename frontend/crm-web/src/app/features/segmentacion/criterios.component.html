@@ -1,7 +1,12 @@
 <header class="cabecera">
   <div><p class="eyebrow">Administración · Segmentación</p><h1>Criterios de segmentación</h1>
     <p class="subtitulo">Define cómo agrupar clientes por sus compras, su valor y sus categorías.</p></div>
-  <button type="button" (click)="nuevo()" [disabled]="guardando()">+ Nuevo criterio</button>
+  <div class="acciones-cabecera">
+    @if (!abierto()) {
+      <button type="button" class="boton-ayuda" aria-label="Ayuda sobre criterios de segmentación" title="¿Cómo funciona la segmentación?" (click)="ayudaSegmentacion.showModal()">?</button>
+    }
+    <button type="button" (click)="nuevo()" [disabled]="guardando()">+ Nuevo criterio</button>
+  </div>
 </header>
 <section class="resumen" aria-label="Resumen de criterios">
   <article class="tarjeta"><strong>{{ criterios().length }}</strong><span>Criterios configurados</span></article>
@@ -13,7 +18,10 @@
 
 @if (abierto()) {
   <section class="tarjeta editor" aria-labelledby="titulo-editor">
-    <h2 id="titulo-editor">{{ editando() ? 'Editar criterio' : 'Nuevo criterio' }}</h2>
+    <div class="titulo-editor">
+      <h2 id="titulo-editor">{{ editando() ? 'Editar criterio' : 'Nuevo criterio' }}</h2>
+      <button type="button" class="boton-ayuda" aria-label="Ayuda sobre criterios de segmentación" title="¿Cómo funciona la segmentación?" (click)="ayudaSegmentacion.showModal()">?</button>
+    </div>
     <form (ngSubmit)="guardar()" (input)="invalidarSimulacion()" (change)="invalidarSimulacion()" novalidate>
       <fieldset [disabled]="guardando()">
         <div class="campos">
@@ -37,8 +45,16 @@
               </select></div>
           } @else if (formulario.indicador === 'CATEGORIA') {
             <div class="ancho"><label for="categoria-criterio">Categoría consumida</label>
-              <input id="categoria-criterio" name="categoria" maxlength="100" [(ngModel)]="formulario.categoria" placeholder="Ej. Electrónica" />
-              <small>Coincidencia exacta; se ignoran mayúsculas, tildes y espacios adicionales.</small></div>
+              <app-combobox [id]="'categoria-criterio'" [opciones]="categorias()"
+                [seleccion]="formulario.categoria ? [formulario.categoria] : []" (seleccionChange)="seleccionarCategoria($event)"
+                [disabled]="guardando() || (cargandoCategorias() && !categorias().length)" />
+              <small>Busque y seleccione una categoría registrada. Se ignoran mayúsculas y tildes al comparar.</small>
+              @if (cargandoCategorias()) { <small role="status">Cargando categorías…</small> }
+              @if (errorCategorias()) {
+                <p class="error" role="alert">{{ errorCategorias() }}</p>
+                <button type="button" class="secundario" (click)="cargarCategorias()">Reintentar categorías</button>
+              }
+            </div>
           } @else {
             @if (formulario.condicion !== 'MENOR_IGUAL') {
               <div><label for="minimo-criterio">{{ formulario.condicion === 'IGUAL' ? 'Valor' : 'Mínimo' }}</label>
@@ -136,7 +152,12 @@
               @for (clave of clavesClasificacion; track clave) { <option [ngValue]="clave">{{ clasificaciones[clave] }}</option> }
             </select></div>
         } @else if (c.indicador === 'CATEGORIA') {
-          <div><label for="caso-categorias">Categorías consumidas (separadas por coma)</label><input id="caso-categorias" name="categoriasCaso" [(ngModel)]="categoriasCaso" placeholder="Electrónica, Libros" /></div>
+          <div><label for="caso-categorias">Categorías consumidas del caso</label>
+            <app-combobox [id]="'caso-categorias'" [opciones]="categorias()" [multiple]="true"
+              [seleccion]="categoriasCaso" (seleccionChange)="categoriasCaso = $event; resultado.set(null)"
+              [disabled]="comprobando()" />
+            <small>Puede buscar y seleccionar varias categorías para probar la regla.</small>
+          </div>
         } @else {
           <div><label for="caso-valor">{{ c.indicador === 'FRECUENCIA' ? 'Compras vigentes del caso' : 'Valor acumulado del caso (Bs)' }}</label>
             <input id="caso-valor" name="valorCaso" type="number" min="0" [step]="c.indicador === 'FRECUENCIA' ? 1 : 0.01" [(ngModel)]="valorCaso" /></div>
@@ -160,3 +181,25 @@
     }
   </section>
 }
+
+<dialog #ayudaSegmentacion class="ayuda-segmentacion" aria-labelledby="titulo-ayuda-segmentacion">
+  <header class="titulo-editor">
+    <h2 id="titulo-ayuda-segmentacion">¿Para qué sirven los criterios?</h2>
+    <button type="button" class="secundario" autofocus aria-label="Cerrar ayuda" (click)="ayudaSegmentacion.close()">×</button>
+  </header>
+  <p>Sirven para agrupar clientes según sus compras. Usted define una regla y el CRM comprueba qué clientes la cumplen para asignarles un segmento.</p>
+  <p><strong>Ejemplo:</strong> Ana hizo 3 compras de Bs 100, Bs 200 y Bs 300. Su frecuencia es <strong>3 compras</strong> y su valor acumulado es <strong>Bs 600</strong>.</p>
+  <dl>
+    <dt>Frecuencia de compra</dt><dd>Cuántas compras vigentes hizo el cliente en todo su historial. Una compra con 10 productos cuenta como 1 compra.</dd>
+    <dt>Valor acumulado</dt><dd>Cuánto lleva gastado en total, descontando anulaciones y devoluciones. Una regla de Bs 500 o más incluiría a Ana.</dd>
+    <dt>Categoría consumida</dt><dd>El tipo de producto que compra, como Ropa, Alimentos o Electrónica. Elija una categoría en el desplegable; puede escribir para buscarla.</dd>
+    <dt>Clasificación por frecuencia</dt><dd>Resume la cantidad de compras como ocasional, habitual o frecuente, según los límites configurados.</dd>
+  </dl>
+  <h3>¿Por qué se rechazan algunos rangos?</h3>
+  <p>Dos reglas activas del mismo indicador no pueden ocupar los mismos valores. Los extremos también cuentan: <strong>1–5 y 5–10 se cruzan en el 5</strong>. Use, por ejemplo, <strong>1–5 y 6–10</strong>, o edite la regla existente.</p>
+  <p>Para importes, puede usar rangos como Bs 0–499,99 y Bs 500–999,99. Una regla de frecuencia y otra de valor sí pueden coexistir.</p>
+  <h3>¿Cuándo se aplican y dónde veo el resultado?</h3>
+  <p><strong>Simular impacto</strong> permite ver cuántos clientes cambiarían. Guardar deja la regla disponible; las próximas compras o anulaciones actualizan los segmentos.</p>
+  <p>En <strong>Clientes → Ficha integral → Segmento</strong> puede ver el grupo de una persona. En <strong>Historial de segmentos</strong> puede revisar sus cambios.</p>
+  <button type="button" (click)="ayudaSegmentacion.close()">Entendido</button>
+</dialog>

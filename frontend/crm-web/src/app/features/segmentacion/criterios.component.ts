@@ -2,12 +2,13 @@ import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ComboboxComponent, normalizarOpcion } from '../../core/ui/combobox.component';
 import { Subscription, finalize, timeout } from 'rxjs';
 import { SimulacionSegmentacion } from './criterios.service';
 import { CambioCriterio, Caso, Clasificacion, CLASIFICACIONES, Comprobacion, Condicion, Criterio, CriteriosService, INDICADORES, CONDICIONES, Indicador, reglaTexto, SolicitudCriterio } from './criterios.service';
 
 @Component({
-  selector: 'app-criterios', standalone: true, imports: [FormsModule, DatePipe],
+  selector: 'app-criterios', standalone: true, imports: [FormsModule, DatePipe, ComboboxComponent],
   templateUrl: './criterios.component.html', styleUrl: './criterios.component.css',
 })
 export class CriteriosComponent {
@@ -42,6 +43,20 @@ export class CriteriosComponent {
   readonly busqueda = signal('');
   readonly filtroIndicador = signal('');
   readonly filtroEstado = signal('');
+  readonly catalogoCategorias = signal<string[]>([]);
+  readonly cargandoCategorias = signal(false);
+  readonly errorCategorias = signal('');
+  readonly categorias = computed(() => {
+    const nombres = new Map<string, string>();
+    for (const categoria of [...this.catalogoCategorias(), ...this.criterios().map(c => c.categoria)]) {
+      const nombre = categoria?.trim().replace(/\s+/g, ' ');
+      if (!nombre) continue;
+      const clave = normalizarOpcion(nombre), anterior = nombres.get(clave);
+      // Las variantes sin tilde comparten la opción que conserva la ortografía acentuada.
+      if (!anterior || (anterior === anterior.normalize('NFD') && nombre !== nombre.normalize('NFD'))) nombres.set(clave, nombre);
+    }
+    return [...nombres.values()].sort((a, b) => a.localeCompare(b, 'es'));
+  });
   readonly activos = computed(() => this.criterios().filter(c => c.activo).length);
   readonly visibles = computed(() => this.criterios().filter(c =>
     c.nombre.toLocaleLowerCase().includes(this.busqueda().trim().toLocaleLowerCase()) &&
@@ -49,13 +64,14 @@ export class CriteriosComponent {
     (!this.filtroEstado() || String(c.activo) === this.filtroEstado())));
   formulario: SolicitudCriterio = this.vacio();
   valorCaso: number | null = null;
-  categoriasCaso = '';
+  categoriasCaso: string[] = [];
   clasificacionCaso: Clasificacion | null = null;
   private consultaHistorial = 0;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.peticionSimulacion?.unsubscribe());
     this.cargar();
+    this.cargarCategorias();
   }
 
   invalidarSimulacion() {
@@ -81,6 +97,18 @@ export class CriteriosComponent {
     this.api.listar().pipe(finalize(() => this.cargando.set(false))).subscribe({
       next: datos => this.criterios.set(datos), error: e => this.error.set(this.mensaje(e)),
     });
+  }
+  cargarCategorias() {
+    if (this.cargandoCategorias()) return;
+    this.cargandoCategorias.set(true); this.errorCategorias.set('');
+    this.api.categorias().pipe(finalize(() => this.cargandoCategorias.set(false))).subscribe({
+      next: categorias => this.catalogoCategorias.set(categorias),
+      error: () => this.errorCategorias.set('No se pudieron cargar las categorías de las compras. Puede volver a intentarlo.'),
+    });
+  }
+  seleccionarCategoria(categorias: string[]) {
+    this.formulario.categoria = categorias[0] ?? null;
+    this.invalidarSimulacion();
   }
   nuevo() {
     this.invalidarSimulacion();
@@ -135,7 +163,7 @@ export class CriteriosComponent {
   }
   verDetalle(c: Criterio) {
     const consulta = ++this.consultaHistorial;
-    this.seleccionado.set(c); this.resultado.set(null); this.errorCaso.set(''); this.valorCaso = null; this.categoriasCaso = '';
+    this.seleccionado.set(c); this.resultado.set(null); this.errorCaso.set(''); this.valorCaso = null; this.categoriasCaso = [];
     this.clasificacionCaso = null;
     this.historial.set([]); this.errorHistorial.set(''); this.cargandoHistorial.set(true);
     this.api.historial(c.id).subscribe({
@@ -147,7 +175,7 @@ export class CriteriosComponent {
     const c = this.seleccionado(); if (!c) return;
     this.resultado.set(null); this.errorCaso.set('');
     const caso: Caso = c.indicador === 'CATEGORIA'
-      ? { categorias: this.categoriasCaso.split(',').map(v => v.trim()).filter(Boolean) }
+      ? { categorias: this.categoriasCaso }
       : c.indicador === 'CLASIFICACION_FRECUENCIA' ? { clasificacion: this.clasificacionCaso }
       : c.indicador === 'FRECUENCIA' ? { frecuencia: this.valorCaso } : { valor: this.valorCaso };
     this.comprobando.set(true);

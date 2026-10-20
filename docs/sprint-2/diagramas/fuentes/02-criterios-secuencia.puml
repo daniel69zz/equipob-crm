@@ -1,0 +1,64 @@
+@startuml
+autonumber
+hide footbox
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam titleFontSize 24
+skinparam titleFontColor #173955
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #436580
+skinparam ArrowThickness 1.3
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F4F8FD
+skinparam classBorderColor #7294B3
+skinparam classFontColor #173955
+skinparam classAttributeFontSize 15
+skinparam stereotypeFontSize 13
+skinparam stereotypeFontColor #58758E
+skinparam nodesep 50
+skinparam ranksep 58
+skinparam linetype polyline
+skinparam sequenceParticipantBackgroundColor #EAF1F8
+skinparam sequenceParticipantBorderColor #7294B3
+skinparam sequenceParticipantFontSize 15
+skinparam sequenceLifeLineBorderColor #B7C8D7
+skinparam sequenceGroupBackgroundColor #F5F8FB
+skinparam sequenceGroupBorderColor #A3B8CA
+skinparam sequenceGroupFontSize 15
+skinparam sequenceMessageAlign center
+skinparam sequenceMessageFontSize 16
+skinparam sequenceArrowThickness 1.3
+skinparam maxMessageSize 300
+hide empty members
+hide circle
+title Definir criterios de segmentación\n<size:14>Historias relacionadas: SCRUM-25</size>\n<size:14>CRM MaxiConecta | Diagrama de secuencia</size>
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/criterio/CriterioController.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/criterio/CriterioService.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/criterio/ReglasCriterio.java
+' Fuente: frontend/crm-web/src/app/features/segmentacion/criterios.service.ts
+actor "Administrador del CRM" as U
+participant CriterioController as C
+participant CriterioService as S
+participant ReglasCriterio as R
+participant CriterioRepository as DB
+participant AuditoriaCriterios as A
+U -> C : Enviar nombre, indicador y condición\nPOST /api/segmentacion/criterios
+C -> S : Crear el criterio solicitado\ncrear(solicitud, usuario)
+S -> R : Validar y normalizar los valores\nnormalizar(solicitud)
+R --> S : Datos normalizados
+S -> DB : Consultar los criterios existentes\nlistar()
+DB --> S : Criterios registrados
+S -> S : Comprobar nombre y superposiciones\nvalidarConflictos(s, null, true)
+alt Nombre o condición en conflicto
+  S --> C : Criterio rechazado y motivo
+  C --> U : Corregir los datos indicados
+else Criterio válido
+  S -> DB : Guardar el nuevo criterio\ncrear(s, usuario)
+  DB --> S : Criterio creado
+  S -> A : Registrar quién realizó el cambio\nregistrar(...)
+  S --> C : Criterio guardado
+  C --> U : Criterio disponible para segmentación
+end
+@enduml

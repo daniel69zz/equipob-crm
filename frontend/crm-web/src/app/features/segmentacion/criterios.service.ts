@@ -31,6 +31,7 @@ export class CriteriosService {
   private readonly http = inject(HttpClient);
   private readonly url = '/api/segmentacion/criterios';
   listar() { return this.http.get<Criterio[]>(this.url); }
+  categorias() { return this.http.get<string[]>('/api/comportamiento/categorias'); }
   crear(datos: SolicitudCriterio) { return this.http.post<Criterio>(this.url, datos); }
   editar(id: number, datos: SolicitudCriterio) { return this.http.put<Criterio>(`${this.url}/${id}`, datos); }
   estado(criterio: Criterio, activo: boolean) {

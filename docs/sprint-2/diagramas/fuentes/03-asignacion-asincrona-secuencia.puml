@@ -1,0 +1,73 @@
+@startuml
+autonumber
+hide footbox
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam titleFontSize 24
+skinparam titleFontColor #173955
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #436580
+skinparam ArrowThickness 1.3
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F4F8FD
+skinparam classBorderColor #7294B3
+skinparam classFontColor #173955
+skinparam classAttributeFontSize 15
+skinparam stereotypeFontSize 13
+skinparam stereotypeFontColor #58758E
+skinparam nodesep 50
+skinparam ranksep 58
+skinparam linetype polyline
+skinparam sequenceParticipantBackgroundColor #EAF1F8
+skinparam sequenceParticipantBorderColor #7294B3
+skinparam sequenceParticipantFontSize 15
+skinparam sequenceLifeLineBorderColor #B7C8D7
+skinparam sequenceGroupBackgroundColor #F5F8FB
+skinparam sequenceGroupBorderColor #A3B8CA
+skinparam sequenceGroupFontSize 15
+skinparam sequenceMessageAlign center
+skinparam sequenceMessageFontSize 16
+skinparam sequenceArrowThickness 1.3
+skinparam maxMessageSize 300
+hide empty members
+hide circle
+title Actualizar el segmento después de una compra\n<size:14>Historias relacionadas: SCRUM-26</size>\n<size:14>CRM MaxiConecta | Diagrama de secuencia</size>
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/metrica/PublicadorMetricas.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/metrica/CalculoMetricasCliente.java
+' Fuente: backend/servicio-comportamiento/src/main/java/com/maxiconecta/crm/comportamiento/mensajeria/CanalEventosRabbit.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/asignacion/AsignacionSegmento.java
+' Fuente: backend/servicio-segmentacion/src/main/java/com/maxiconecta/crm/segmentacion/asignacion/ConfiguracionRabbit.java
+participant ProcesadorCompras as P
+participant PublicadorMetricas as PUB
+participant CanalEventosRabbit as CAN
+queue "Pub/Sub" as MQ
+participant ReceptorMetricas as R
+participant AsignacionSegmento as A
+participant RegistroSegmentos as DB
+P -> PUB : Preparar métricas del cliente\nprogramar(idEvento, tipoEventoOrigen, compra)
+== Compra guardada correctamente ==
+PUB -> CAN : Enviar las métricas calculadas\npublicar(destino, ruta, cuerpo, idMensaje)
+CAN ->> MQ : Publicar frecuencia, valor y categorías\nmetricas.actualizadas
+MQ ->> R : Entregar las métricas del cliente\nrecibir(mensaje)
+R -> A : Reevaluar el segmento del cliente\naplicar(metricas)
+A -> DB : Comprobar si el evento ya fue aplicado\neventoYaProcesado(idEvento)
+DB --> A : Estado del evento
+alt Evento nuevo y métricas vigentes
+  A -> DB : Guardar las métricas recibidas\nguardarMetricas(metricas)
+  A -> A : Aplicar el criterio elegido\nactualizar(...)
+  opt El segmento debe cambiar
+    alt Asignación o cambio de segmento
+      A -> DB : Guardar el segmento elegido\nasignar(clienteId, criterio, idEvento)
+    else El cliente deja de cumplir los criterios
+      A -> DB : Retirar el segmento anterior\nretirar(clienteId)
+    end
+  end
+  A -> DB : Registrar que el evento fue atendido\nregistrarEvento(...)
+  A --> R : Segmentación actualizada
+else Evento repetido o métricas anteriores
+  A --> R : Segmento conservado
+end
+R --> MQ : Confirmar procesamiento del mensaje
+@enduml

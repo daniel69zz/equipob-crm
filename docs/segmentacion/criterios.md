@@ -158,3 +158,20 @@ La revisión por un par y el merge son pasos posteriores de la DoD; ejecutar est
 los sustituye ni cambia la historia de Jira a Finalizado.
 
 Resultados y capturas de la ejecución: [evidencias de verificación](verificacion.md).
+
+## Ayuda y selección de categorías
+
+El botón **?**, junto a la configuración, explica los indicadores con un ejemplo de
+compras y muestra por qué los límites de dos reglas activas no deben cruzarse. La
+ayuda se puede cerrar con Escape, la X o Entendido.
+
+Categoría consumida usa un desplegable con búsqueda, selección con teclado y
+opciones de las compras registradas (`GET /api/comportamiento/categorias`, permiso
+`INDICADORES_CONSULTAR`). Conserva también las categorías de criterios anteriores.
+Variantes como Electronica y Electrónica comparten una opción. Escribir solo busca;
+para guardar hay que elegir una opción. En Historial y prueba se pueden seleccionar
+varias categorías, sin separarlas manualmente por comas.
+
+Las pruebas de pantalla de esta mejora están en `e2e/criterios-ayuda.spec.ts`.
+El ejecutor de SCRUM-25 inicia también Comportamiento y carga las categorías en su
+base temporal, sin consultar el catálogo de la base de desarrollo.

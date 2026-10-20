@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Bitácora de ingesta: eventos recibidos, procesados, fallidos y descartados por periodo.
@@ -28,12 +29,14 @@ public class BitacoraController {
     private final ConsultaBitacora consulta;
     private final ReprocesadorEventos reprocesador;
     private final ReinyectorMensajesRespaldo reinyector;
+    private final RegistroIntentosReproceso registro;
 
     public BitacoraController(ConsultaBitacora consulta, ReprocesadorEventos reprocesador,
-                              ReinyectorMensajesRespaldo reinyector) {
+                              ReinyectorMensajesRespaldo reinyector, RegistroIntentosReproceso registro) {
         this.consulta = consulta;
         this.reprocesador = reprocesador;
         this.reinyector = reinyector;
+        this.registro = registro;
     }
 
     @GetMapping
@@ -45,8 +48,11 @@ public class BitacoraController {
                            @RequestParam(defaultValue = "50") int tamanio) {
         FiltroBitacora filtro = new FiltroBitacora(desde, hasta, estado, transaccion);
         Page<EventoRecibido> resultado = consulta.buscar(filtro, pagina, tamanio);
+        Set<Long> reprocesados = consulta.reprocesados(resultado.getContent());
+        Set<Long> enEspera = consulta.enEspera(resultado.getContent());
         return new Bitacora(filtro.desde(), filtro.hasta(), consulta.resumen(filtro),
-                resultado.getContent().stream().map(EventoResponse::de).toList(),
+                resultado.getContent().stream().map(evento -> EventoResponse.de(evento,
+                        reprocesados.contains(evento.getId()), enEspera.contains(evento.getId()))).toList(),
                 resultado.getNumber(), resultado.getSize(), resultado.getTotalElements());
     }
 
@@ -56,12 +62,12 @@ public class BitacoraController {
 
     public record EventoResponse(Long id, String idEventoOrigen, String tipoEvento,
                                  String idTransaccion, EstadoEvento estado, String causa, OffsetDateTime recibidoEn,
-                                 OffsetDateTime procesadoEn) {
+                                 OffsetDateTime procesadoEn, boolean reprocesado, boolean enRevision) {
 
-        static EventoResponse de(EventoRecibido evento) {
+        static EventoResponse de(EventoRecibido evento, boolean reprocesado, boolean enEspera) {
             return new EventoResponse(evento.getId(), evento.getIdEventoOrigen(), evento.getTipoEvento(),
-                    evento.getIdTransaccion(), evento.getEstado(), evento.getCausa(),
-                    evento.getRecibidoEn(), evento.getProcesadoEn());
+                    evento.getIdTransaccion(), enEspera ? EstadoEvento.EN_ESPERA : evento.getEstado(), evento.getCausa(),
+                    evento.getRecibidoEn(), evento.getProcesadoEn(), reprocesado || enEspera, enEspera);
         }
     }
 
@@ -74,6 +80,12 @@ public class BitacoraController {
     @GetMapping("/{id}/intentos")
     public List<IntentoResponse> intentos(@PathVariable Long id) {
         return reprocesador.intentos(id).stream().map(IntentoResponse::de).toList();
+    }
+
+    @PostMapping("/{id}/revision")
+    public IntentoResponse enviarARevision(@PathVariable Long id,
+                                           @RequestHeader(name = "X-Usuario", required = false) String usuario) {
+        return IntentoResponse.de(registro.enviarARevision(id, usuario));
     }
 
     /**
