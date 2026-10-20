@@ -2,8 +2,9 @@
 
 Registra las compras de cada cliente y calcula sus indicadores.
 
-- **Guarda:** historial de compras (ítems y categorías), ticket promedio, recencia, frecuencia, valor acumulado, inactividad, nivel de consumo y detecciones de cambio de comportamiento.
+- **Guarda:** historial de compras (ítems y categorías), ticket promedio, recencia, frecuencia, valor acumulado, inactividad, nivel de consumo, detecciones de cambio de comportamiento y riesgo de abandono.
 - **Analiza:** evolución del consumo de cada cliente por categoría y periodo.
+- **Riesgo de abandono (SCRUM-35):** puntaje de 0 a 100 y nivel bajo, medio o alto por cliente del CRM según su recencia, frecuencia, valor y las caídas detectadas; se recalcula con cada compra o anulación y cada día (`RIESGO_ABANDONO_CRON`). Consultas `GET /api/comportamiento/clientes/{clienteId}/riesgo-abandono` y `GET /api/comportamiento/clientes?riesgoAbandono=ALTO`. Fórmula, configuración y diagramas en `docs/compra/riesgo-abandono.md`.
 - **Consume de RabbitMQ:** compras confirmadas y anulaciones o devoluciones.
 - **Esquema en la base:** `comportamiento`
 
