@@ -215,9 +215,9 @@ class HistorialSegmentosIntegracionTest {
                 Criterio.Condicion.CONTIENE, null, null, "Libros", null), "admin");
         long cliente = CLIENTES.incrementAndGet();
         asignacion.aplicar(new MetricasCliente(UUID.randomUUID().toString(), "COMPRA_CONFIRMADA", cliente,
-                List.of(), 0L, new BigDecimal("2000"), List.of("Libros"), INICIO, null));
+                List.of(), 0L, new BigDecimal("2000"), List.of("Libros"), INICIO, null, null, null));
         asignacion.aplicar(new MetricasCliente(UUID.randomUUID().toString(), "COMPRA_ANULADA", cliente,
-                List.of(), 0L, new BigDecimal("100"), List.of("Libros"), INICIO.plusSeconds(1), null));
+                List.of(), 0L, new BigDecimal("100"), List.of("Libros"), INICIO.plusSeconds(1), null, null, null));
         var filas = historial.consultar(cliente, 0, 20).contenido();
         assertThat(filas.get(0).regla().get("id").asLong()).isEqualTo(categoria.id());
         assertThat(filas.get(0).regla().get("categoria").asText()).isEqualTo("Libros");
@@ -235,12 +235,12 @@ class HistorialSegmentosIntegracionTest {
                 Criterio.Condicion.CONTIENE, null, null, "Libros", null), "admin");
         long cliente = CLIENTES.incrementAndGet();
         asignacion.aplicar(new MetricasCliente(UUID.randomUUID().toString(), "COMPRA_CONFIRMADA", cliente,
-                List.of(), 8L, new BigDecimal("100"), List.of("Libros"), INICIO, "FRECUENTE"));
+                List.of(), 8L, new BigDecimal("100"), List.of("Libros"), INICIO, "FRECUENTE", null, null));
         criterios.editar(clasificacion.id(), new SolicitudCriterio("Frecuencia clasificada", "",
                 Criterio.Indicador.CLASIFICACION_FRECUENCIA, Criterio.Condicion.IGUAL,
                 null, null, null, clasificacion.version(), "HABITUAL"), "admin");
         asignacion.aplicar(new MetricasCliente(UUID.randomUUID().toString(), "COMPRA_CONFIRMADA", cliente,
-                List.of(), 8L, new BigDecimal("100"), List.of("Libros"), INICIO.plusSeconds(1), "FRECUENTE"));
+                List.of(), 8L, new BigDecimal("100"), List.of("Libros"), INICIO.plusSeconds(1), "FRECUENTE", null, null));
         var filas = historial.consultar(cliente, 0, 20).contenido();
         assertThat(filas).hasSize(2);
         assertThat(filas.get(0).segmentoNuevo()).isEqualTo("Lectores");
@@ -262,7 +262,7 @@ class HistorialSegmentosIntegracionTest {
     }
     private static MetricasCliente metricas(String evento, long cliente, long frecuencia, int segundo) {
         return new MetricasCliente(evento, "COMPRA_CONFIRMADA", cliente, List.of(), frecuencia,
-                new BigDecimal("100"), List.of(), INICIO.plusSeconds(segundo), null);
+                new BigDecimal("100"), List.of(), INICIO.plusSeconds(segundo), null, null, null);
     }
     private static String ruta(long cliente) { return "/api/segmentacion/clientes/" + cliente + "/historial-segmentos"; }
 }

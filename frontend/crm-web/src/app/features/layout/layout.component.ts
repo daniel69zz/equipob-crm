@@ -31,6 +31,7 @@ const GRUPOS: Grupo[] = [
       { texto: 'Clientes', ruta: '/clientes', icono: 'clientes', permiso: Permisos.CLIENTE_CONSULTAR },
       { texto: 'Revisión de perfiles', ruta: '/perfiles/revision', icono: 'revision', permiso: Permisos.CLIENTE_CONSULTAR },
       { texto: 'Clientes inactivos', ruta: '/clientes-inactivos', icono: 'inactivos', permiso: Permisos.INDICADORES_CONSULTAR },
+      { texto: 'Clientes por segmento', ruta: '/segmentacion/clientes', icono: 'segmentos', permiso: Permisos.SEGMENTOS_CONSULTAR },
     ],
   },
   {

@@ -55,7 +55,7 @@ class ClientesDeSegmentoControllerTest {
                 .thenReturn(new PageImpl<>(List.of(new SegmentoCliente(7L, "FRECUENTE", asignado),
                         new SegmentoCliente(42L, "FRECUENTE", asignado)), PageRequest.of(0, 100), 2));
 
-        mvc.perform(get("/api/segmentacion/clientes").param("segmento", "FRECUENTE"))
+        mvc.perform(get("/api/segmentacion/segmentos/miembros").param("segmento", "FRECUENTE"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.segmento").value("FRECUENTE"))
                 .andExpect(jsonPath("$.total").value(2))
@@ -69,7 +69,7 @@ class ClientesDeSegmentoControllerTest {
         when(segmentos.findBySegmentoOrderByClienteId(eq("NUEVO"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
 
-        mvc.perform(get("/api/segmentacion/clientes").param("segmento", "NUEVO"))
+        mvc.perform(get("/api/segmentacion/segmentos/miembros").param("segmento", "NUEVO"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(0))
                 .andExpect(jsonPath("$.content.length()").value(0));
@@ -80,7 +80,7 @@ class ClientesDeSegmentoControllerTest {
         when(segmentos.findBySegmentoOrderByClienteId(any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 1000), 0));
 
-        mvc.perform(get("/api/segmentacion/clientes").param("segmento", "VIP").param("tamanio", "50000")
+        mvc.perform(get("/api/segmentacion/segmentos/miembros").param("segmento", "VIP").param("tamanio", "50000")
                 .param("pagina", "-3")).andExpect(status().isOk());
 
         verify(segmentos).findBySegmentoOrderByClienteId("VIP", PageRequest.of(0, 1000));
@@ -88,9 +88,9 @@ class ClientesDeSegmentoControllerTest {
 
     @Test
     void unSegmentoVacioOMuyLargoSeRechazaConUn400() throws Exception {
-        mvc.perform(get("/api/segmentacion/clientes").param("segmento", "  "))
+        mvc.perform(get("/api/segmentacion/segmentos/miembros").param("segmento", "  "))
                 .andExpect(status().isBadRequest());
-        mvc.perform(get("/api/segmentacion/clientes").param("segmento", "S".repeat(61)))
+        mvc.perform(get("/api/segmentacion/segmentos/miembros").param("segmento", "S".repeat(61)))
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(segmentos);

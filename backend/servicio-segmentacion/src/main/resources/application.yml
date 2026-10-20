@@ -61,3 +61,7 @@ crm:
   mensajeria:
     # Broker de mensajería: rabbit (predeterminado) o pubsub (perfil "pubsub"). Ver docs/mensajeria/pubsub.md.
     broker: rabbit
+  # Nombres de los clientes del listado por segmento (SCRUM-277).
+  perfil:
+    url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
+    tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}

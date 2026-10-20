@@ -33,7 +33,9 @@ public class AuditoriaService {
     public static final List<String> OPERACIONES = List.of(
             CLIENTE_CONSULTADO, CLIENTE_MODIFICADO, ACCESO_DENEGADO,
             ROL_CREADO, ROL_ACTUALIZADO, ROL_DESACTIVADO, USUARIO_CREADO, ROL_ASIGNADO, USUARIO_DESACTIVADO,
-            "CRITERIO_CREADO", "CRITERIO_ACTUALIZADO", "CRITERIO_DESACTIVADO", "CRITERIO_ACTIVADO");
+            "CRITERIO_CREADO", "CRITERIO_ACTUALIZADO", "CRITERIO_DESACTIVADO", "CRITERIO_ACTIVADO",
+            // Lo registra servicio-segmentacion con el grupo consultado y los clientes mostrados (SCRUM-568).
+            "CLIENTES_SEGMENTO_CONSULTADOS");
 
     public static final int TAMANIO_MAXIMO_PAGINA = 100;
 

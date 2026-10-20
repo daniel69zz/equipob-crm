@@ -13,6 +13,7 @@ const NOMBRES_DE_OPERACION: Record<string, string> = {
   CRITERIO_DESACTIVADO: 'Criterio desactivado',
   CRITERIO_ACTIVADO: 'Criterio activado',
   CLIENTE_CONSULTADO: 'Consulta de cliente',
+  CLIENTES_SEGMENTO_CONSULTADOS: 'Consulta de clientes por segmento',
   CLIENTE_MODIFICADO: 'Modificación de cliente',
   ACCESO_DENEGADO: 'Acceso denegado',
   ROL_CREADO: 'Rol creado',

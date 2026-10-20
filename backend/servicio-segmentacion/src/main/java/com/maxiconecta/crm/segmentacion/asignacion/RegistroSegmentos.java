@@ -1,6 +1,7 @@
 package com.maxiconecta.crm.segmentacion.asignacion;
 
 import com.maxiconecta.crm.segmentacion.criterio.Criterio;
+import com.maxiconecta.crm.segmentacion.segmento.NivelConsumo;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -48,19 +49,23 @@ public class RegistroSegmentos {
                 (fila, n) -> fila.getObject("calculadas_en", OffsetDateTime.class), clienteId).stream().findFirst();
     }
 
+    /** Guarda la foto completa, con el nivel de consumo y la última compra del listado (SCRUM-277). */
     public void guardarMetricas(MetricasCliente metricas) {
         jdbc.update(conexion -> {
             var sentencia = conexion.prepareStatement("""
                     INSERT INTO segmentacion.metricas_cliente
                         (cliente_id, frecuencia, valor, categorias, calculadas_en, id_evento_origen,
-                         clasificacion_frecuencia)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                         clasificacion_frecuencia, nivel_consumo, ultima_compra)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT (cliente_id) DO UPDATE SET frecuencia = EXCLUDED.frecuencia, valor = EXCLUDED.valor,
                         categorias = EXCLUDED.categorias, calculadas_en = EXCLUDED.calculadas_en,
                         id_evento_origen = EXCLUDED.id_evento_origen,
-                        clasificacion_frecuencia = EXCLUDED.clasificacion_frecuencia, actualizadas_en = now()
+                        clasificacion_frecuencia = EXCLUDED.clasificacion_frecuencia,
+                        nivel_consumo = EXCLUDED.nivel_consumo, ultima_compra = EXCLUDED.ultima_compra,
+                        actualizadas_en = now()
                     """);
             Array categorias = conexion.createArrayOf("text", metricas.categoriasOVacio().toArray());
+            NivelConsumo nivel = metricas.nivelConsumoConocido();
             sentencia.setLong(1, metricas.idCliente());
             sentencia.setLong(2, metricas.frecuencia());
             sentencia.setBigDecimal(3, metricas.valor());
@@ -68,6 +73,9 @@ public class RegistroSegmentos {
             sentencia.setTimestamp(5, Timestamp.from(metricas.calculadasEn().toInstant()));
             sentencia.setString(6, metricas.idEvento());
             sentencia.setString(7, metricas.clasificacionFrecuencia());
+            sentencia.setString(8, nivel == null ? null : nivel.name());
+            sentencia.setTimestamp(9, metricas.ultimaCompra() == null ? null
+                    : Timestamp.from(metricas.ultimaCompra().toInstant()));
             return sentencia;
         });
     }

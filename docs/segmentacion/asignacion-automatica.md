@@ -29,6 +29,8 @@ segmento.
   "frecuencia": 5,
   "valor": 1250.50,
   "categorias": ["Electrónica", "Accesorios"],
+  "nivelConsumo": "MEDIO",
+  "ultimaCompra": "2026-10-13T15:18:40Z",
   "calculadasEn": "2026-10-13T15:20:11.482Z"
 }
 ```
@@ -42,8 +44,13 @@ segmento.
 | `frecuencia` | Compras vigentes (`docs/compra/frecuencia-compra.md`). |
 | `valor` | Valor acumulado vigente, en bolivianos (`docs/compra/valor-acumulado.md`). |
 | `categorias` | Categorías con consumo vigente, de mayor a menor monto (SCRUM-18). |
+| `nivelConsumo` | `BAJO`, `MEDIO` o `ALTO` sobre `valor`, con los umbrales de SCRUM-27; `null` sin compras vigentes. Solo lo usa el listado de clientes por segmento (SCRUM-28), no la asignación. |
+| `ultimaCompra` | Fecha de la compra vigente más reciente (SCRUM-19); `null` sin compras vigentes. Solo para el listado de SCRUM-28. |
 | `calculadasEn` | Momento del cálculo; ordena los mensajes del mismo cliente. |
 | `clasificacionFrecuencia` | `OCASIONAL`, `HABITUAL`, `FRECUENTE` o `null` sin compras vigentes (SCRUM-38). |
+
+`nivelConsumo` y `ultimaCompra` se agregaron con SCRUM-277 y son opcionales: un mensaje que no los
+trae se aplica igual, y un nivel desconocido se guarda como "sin nivel" en vez de rechazar el mensaje.
 
 Las métricas se calculan sobre **todas** las compras vinculadas al perfil del cliente, igual que los
 indicadores de la ficha. Una compra cuyo cliente todavía no tiene perfil (vinculación pendiente) no

@@ -2,6 +2,7 @@ package com.maxiconecta.crm.segmentacion.asignacion;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.maxiconecta.crm.segmentacion.criterio.Criterio;
+import com.maxiconecta.crm.segmentacion.segmento.NivelConsumo;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -12,12 +13,15 @@ import java.util.List;
  * anulación (docs/segmentacion/asignacion-automatica.md). Los campos desconocidos se ignoran para
  * que el emisor pueda agregar campos sin romper la segmentación. {@code clasificacionFrecuencia} es la de
  * SCRUM-38, o {@code null} si el cliente no tiene compras vigentes (o el emisor es anterior a SCRUM-38).
+ * <p>
+ * {@code nivelConsumo} y {@code ultimaCompra} (SCRUM-277) solo se guardan para el listado de
+ * clientes por segmento: no intervienen en la asignación y pueden faltar.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record MetricasCliente(String idEvento, String tipoEventoOrigen, Long idCliente,
                               List<String> identificadoresOrigen, Long frecuencia, BigDecimal valor,
                               List<String> categorias, OffsetDateTime calculadasEn,
-                              String clasificacionFrecuencia) {
+                              String clasificacionFrecuencia, String nivelConsumo, OffsetDateTime ultimaCompra) {
 
     static final int LARGO_MAXIMO_ID_EVENTO = 64;
 
@@ -47,5 +51,13 @@ public record MetricasCliente(String idEvento, String tipoEventoOrigen, Long idC
 
     List<String> categoriasOVacio() {
         return categorias == null ? List.of() : categorias.stream().filter(c -> c != null && !c.isBlank()).toList();
+    }
+
+    /**
+     * Nivel informado por comportamiento. Uno desconocido se guarda como "sin nivel" en vez de
+     * rechazar el mensaje: el nivel no decide el segmento.
+     */
+    NivelConsumo nivelConsumoConocido() {
+        return NivelConsumo.de(nivelConsumo).orElse(null);
     }
 }

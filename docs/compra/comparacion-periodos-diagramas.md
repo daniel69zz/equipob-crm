@@ -115,7 +115,7 @@ classDiagram
     ConsultaComparacionPeriodos --> ResultadoComparacion
     ResultadoComparacion --> VariacionConsumo
     VariacionConsumo --> TendenciaConsumo
-    ClientesDelSegmento ..> ClientesDeSegmentoController : GET /api/segmentacion/clientes?segmento=
+    ClientesDelSegmento ..> ClientesDeSegmentoController : GET /api/segmentacion/segmentos/miembros?segmento=
     ClientesDeSegmentoController --> SegmentoClienteRepository
 ```
 
@@ -174,7 +174,7 @@ sequenceDiagram
     C->>S: compararSegmento(segmento, periodos)
     S->>K: idsDe("FRECUENTE")
     loop mientras falten clientes
-        K->>SG: GET /api/segmentacion/clientes?segmento=FRECUENTE&pagina&tamanio=1000
+        K->>SG: GET /api/segmentacion/segmentos/miembros?segmento=FRECUENTE&pagina&tamanio=1000
         SG-->>K: clienteId de la página y total
     end
     alt servicio-segmentacion no responde

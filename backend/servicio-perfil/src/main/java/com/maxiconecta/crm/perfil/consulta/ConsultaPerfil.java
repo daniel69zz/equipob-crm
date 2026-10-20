@@ -18,8 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Consulta del perfil del cliente. Es la base de la ficha integral (SCRUM-10).
@@ -60,6 +62,23 @@ public class ConsultaPerfil {
             return new PageImpl<>(encontrado, solicitud, encontrado.size());
         }
         return clientes.findAll(especificacion(filtro, ZoneId.systemDefault()), solicitud).map(ResumenPerfil::de);
+    }
+
+    /**
+     * Resúmenes de los perfiles indicados, ordenados por identificador (SCRUM-277). Los que no
+     * existen se omiten; como máximo una página ({@value #TAMANIO_MAXIMO_PAGINA}) por consulta.
+     */
+    @Transactional(readOnly = true)
+    public List<ResumenPerfil> resumenes(List<Long> ids) {
+        List<Long> distintos = ids.stream().filter(Objects::nonNull).distinct().toList();
+        if (distintos.size() > TAMANIO_MAXIMO_PAGINA) {
+            throw new ReglaNegocioException("Se pueden consultar como máximo " + TAMANIO_MAXIMO_PAGINA
+                    + " perfiles a la vez");
+        }
+        return clientes.findAllById(distintos).stream()
+                .sorted(Comparator.comparing(Cliente::getId))
+                .map(ResumenPerfil::de)
+                .toList();
     }
 
     private static Specification<Cliente> especificacion(FiltroPerfiles filtro, ZoneId zona) {

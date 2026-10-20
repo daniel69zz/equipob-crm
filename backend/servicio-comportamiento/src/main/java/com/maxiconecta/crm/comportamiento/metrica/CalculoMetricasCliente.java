@@ -5,6 +5,7 @@ import com.maxiconecta.crm.comportamiento.compra.AgregadoConsumoCategorias;
 import com.maxiconecta.crm.comportamiento.compra.CompraRepository;
 import com.maxiconecta.crm.comportamiento.compra.Identificador;
 import com.maxiconecta.crm.comportamiento.compra.ResumenCompras;
+import com.maxiconecta.crm.comportamiento.consumo.CriterioNivelConsumo;
 import com.maxiconecta.crm.comportamiento.frecuencia.ClasificacionFrecuencia;
 import com.maxiconecta.crm.comportamiento.frecuencia.CriterioClasificacionFrecuencia;
 import com.maxiconecta.crm.comportamiento.indicador.CategoriaConsumida;
@@ -21,6 +22,10 @@ import java.util.List;
  * consumo vigente, de mayor a menor monto (SCRUM-18), con la clasificación por frecuencia (SCRUM-38). Suma todos los identificadores vinculados
  * al perfil del cliente. Se llama dentro de la transacción de la compra o la anulación, por eso ya
  * ve el cambio recién registrado.
+ * <p>
+ * Para el listado de clientes por segmento (SCRUM-277) suma el nivel de consumo, clasificado sobre
+ * ese mismo valor acumulado como en la ficha (SCRUM-27), y la fecha de la última compra vigente
+ * (SCRUM-19).
  */
 @Service
 public class CalculoMetricasCliente {
@@ -28,15 +33,17 @@ public class CalculoMetricasCliente {
     private final CompraRepository compras;
     private final AgregadoComprasCliente agregado;
     private final AgregadoConsumoCategorias consumo;
+    private final CriterioNivelConsumo nivelConsumo;
     private final Clock reloj;
     private final CriterioClasificacionFrecuencia clasificacion;
 
     public CalculoMetricasCliente(CompraRepository compras, AgregadoComprasCliente agregado,
-                                  AgregadoConsumoCategorias consumo, Clock reloj,
-                                  CriterioClasificacionFrecuencia clasificacion) {
+                                  AgregadoConsumoCategorias consumo, CriterioNivelConsumo nivelConsumo,
+                                  Clock reloj, CriterioClasificacionFrecuencia clasificacion) {
         this.compras = compras;
         this.agregado = agregado;
         this.consumo = consumo;
+        this.nivelConsumo = nivelConsumo;
         this.reloj = reloj;
         this.clasificacion = clasificacion;
     }
@@ -53,6 +60,8 @@ public class CalculoMetricasCliente {
         String clasificacionFrecuencia = clasificacion.clasificar(resumen.compras())
                 .map(ClasificacionFrecuencia::name).orElse(null);
         return new MetricasCliente(idEvento, tipoEventoOrigen, idCliente, identificadoresOrigen, resumen.compras(),
-                resumen.monto(), categorias, OffsetDateTime.now(reloj), clasificacionFrecuencia);
+                resumen.monto(), categorias, OffsetDateTime.now(reloj), clasificacionFrecuencia,
+                nivelConsumo.clasificar(resumen.monto()).orElse(null),
+                agregado.ultimaCompraVigente(identificadores).orElse(null));
     }
 }

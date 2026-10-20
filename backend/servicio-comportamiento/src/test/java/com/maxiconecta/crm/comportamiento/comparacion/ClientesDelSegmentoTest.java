@@ -20,7 +20,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
  */
 class ClientesDelSegmentoTest {
 
-    private static final String BASE = "http://segmentacion.test/api/segmentacion/clientes?segmento=FRECUENTE";
+    private static final String BASE = "http://segmentacion.test/api/segmentacion/segmentos/miembros?segmento=FRECUENTE";
 
     private final RestClient.Builder builder = RestClient.builder().baseUrl("http://segmentacion.test");
     private final MockRestServiceServer servidor = MockRestServiceServer.bindTo(builder).build();

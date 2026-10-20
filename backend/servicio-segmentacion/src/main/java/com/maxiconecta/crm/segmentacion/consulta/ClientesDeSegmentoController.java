@@ -17,12 +17,13 @@ import java.util.List;
 /**
  * Clientes asignados a un segmento (SCRUM-357), que servicio-comportamiento consulta para agregar
  * solo a los clientes de un segmento al comparar periodos (SCRUM-40,
- * docs/compra/comparacion-periodos.md). Un listado filtrado usa el parámetro {@code ?segmento=} y
- * no un segmento propio en la ruta (docs/seguridad/convencion-rutas-clientes.md); el API Gateway
- * exige SEGMENTOS_CONSULTAR para GET /api/segmentacion/** y audita el acceso.
+ * docs/compra/comparacion-periodos.md). Es una consulta interna entre servicios: solo devuelve los
+ * identificadores. El listado para usuarios, con nombres, filtros y auditoría, es
+ * {@code GET /api/segmentacion/clientes} (SCRUM-28, {@link ClientesSegmentoController}); por eso esta
+ * ruta es distinta. El API Gateway exige SEGMENTOS_CONSULTAR para GET /api/segmentacion/**.
  */
 @RestController
-@RequestMapping("/api/segmentacion/clientes")
+@RequestMapping("/api/segmentacion/segmentos/miembros")
 public class ClientesDeSegmentoController {
 
     static final int LARGO_MAXIMO_SEGMENTO = 60;
@@ -34,7 +35,7 @@ public class ClientesDeSegmentoController {
         this.segmentos = segmentos;
     }
 
-    @GetMapping(params = "segmento")
+    @GetMapping
     public ClientesDeSegmento buscar(@RequestParam("segmento") String segmento,
                                      @RequestParam(defaultValue = "0") int pagina,
                                      @RequestParam(defaultValue = "100") int tamanio) {

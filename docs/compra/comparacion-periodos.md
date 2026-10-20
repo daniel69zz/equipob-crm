@@ -79,7 +79,7 @@ GET /api/comportamiento/comparacion-periodos
 ```
 
 1. `servicio-comportamiento` pide a `servicio-segmentacion` los clientes del segmento, página a página
-   (`GET /api/segmentacion/clientes?segmento=FRECUENTE&pagina=0&tamanio=1000`, que devuelve los
+   (`GET /api/segmentacion/segmentos/miembros?segmento=FRECUENTE&pagina=0&tamanio=1000`, que devuelve los
    identificadores de perfil con `clienteId` y `asignadoEn`). La ruta sigue la convención de listados
    filtrados por parámetro (`docs/seguridad/convencion-rutas-clientes.md`).
 2. Agrega solo las compras vinculadas a esos perfiles (`compra.id_cliente`), en lotes de 1000 clientes.

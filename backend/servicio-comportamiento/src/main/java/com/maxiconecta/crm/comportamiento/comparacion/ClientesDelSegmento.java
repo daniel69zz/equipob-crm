@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  * Clientes asignados a un segmento, consultados en servicio-segmentacion
- * (GET /api/segmentacion/clientes?segmento=, SCRUM-357) para comparar periodos solo con los clientes
+ * (GET /api/segmentacion/segmentos/miembros?segmento=, SCRUM-357) para comparar periodos solo con los clientes
  * de ese segmento (docs/compra/comparacion-periodos.md). Devuelve los identificadores de perfil, que
  * son los que guarda cada compra vinculada ({@code compra.id_cliente}).
  */
@@ -51,7 +51,7 @@ public class ClientesDelSegmento {
             for (int pagina = 0; pagina < PAGINAS_MAXIMAS; pagina++) {
                 final int numero = pagina;
                 PaginaClientes respuesta = http.get()
-                        .uri(builder -> builder.path("/api/segmentacion/clientes")
+                        .uri(builder -> builder.path("/api/segmentacion/segmentos/miembros")
                                 .queryParam("segmento", "{segmento}")
                                 .queryParam("pagina", numero)
                                 .queryParam("tamanio", TAMANIO_PAGINA)
