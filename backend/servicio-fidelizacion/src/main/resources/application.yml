@@ -10,11 +10,6 @@ crm:
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
 
-fidelizacion:
-  puntos:
-    # Regla de cálculo (SCRUM-386): 1 punto por cada tramo completo de este valor consumido, en bolivianos.
-    bolivianos-por-punto: ${FIDELIZACION_BOLIVIANOS_POR_PUNTO:10}
-
 spring:
   application:
     name: servicio-fidelizacion
