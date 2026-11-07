@@ -9,8 +9,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * Saldo de puntos (SCRUM-389) y detalle por transacción (SCRUM-390), dentro de la transacción de
- * {@link ProcesadorMovimientos}.
+ * Saldo de puntos (SCRUM-389) e historial de movimientos por transacción (SCRUM-390, SCRUM-403),
+ * dentro de la transacción de {@link ProcesadorMovimientos}.
  */
 @Repository
 public class RegistroPuntos {
@@ -23,7 +23,8 @@ public class RegistroPuntos {
 
     /**
      * Reserva el movimiento antes de tocar el saldo (SCRUM-243): la clave primaria detiene una segunda
-     * acreditación de la misma transacción aunque dos copias se procesen a la vez.
+     * aplicación de la misma transacción aunque dos copias se procesen a la vez. En una redención
+     * (SCRUM-403) el valor consumido puede faltar y no hay tasa aplicada.
      */
     public void reservar(String idTransaccion, TipoMovimiento tipo, long clienteId, String idClienteOrigen,
                          BigDecimal valorConsumido, long puntos, BigDecimal bolivianosPorPunto,
@@ -37,8 +38,9 @@ public class RegistroPuntos {
                     """, idTransaccion, tipo.name(), clienteId, idClienteOrigen, valorConsumido, puntos,
                     bolivianosPorPunto, fechaTransaccion, idEventoMovimiento);
         } catch (DuplicateKeyException ex) {
-            throw new MovimientoDuplicadoException("La transacción " + idTransaccion + " ya acreditó sus puntos ("
-                    + tipo.name() + ")");
+            throw new MovimientoDuplicadoException(tipo == TipoMovimiento.REDENCION
+                    ? "La transacción " + idTransaccion + " ya descontó sus puntos (REDENCION)"
+                    : "La transacción " + idTransaccion + " ya acreditó sus puntos (" + tipo.name() + ")");
         }
     }
 
@@ -64,15 +66,25 @@ public class RegistroPuntos {
                 FROM fidelizacion.movimiento_puntos WHERE cliente_id = ? ORDER BY registrado_en DESC, fecha_transaccion DESC
                 """, (r, n) -> new DetalleMovimiento(r.getString("id_transaccion"), r.getString("tipo_movimiento"),
                 r.getString("id_cliente_origen"), r.getBigDecimal("valor_consumido"), r.getLong("puntos"),
+                variacion(r.getString("tipo_movimiento"), r.getLong("puntos")),
                 r.getBigDecimal("bolivianos_por_punto"), r.getLong("saldo_resultante"),
                 r.getObject("fecha_transaccion", OffsetDateTime.class),
                 r.getObject("registrado_en", OffsetDateTime.class)), clienteId);
     }
 
-    /** Detalle de puntos de una transacción (criterio de aceptación 4). */
+    /** Efecto del movimiento sobre el saldo: suma en una acumulación y resta en una redención (SCRUM-403). */
+    static long variacion(String tipoMovimiento, long puntos) {
+        return TipoMovimiento.REDENCION.name().equals(tipoMovimiento) ? -puntos : puntos;
+    }
+
+    /**
+     * Detalle de puntos de una transacción (criterio de aceptación 4 de SCRUM-45). {@code puntos} es
+     * siempre positivo y {@code variacionSaldo} indica si sumó o restó (SCRUM-403); una redención no
+     * tiene tasa y su valor consumido es opcional.
+     */
     public record DetalleMovimiento(String idTransaccion, String tipoMovimiento, String idClienteOrigen,
-                                    BigDecimal valorConsumido, long puntos, BigDecimal bolivianosPorPunto,
-                                    long saldoResultante, OffsetDateTime fechaTransaccion,
-                                    OffsetDateTime registradoEn) {
+                                    BigDecimal valorConsumido, long puntos, long variacionSaldo,
+                                    BigDecimal bolivianosPorPunto, long saldoResultante,
+                                    OffsetDateTime fechaTransaccion, OffsetDateTime registradoEn) {
     }
 }
