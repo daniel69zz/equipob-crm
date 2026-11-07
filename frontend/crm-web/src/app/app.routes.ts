@@ -4,6 +4,7 @@ import { PreferenciasComponent } from './features/clientes/preferencias.componen
 import { administradorFidelizacionGuard, administradorSegmentacionGuard, autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.guards';
 import { CriteriosComponent } from './features/segmentacion/criterios.component';
 import { ReglasAcumulacionComponent } from './features/fidelizacion/reglas-acumulacion.component';
+import { NivelesComponent } from './features/fidelizacion/niveles.component';
 import { ClientesSegmentoComponent } from './features/segmentacion/clientes-segmento.component';
 import { Permisos } from './core/auth/sesion';
 import { RetencionCohortesComponent } from './features/analisis/retencion-cohortes.component';
@@ -37,6 +38,7 @@ export const routes: Routes = [
       { path: '', component: InicioComponent },
       { path: 'segmentacion/criterios', component: CriteriosComponent, canActivate: [administradorSegmentacionGuard] },
       { path: 'fidelizacion/reglas', component: ReglasAcumulacionComponent, canActivate: [administradorFidelizacionGuard] },
+      { path: 'fidelizacion/niveles', component: NivelesComponent, canActivate: [administradorFidelizacionGuard] },
       {
         path: 'segmentacion/clientes',
         component: ClientesSegmentoComponent,
