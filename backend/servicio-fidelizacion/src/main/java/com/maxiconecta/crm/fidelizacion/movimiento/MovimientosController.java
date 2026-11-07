@@ -38,9 +38,11 @@ public class MovimientosController {
         return registro.movimientos(clienteId);
     }
 
+    /** Bitácora filtrable por estado y tipo: {@code ?estado=FALLIDO&tipo=REDENCION} (SCRUM-408). */
     @GetMapping("/eventos")
-    public List<BitacoraMovimientos.EventoMovimiento> eventos(@RequestParam(required = false) Estado estado) {
-        return bitacora.listar(estado, LIMITE_BITACORA);
+    public List<BitacoraMovimientos.EventoMovimiento> eventos(@RequestParam(required = false) Estado estado,
+                                                              @RequestParam(required = false) TipoMovimiento tipo) {
+        return bitacora.listar(estado, tipo, LIMITE_BITACORA);
     }
 
     @PostMapping("/eventos/{id}/reprocesar")

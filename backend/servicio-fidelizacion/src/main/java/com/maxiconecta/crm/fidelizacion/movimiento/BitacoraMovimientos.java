@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,10 +60,24 @@ public class BitacoraMovimientos {
     }
 
     public List<EventoMovimiento> listar(Estado estado, int limite) {
-        return estado == null
-                ? jdbc.query("SELECT * FROM fidelizacion.evento_movimiento ORDER BY id DESC LIMIT ?", MAPPER, limite)
-                : jdbc.query("SELECT * FROM fidelizacion.evento_movimiento WHERE estado = ? ORDER BY id DESC LIMIT ?",
-                        MAPPER, estado.name(), limite);
+        return listar(estado, null, limite);
+    }
+
+    /** Filtra por estado y tipo de movimiento; por ejemplo, las redenciones FALLIDO (SCRUM-408). */
+    public List<EventoMovimiento> listar(Estado estado, TipoMovimiento tipo, int limite) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM fidelizacion.evento_movimiento WHERE true");
+        List<Object> parametros = new ArrayList<>();
+        if (estado != null) {
+            sql.append(" AND estado = ?");
+            parametros.add(estado.name());
+        }
+        if (tipo != null) {
+            sql.append(" AND tipo_movimiento = ?");
+            parametros.add(tipo.name());
+        }
+        sql.append(" ORDER BY id DESC LIMIT ?");
+        parametros.add(limite);
+        return jdbc.query(sql.toString(), MAPPER, parametros.toArray());
     }
 
     public enum Estado { RECIBIDO, PROCESADO, FALLIDO, DESCARTADO }
