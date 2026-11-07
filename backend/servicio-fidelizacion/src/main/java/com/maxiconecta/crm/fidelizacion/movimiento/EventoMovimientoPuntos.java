@@ -17,9 +17,13 @@ public record EventoMovimientoPuntos(String idEvento, String tipoEvento,
 
     public static final String TIPO = "MOVIMIENTO_PUNTOS";
 
+    /**
+     * {@code puntos} son los puntos redimidos de una redención (SCRUM-405). Se lee como decimal para
+     * rechazar valores con fracción en lugar de truncarlos.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Movimiento(String idTransaccion, String idCliente, String tipoMovimiento,
-                             BigDecimal valorConsumido,
+                             BigDecimal valorConsumido, BigDecimal puntos,
                              @JsonFormat(shape = JsonFormat.Shape.STRING) OffsetDateTime fecha) {
     }
 }

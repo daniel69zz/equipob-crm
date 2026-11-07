@@ -7,7 +7,7 @@ Eventos a simular (según los contratos de `docs/contratos-eventos/`):
 - Alta y cambio de datos de un cliente (RIO-CRM-01) — **disponible**
 - Compra confirmada (RIO-CRM-02) — **disponible**
 - Anulación o devolución de compra (RIO-CRM-05) — **disponible**
-- Movimiento de puntos (RIO-CRM-03): acumulación — **disponible**; redención y reversa, en SCRUM-48 y SCRUM-524
+- Movimiento de puntos (RIO-CRM-03): acumulación y redención — **disponibles**; reversa, en SCRUM-524
 - Casos de prueba: evento duplicado, evento con datos inválidos, evento que falla y va a la cola de fallidos
 
 ## Uso
@@ -82,7 +82,7 @@ preferencias (`GET /api/comportamiento/clientes/{id}/preferencias`) y lo registr
 `.../preferencias/actualizaciones`; una reentrega no lo actualiza dos veces. Detalle en
 `docs/preferencias/actualizacion-por-eventos.md`.
 
-### Movimientos de puntos (RIO-CRM-03, SCRUM-45)
+### Movimientos de puntos (RIO-CRM-03, SCRUM-45 y SCRUM-48)
 
 Con `servicio-fidelizacion` y `servicio-perfil` levantados y el perfil del cliente creado
 (`cliente-ana-alta.json`):
@@ -93,9 +93,17 @@ Con `servicio-fidelizacion` y `servicio-perfil` levantados y el perfil del clien
 | `movimiento-acumulacion-ana.json` publicado dos veces | El segundo, `DESCARTADO`: la transacción V-100234 ya acreditó sus puntos |
 | `movimiento-acumulacion-carlos.json` | `PROCESADO`: Bs 129,90 → 12 puntos (si mp-user-3307 tiene perfil) |
 | `movimiento-invalido.json` | `FALLIDO`: `valorConsumido` debe ser mayor que cero; el saldo no cambia |
-| `movimiento-redencion.json` | `FALLIDO`: la redención se procesa en SCRUM-48; queda para reproceso |
+| `movimiento-redencion.json` (después de la acumulación de Ana) | `PROCESADO`: R-5001 descuenta 20 puntos; el saldo de CLI-5521 queda en 15 |
+| `movimiento-redencion.json` publicado dos veces | El segundo, `DESCARTADO`: la transacción R-5001 ya descontó sus puntos |
+| `movimiento-redencion-saldo-insuficiente.json` | `FALLIDO`: R-5002 pide 500 puntos y el saldo no alcanza; el saldo no cambia |
 
-Detalle en `docs/fidelizacion/acumulacion-puntos.md`.
+```bash
+python3 publicar.py eventos/movimiento-acumulacion-ana.json eventos/movimiento-redencion.json
+python3 publicar.py eventos/movimiento-redencion.json                       # reentrega: DESCARTADO
+python3 publicar.py eventos/movimiento-redencion-saldo-insuficiente.json    # FALLIDO por saldo insuficiente
+```
+
+Detalle en `docs/fidelizacion/acumulacion-puntos.md` y `docs/fidelizacion/redencion-puntos.md`.
 
 ### Clientes (RIO-CRM-01)
 

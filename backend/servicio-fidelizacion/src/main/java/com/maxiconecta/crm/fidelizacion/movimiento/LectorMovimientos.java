@@ -17,6 +17,7 @@ import java.util.UUID;
 public class LectorMovimientos {
 
     static final int LARGO_MAXIMO_ID = 64;
+    static final int DIGITOS_MAXIMOS_PUNTOS = 12;
 
     private final ObjectMapper json;
 
@@ -71,16 +72,41 @@ public class LectorMovimientos {
         }
         identificador("movimiento.idTransaccion", movimiento.idTransaccion());
         identificador("movimiento.idCliente", movimiento.idCliente());
-        tipo(movimiento.tipoMovimiento());
-        BigDecimal valor = movimiento.valorConsumido();
+        TipoMovimiento tipo = tipo(movimiento.tipoMovimiento());
+        if (tipo == TipoMovimiento.REDENCION) {
+            // SCRUM-405: la solicitud de redención trae los puntos redimidos; el valor en bolivianos es opcional.
+            puntosRedimidos(movimiento.puntos());
+            if (movimiento.valorConsumido() != null) {
+                valorConsumido(movimiento.valorConsumido());
+            }
+        } else {
+            valorConsumido(movimiento.valorConsumido());
+        }
+        if (movimiento.fecha() == null) {
+            throw new EventoInvalidoException("movimiento.fecha es obligatoria");
+        }
+    }
+
+    private static void valorConsumido(BigDecimal valor) {
         if (valor == null || valor.signum() <= 0) {
             throw new EventoInvalidoException("movimiento.valorConsumido es obligatorio y mayor que cero");
         }
         if (valor.stripTrailingZeros().scale() > 2 || valor.precision() - valor.scale() > 12) {
             throw new EventoInvalidoException("movimiento.valorConsumido debe tener formato decimal (12,2)");
         }
-        if (movimiento.fecha() == null) {
-            throw new EventoInvalidoException("movimiento.fecha es obligatoria");
+    }
+
+    /** Puntos redimidos: entero mayor que cero, de hasta {@value #DIGITOS_MAXIMOS_PUNTOS} dígitos. */
+    private static void puntosRedimidos(BigDecimal puntos) {
+        if (puntos == null || puntos.signum() <= 0) {
+            throw new EventoInvalidoException("movimiento.puntos es obligatorio en una REDENCION y mayor que cero");
+        }
+        BigDecimal entero = puntos.stripTrailingZeros();
+        if (entero.scale() > 0) {
+            throw new EventoInvalidoException("movimiento.puntos debe ser un número entero de puntos");
+        }
+        if (entero.precision() - entero.scale() > DIGITOS_MAXIMOS_PUNTOS) {
+            throw new EventoInvalidoException("movimiento.puntos admite hasta " + DIGITOS_MAXIMOS_PUNTOS + " dígitos");
         }
     }
 
