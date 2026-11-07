@@ -45,8 +45,8 @@ puntos = parte entera de (valorConsumido / bolivianosPorPunto)
 
 `fidelizacion.saldo_puntos` guarda un saldo por cliente del CRM. La suma es atómica en la base
 (`INSERT … ON CONFLICT DO UPDATE SET saldo = saldo + puntos`), así que dos acumulaciones simultáneas del
-mismo cliente no se pisan. Un cliente que acumula por primera vez queda con saldo y **sin nivel** (los
-niveles son SCRUM-49); la ficha integral lo muestra sin nivel.
+mismo cliente no se pisan. Con cada cambio de saldo se recalcula también su nivel de fidelización
+(SCRUM-49, `docs/fidelizacion/niveles-fidelizacion.md`).
 
 ## Idempotencia (SCRUM-243, criterio de aceptación 2)
 

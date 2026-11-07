@@ -35,6 +35,21 @@ queda en el historial con quién y cuándo la cambió. Detalle en `docs/fideliza
 | PUT | `/api/fidelizacion/reglas/acumulacion` | `FIDELIZACION_CONFIGURAR` + rol Administrador de CRM |
 | GET | `/api/fidelizacion/reglas/acumulacion/historial` | rol Administrador de CRM + `FIDELIZACION_CONFIGURAR` |
 
+## Niveles de fidelización (SCRUM-49)
+
+Bronce, Plata y Oro con umbrales de puntos acumulados en el periodo de evaluación (12 meses por defecto).
+El nivel se recalcula con cada cambio de saldo, al cambiar los umbrales y cada noche
+(`FIDELIZACION_NIVELES_CRON`, por defecto `0 30 2 * * *`, zona `FIDELIZACION_ZONA_HORARIA`). Los umbrales
+que se superponen o dejan huecos se rechazan indicando el conflicto. Detalle en
+`docs/fidelizacion/niveles-fidelizacion.md`.
+
+| Método | Ruta | Permiso (Gateway) |
+|---|---|---|
+| GET | `/api/fidelizacion/niveles` | `PUNTOS_CONSULTAR` |
+| PUT | `/api/fidelizacion/niveles` | `FIDELIZACION_CONFIGURAR` + rol Administrador de CRM |
+| GET | `/api/fidelizacion/niveles/historial` | rol Administrador de CRM + `FIDELIZACION_CONFIGURAR` |
+| POST | `/api/fidelizacion/niveles/recalcular` | `FIDELIZACION_CONFIGURAR` + rol Administrador de CRM |
+
 ## Ejecutar
 
 PostgreSQL, RabbitMQ y servicio-perfil disponibles. Variables `DB_URL`, `DB_USUARIO`, `DB_PASSWORD`,
