@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.movimiento;
 
+import com.maxiconecta.crm.fidelizacion.nivel.AsignacionNiveles;
 import com.maxiconecta.crm.fidelizacion.regla.ReglaAcumulacion;
 import com.maxiconecta.crm.fidelizacion.regla.ReglasAcumulacion;
 import org.springframework.stereotype.Service;
@@ -18,14 +19,16 @@ public class ProcesadorMovimientos {
     private final ClientesPerfil perfiles;
     private final ReglasAcumulacion reglas;
     private final RegistroPuntos registro;
+    private final AsignacionNiveles niveles;
 
     public ProcesadorMovimientos(BitacoraMovimientos bitacora, LectorMovimientos lector, ClientesPerfil perfiles,
-                                 ReglasAcumulacion reglas, RegistroPuntos registro) {
+                                 ReglasAcumulacion reglas, RegistroPuntos registro, AsignacionNiveles niveles) {
         this.bitacora = bitacora;
         this.lector = lector;
         this.perfiles = perfiles;
         this.reglas = reglas;
         this.registro = registro;
+        this.niveles = niveles;
     }
 
     @Transactional
@@ -47,6 +50,8 @@ public class ProcesadorMovimientos {
                 movimiento.valorConsumido(), puntos, regla, movimiento.fecha(), idEventoMovimiento);
         long saldo = registro.acreditar(clienteId, puntos);
         registro.anotarSaldoResultante(movimiento.idTransaccion(), tipo, saldo);
+        // SCRUM-49: con el saldo cambia también el nivel, en la misma transacción.
+        niveles.recalcular(clienteId);
         bitacora.marcarProcesado(idEventoMovimiento);
         return saldo;
     }
