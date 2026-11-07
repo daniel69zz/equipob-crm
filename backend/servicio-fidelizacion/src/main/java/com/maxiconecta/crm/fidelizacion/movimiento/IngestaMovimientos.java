@@ -48,7 +48,7 @@ public class IngestaMovimientos {
     private Estado procesar(long id, String contenido) {
         try {
             long saldo = procesador.procesar(id, contenido);
-            log.info("Movimiento {} acreditado; saldo resultante {}", id, saldo);
+            log.info("Movimiento {} aplicado; saldo resultante {}", id, saldo);
             return Estado.PROCESADO;
         } catch (MovimientoDuplicadoException ex) {
             log.info("Movimiento {} descartado: {}", id, ex.getMessage());

@@ -79,6 +79,12 @@ public class RegistroPuntos {
                 .stream().findFirst().orElse(0L);
     }
 
+    /** Deja al cliente en el nivel que corresponde a su saldo (criterio de aceptación 4 de SCRUM-48). */
+    public void asignarNivel(long clienteId, String nivel) {
+        jdbc.update("UPDATE fidelizacion.saldo_puntos SET nivel = ? WHERE cliente_id = ? AND nivel IS DISTINCT FROM ?",
+                nivel, clienteId, nivel);
+    }
+
     public void anotarSaldoResultante(String idTransaccion, TipoMovimiento tipo, long saldo) {
         jdbc.update("UPDATE fidelizacion.movimiento_puntos SET saldo_resultante = ? "
                 + "WHERE id_transaccion = ? AND tipo_movimiento = ?", saldo, idTransaccion, tipo.name());

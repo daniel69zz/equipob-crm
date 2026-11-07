@@ -1,6 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.movimiento;
 
-/** Tipos de movimiento de RIO-CRM-03. SCRUM-45 procesa la acumulación; redención y reversa son SCRUM-48 y SCRUM-524. */
+/** Tipos de movimiento de RIO-CRM-03: acumulación (SCRUM-45), redención (SCRUM-48) y reversa (SCRUM-524). */
 public enum TipoMovimiento {
     ACUMULACION,
     REDENCION,
