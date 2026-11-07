@@ -12,8 +12,9 @@ historia de integración asíncrona del Sprint 2. Diagramas en
 puntos = parte entera de (valorConsumido / bolivianosPorPunto)
 ```
 
-- **Tasa:** 1 punto por cada **Bs 10** consumidos (`FIDELIZACION_BOLIVIANOS_POR_PUNTO`, por defecto 10;
-  debe ser mayor que cero). La configuración de las reglas por el administrador es SCRUM-46.
+- **Tasa:** 1 punto por cada **Bs 10** consumidos (regla inicial). Desde SCRUM-46 la tasa y un monto
+  mínimo de compra los configura el Administrador de CRM, con versiones e historial
+  (`docs/fidelizacion/reglas-acumulacion.md`); ya no se usa la variable `FIDELIZACION_BOLIVIANOS_POR_PUNTO`.
 - **Redondeo:** hacia abajo; solo cuentan los bolivianos completos de cada tramo. Bs 350,50 → 35 puntos;
   Bs 9,99 → 0 puntos.
 - **Mínimo:** una transacción de menos de un tramo genera **0 puntos**: queda registrada en el detalle
