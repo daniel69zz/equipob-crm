@@ -54,6 +54,31 @@ public class RegistroPuntos {
                 """, Long.class, clienteId, puntos);
     }
 
+    /**
+     * Descuenta los puntos solo si el saldo alcanza (SCRUM-407): la condición y la resta van en la misma
+     * sentencia, así que dos redenciones simultáneas del mismo cliente no pueden dejar el saldo negativo.
+     * Devuelve el saldo resultante.
+     *
+     * @throws SaldoInsuficienteException si el cliente no tiene saldo o no le alcanza; el saldo no cambia
+     */
+    public long debitar(long clienteId, String idTransaccion, long puntos) {
+        List<Long> saldo = jdbc.queryForList("""
+                UPDATE fidelizacion.saldo_puntos SET saldo = saldo - ?, actualizado_en = now()
+                WHERE cliente_id = ? AND saldo >= ?
+                RETURNING saldo
+                """, Long.class, puntos, clienteId, puntos);
+        if (saldo.isEmpty()) {
+            throw new SaldoInsuficienteException(idTransaccion, puntos, saldoDisponible(clienteId));
+        }
+        return saldo.get(0);
+    }
+
+    /** Saldo vigente del cliente; 0 si todavía no tiene saldo. */
+    public long saldoDisponible(long clienteId) {
+        return jdbc.queryForList("SELECT saldo FROM fidelizacion.saldo_puntos WHERE cliente_id = ?", Long.class, clienteId)
+                .stream().findFirst().orElse(0L);
+    }
+
     public void anotarSaldoResultante(String idTransaccion, TipoMovimiento tipo, long saldo) {
         jdbc.update("UPDATE fidelizacion.movimiento_puntos SET saldo_resultante = ? "
                 + "WHERE id_transaccion = ? AND tipo_movimiento = ?", saldo, idTransaccion, tipo.name());
