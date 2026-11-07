@@ -186,12 +186,12 @@ class AcumulacionPuntosIntegracionTest {
     }
 
     @Test
-    void unaRedencionQuedaFallidaHastaQueSeProceseEnSuHistoria() {
-        ingesta.recibir(ejemplo("movimiento-redencion.json"));
+    void unaReversaQuedaFallidaHastaQueSeProceseEnSuHistoria() {
+        ingesta.recibir(ejemplo("movimiento-acumulacion-ana.json").replace("ACUMULACION", "REVERSA"));
 
         EventoMovimiento evento = bitacora.listar(null, 10).get(0);
         assertThat(evento.estado()).isEqualTo(Estado.FALLIDO);
-        assertThat(evento.causa()).contains("REDENCION").contains("SCRUM-48");
+        assertThat(evento.causa()).contains("REVERSA").contains("SCRUM-524");
         assertThat(saldoExiste()).isFalse();
     }
 

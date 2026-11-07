@@ -60,6 +60,55 @@ public class LectorMovimientosTest {
     }
 
     @Test
+    void leeUnaRedencionConSusPuntosRedimidos() {
+        EventoMovimientoPuntos evento = lector.leer(ejemplo("movimiento-redencion.json"));
+
+        assertThat(evento.movimiento().idTransaccion()).isEqualTo("R-5001");
+        assertThat(evento.movimiento().tipoMovimiento()).isEqualTo("REDENCION");
+        assertThat(evento.movimiento().puntos()).isEqualByComparingTo("20");
+        assertThat(evento.movimiento().valorConsumido()).isEqualByComparingTo("20.00");
+    }
+
+    @Test
+    void unaRedencionNoNecesitaValorConsumido() {
+        EventoMovimientoPuntos evento = lector.leer(ejemplo("movimiento-redencion-saldo-insuficiente.json"));
+
+        assertThat(evento.movimiento().puntos()).isEqualByComparingTo("500");
+        assertThat(evento.movimiento().valorConsumido()).isNull();
+    }
+
+    @Test
+    void rechazaUnaRedencionSinPuntosConDecimalesONoPositivos() {
+        String valida = ejemplo("movimiento-redencion.json");
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"puntos\": 20,", "")))
+                .isInstanceOf(EventoInvalidoException.class).hasMessageContaining("movimiento.puntos es obligatorio");
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"puntos\": 20", "\"puntos\": 0")))
+                .hasMessageContaining("mayor que cero");
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"puntos\": 20", "\"puntos\": -5")))
+                .hasMessageContaining("mayor que cero");
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"puntos\": 20", "\"puntos\": 20.5")))
+                .hasMessageContaining("número entero");
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"puntos\": 20", "\"puntos\": 1234567890123")))
+                .hasMessageContaining("12 dígitos");
+        assertThatThrownBy(() -> lector.leer(valida.replace("20.00", "-1")))
+                .hasMessageContaining("movimiento.valorConsumido");
+    }
+
+    @Test
+    void unaRedencionConPuntosEnteroEscritosConDecimalesCerosEsValida() {
+        String valida = ejemplo("movimiento-redencion.json").replace("\"puntos\": 20", "\"puntos\": 20.0");
+
+        assertThat(lector.leer(valida).movimiento().puntos().longValueExact()).isEqualTo(20);
+    }
+
+    @Test
+    void laAcumulacionSigueExigiendoElValorConsumido() {
+        String sinValor = ejemplo("movimiento-acumulacion-ana.json").replace("\"valorConsumido\": 350.50,", "");
+
+        assertThatThrownBy(() -> lector.leer(sinValor)).hasMessageContaining("movimiento.valorConsumido");
+    }
+
+    @Test
     void laCabeceraSeLeeAunqueElMensajeSeaInvalido() {
         assertThat(lector.cabecera(ejemplo("movimiento-invalido.json")))
                 .isEqualTo(new LectorMovimientos.Cabecera("2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e", "V-100999", "ACUMULACION"));
