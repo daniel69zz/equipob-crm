@@ -65,3 +65,41 @@ El **seguimiento**, es decir el estado y el tipo, lo actualiza **cualquier Agent
 aunque no la haya registrado: un caso pasa de un agente a otro durante la atención. La **corrección del
 contenido** (`PUT`, SCRUM-435) sigue limitada a quien la registró o al Administrador. La asignación de un
 responsable queda para SCRUM-56.
+
+## API (SCRUM-452)
+
+```
+PATCH /api/interacciones/clientes/{clienteId}/interacciones/{id}
+```
+
+```json
+{ "estado": "EN_PROCESO", "tipo": "RECLAMO", "comentario": "Se pidió a Ventas el producto faltante", "version": 3 }
+```
+
+| Campo | Regla |
+|---|---|
+| `estado` | Opcional: `ABIERTA`, `EN_PROCESO` o `CERRADA` |
+| `tipo` | Opcional: `CONSULTA`, `RECLAMO` o `NOTA` |
+| `comentario` | Opcional, hasta 500 caracteres |
+| `version` | Obligatoria: la versión que el usuario tenía en pantalla |
+
+- **Qué se envía:** al menos el estado o el tipo. Lo que no se envía no cambia.
+- **Rechazos:**
+  - Si no cambia nada, responde `400`.
+  - Si otra persona la cambió antes, `409` con `campos.version`.
+  - Una interacción de otro cliente responde `404`.
+- **Si el estado cambia:** la interacción guarda quién lo cambió y cuándo (`estadoActualizadoPor`,
+  `estadoActualizadoEn`).
+- **Versión:** cada cambio la sube.
+- **Registro del cambio (criterio de aceptación 1):** en la misma transacción quedan dos registros:
+  - En `interacciones.interaccion_auditoria`: operación `SEGUIMIENTO`, con el valor anterior y el nuevo de cada
+    campo y el comentario.
+  - En la auditoría compartida: `INTERACCION_SEGUIMIENTO_ACTUALIZADO`, con entidad `CLIENTE`, el estado
+    resultante y los campos cambiados.
+- **Gateway:** la ruta es de cliente, así que registra `CLIENTE_MODIFICADO`.
+
+### Filtro por tipo y estado (criterio de aceptación 3)
+
+El historial (`GET …/interacciones`) suma el filtro `estado` a los de SCRUM-431. Por ejemplo,
+`?tipo=RECLAMO&estado=ABIERTA` devuelve solo los reclamos abiertos del cliente, y un estado desconocido responde
+`400` con `campos.estado`.

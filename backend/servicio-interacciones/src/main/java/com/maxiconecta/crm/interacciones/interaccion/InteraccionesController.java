@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -54,6 +55,16 @@ public class InteraccionesController {
         return servicio.modificar(clienteId, id, solicitud, identidad);
     }
 
+    /** Estado de seguimiento o tipo nuevos (SCRUM-55). */
+    @PatchMapping("/{id}")
+    public Interaccion seguimiento(@PathVariable long clienteId, @PathVariable long id,
+                                   @RequestBody(required = false) SolicitudSeguimiento solicitud,
+                                   HttpServletRequest http) {
+        Identidad identidad = IdentidadGateway.registro(http);
+        validaciones.validar(solicitud, "El cambio de seguimiento no es válido");
+        return servicio.seguimiento(clienteId, id, solicitud, identidad);
+    }
+
     @GetMapping("/{id}")
     public Interaccion detalle(@PathVariable long clienteId, @PathVariable long id, HttpServletRequest http) {
         IdentidadGateway.consulta(http);
@@ -72,6 +83,7 @@ public class InteraccionesController {
     @GetMapping
     public PaginaInteracciones historial(@PathVariable long clienteId,
                                          @RequestParam(required = false) String tipo,
+                                         @RequestParam(required = false) String estado,
                                          @RequestParam(required = false) String texto,
                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
@@ -79,6 +91,6 @@ public class InteraccionesController {
                                          @RequestParam(required = false) Integer tamanio,
                                          HttpServletRequest http) {
         IdentidadGateway.consulta(http);
-        return servicio.historial(clienteId, tipo, texto, desde, hasta, pagina, tamanio);
+        return servicio.historial(clienteId, tipo, estado, texto, desde, hasta, pagina, tamanio);
     }
 }

@@ -53,7 +53,7 @@ public class ServicioInteracciones {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe el cliente " + clienteId + " en el CRM");
         }
         // La interacción y su auditoría (SCRUM-436) se guardan juntas o no se guarda ninguna.
-        return transacciones.execute(estado -> {
+        return transacciones.execute(transaccion -> {
             Interaccion creada = registro.registrar(clienteId, campos, identidad.usuario(), identidad.rol());
             auditoria.creada(creada);
             return creada;
@@ -63,16 +63,12 @@ public class ServicioInteracciones {
     public Interaccion modificar(long clienteId, long id, SolicitudCambio solicitud, Identidad identidad) {
         RegistroInteracciones.Campos campos = normalizar(solicitud.tipo(), solicitud.canal(), solicitud.asunto(),
                 solicitud.descripcion(), solicitud.referenciaCompra());
-        return transacciones.execute(estado -> {
+        return transacciones.execute(transaccion -> {
             Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
             if (!identidad.esAdministrador() && !identidad.usuario().equals(actual.registradoPor())) {
                 throw IdentidadGateway.prohibido("Solo puede modificar las interacciones que usted registró");
             }
-            if (actual.version() != solicitud.version()) {
-                throw new ConflictoException("Otra persona modificó la interacción mientras la editaba (versión "
-                        + actual.version() + "): vuelva a cargarla y repita el cambio",
-                        Map.of("version", "la interacción ya está en la versión " + actual.version()));
-            }
+            verificarVersion(actual, solicitud.version());
             Map<String, Cambio> cambios = cambios(actual, campos);
             if (cambios.isEmpty()) {
                 throw new ReglaInvalidaException("La interacción no tiene cambios para guardar");
@@ -80,6 +76,39 @@ public class ServicioInteracciones {
             Interaccion modificada = registro.modificar(id, campos, identidad.usuario());
             auditoria.modificada(modificada, identidad.rol(), cambios);
             return modificada;
+        });
+    }
+
+    /**
+     * Cambia el estado de seguimiento o el tipo (SCRUM-452). Lo hace cualquier Agente de Atención o el Administrador,
+     * aunque no la haya registrado: el caso pasa de un agente a otro durante la atención.
+     */
+    public Interaccion seguimiento(long clienteId, long id, SolicitudSeguimiento solicitud, Identidad identidad) {
+        String estadoNuevo = vacioANulo(solicitud.estado());
+        String tipoNuevo = vacioANulo(solicitud.tipo());
+        if (estadoNuevo == null && tipoNuevo == null) {
+            throw new ReglaInvalidaException("Indique el estado o el tipo nuevo de la interacción",
+                    Map.of("estado", "indique el estado o el tipo nuevo"));
+        }
+        String comentario = vacioANulo(solicitud.comentario());
+        return transacciones.execute(transaccion -> {
+            Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            verificarVersion(actual, solicitud.version());
+            Map<String, Cambio> cambios = new LinkedHashMap<>();
+            if (estadoNuevo != null && !estadoNuevo.equals(actual.estado())) {
+                cambios.put("estado", new Cambio(actual.estado(), estadoNuevo));
+            }
+            if (tipoNuevo != null && !tipoNuevo.equals(actual.tipo())) {
+                cambios.put("tipo", new Cambio(actual.tipo(), tipoNuevo));
+            }
+            if (cambios.isEmpty()) {
+                throw new ReglaInvalidaException("La interacción ya tiene ese estado y ese tipo");
+            }
+            Interaccion actualizada = registro.actualizarSeguimiento(id, tipoNuevo != null ? tipoNuevo : actual.tipo(),
+                    estadoNuevo != null ? estadoNuevo : actual.estado(), cambios.containsKey("estado"),
+                    identidad.usuario());
+            auditoria.seguimiento(actualizada, identidad.usuario(), identidad.rol(), cambios, comentario);
+            return actualizada;
         });
     }
 
@@ -93,14 +122,21 @@ public class ServicioInteracciones {
         return auditoria.de(id);
     }
 
-    public PaginaInteracciones historial(long clienteId, String tipo, String texto, LocalDate desde, LocalDate hasta,
-                                         Integer pagina, Integer tamanio) {
+    public PaginaInteracciones historial(long clienteId, String tipo, String estado, String texto, LocalDate desde,
+                                         LocalDate hasta, Integer pagina, Integer tamanio) {
         Map<String, String> errores = new TreeMap<>();
         String tipoFiltro = vacioANulo(tipo);
         if (tipoFiltro != null) {
             tipoFiltro = tipoFiltro.toUpperCase(Locale.ROOT);
             if (!tipoFiltro.matches(TipoInteraccion.PATRON)) {
                 errores.put("tipo", TipoInteraccion.MENSAJE);
+            }
+        }
+        String estadoFiltro = vacioANulo(estado);
+        if (estadoFiltro != null) {
+            estadoFiltro = estadoFiltro.toUpperCase(Locale.ROOT);
+            if (!estadoFiltro.matches(EstadoInteraccion.PATRON)) {
+                errores.put("estado", EstadoInteraccion.MENSAJE);
             }
         }
         String textoFiltro = vacioANulo(texto);
@@ -123,10 +159,19 @@ public class ServicioInteracciones {
                     errores.entrySet().stream().map(e -> e.getKey() + " " + e.getValue()).toList()), errores);
         }
         // Las fechas son días completos en la hora de Bolivia: hasta incluye todo ese día.
-        FiltroHistorial filtro = new FiltroHistorial(tipoFiltro, textoFiltro,
+        FiltroHistorial filtro = new FiltroHistorial(tipoFiltro, estadoFiltro, textoFiltro,
                 desde == null ? null : desde.atStartOfDay(ZONA).toOffsetDateTime(),
                 hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toOffsetDateTime(), numero, cantidad);
         return registro.historial(clienteId, filtro);
+    }
+
+    /** Una edición sobre una versión anterior se rechaza: otra persona cambió la interacción mientras tanto. */
+    private static void verificarVersion(Interaccion actual, long version) {
+        if (actual.version() != version) {
+            throw new ConflictoException("Otra persona modificó la interacción mientras la editaba (versión "
+                    + actual.version() + "): vuelva a cargarla y repita el cambio",
+                    Map.of("version", "la interacción ya está en la versión " + actual.version()));
+        }
     }
 
     /** Campos que cambian, con su valor anterior y el nuevo (también lo usa la auditoría de SCRUM-436). */

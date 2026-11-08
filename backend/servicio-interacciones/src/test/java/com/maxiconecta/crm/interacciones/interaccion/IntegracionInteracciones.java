@@ -20,7 +20,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.OffsetDateTime;
@@ -34,6 +33,7 @@ import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -49,6 +49,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers(disabledWithoutDocker = true)
 abstract class IntegracionInteracciones {
 
+    // Un solo contenedor para todas las clases: Spring reutiliza el contexto entre ellas, y un contenedor por clase
+    // dejaría el contexto en caché apuntando a una base ya detenida.
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    static {
+        POSTGRES.start();
+    }
+
     static final long CLIENTE = 42;
     /** Rutas bajo el cliente (docs/seguridad/convencion-rutas-clientes.md). */
     static final String RUTA = "/api/interacciones/clientes/{clienteId}/interacciones";
@@ -57,9 +65,6 @@ abstract class IntegracionInteracciones {
     static final String OTRO_AGENTE = "agente.luis";
     static final String PERMISOS_AGENTE = "CLIENTE_CONSULTAR,INTERACCIONES_CONSULTAR,INTERACCIONES_REGISTRAR";
     static final String PERMISOS_ADMIN = PERMISOS_AGENTE + ",AUDITORIA_CONSULTAR";
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @DynamicPropertySource
     static void base(DynamicPropertyRegistry registro) {
@@ -113,6 +118,12 @@ abstract class IntegracionInteracciones {
 
     ResultActions modificar(long id, String usuario, String rol, Map<String, Object> cuerpo) throws Exception {
         return conIdentidad(put(RUTA_INTERACCION, CLIENTE, id), usuario, rol,
+                "ADMINISTRADOR_CRM".equals(rol) ? PERMISOS_ADMIN : PERMISOS_AGENTE, cuerpo);
+    }
+
+    /** Cambio de estado o de tipo (SCRUM-55). */
+    ResultActions seguimiento(long id, String usuario, String rol, Map<String, Object> cuerpo) throws Exception {
+        return conIdentidad(patch(RUTA_INTERACCION, CLIENTE, id), usuario, rol,
                 "ADMINISTRADOR_CRM".equals(rol) ? PERMISOS_ADMIN : PERMISOS_AGENTE, cuerpo);
     }
 
