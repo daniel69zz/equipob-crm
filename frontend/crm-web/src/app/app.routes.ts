@@ -20,6 +20,7 @@ import { HistorialSegmentosComponent } from './features/clientes/historial-segme
 import { HistorialComprasComponent } from './features/clientes/historial-compras.component';
 import { SaldoPuntosComponent } from './features/clientes/saldo-puntos.component';
 import { AjustePuntosComponent } from './features/clientes/ajuste-puntos.component';
+import { InteraccionesClienteComponent } from './features/interacciones/interacciones-cliente.component';
 import { SugerenciasComponent } from './features/clientes/sugerencias.component';
 import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
 import { RolesComponent } from './features/admin/roles.component';
@@ -96,6 +97,13 @@ export const routes: Routes = [
       },
       // SCRUM-426: ajuste manual del saldo, solo el Administrador de CRM.
       { path: 'clientes/:id/ajuste-puntos', component: AjustePuntosComponent, canActivate: [administradorFidelizacionGuard] },
+      // SCRUM-430: historial de interacciones del cliente, para los tres roles.
+      {
+        path: 'clientes/:id/interacciones',
+        component: InteraccionesClienteComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.INTERACCIONES_CONSULTAR },
+      },
       {
         path: 'clientes/:id/sugerencias',
         component: SugerenciasComponent,

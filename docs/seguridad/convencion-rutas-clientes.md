@@ -51,6 +51,7 @@ El Gateway reenvía la **ruta completa**, sin quitar el prefijo: el controlador 
 | Fidelización | Saldo, nivel y caducidad para Marketplace y Ventas (RIO-CRM-04, con el identificador de Ventas) | `GET /api/fidelizacion/ventas/clientes/{idClienteVentas}/puntos` |
 | Interacciones | Historial de interacciones | `GET /api/interacciones/clientes/{clienteId}/interacciones` |
 | Interacciones | Registrar una interacción | `POST /api/interacciones/clientes/{clienteId}/interacciones` |
+| Interacciones | Corregir una interacción | `PUT /api/interacciones/clientes/{clienteId}/interacciones/{interaccionId}` |
 | Interacciones | Cambiar el estado de una interacción | `PATCH /api/interacciones/clientes/{clienteId}/interacciones/{interaccionId}` |
 
 ### Rutas que no son de clientes (no se auditan como acceso)

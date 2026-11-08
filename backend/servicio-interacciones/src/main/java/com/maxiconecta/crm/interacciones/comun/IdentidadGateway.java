@@ -1,0 +1,87 @@
+package com.maxiconecta.crm.interacciones.comun;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Arrays;
+import java.util.Set;
+
+/**
+ * Identidad que el API Gateway reenvía en las cabeceras {@code X-Usuario}, {@code X-Usuario-Rol} y
+ * {@code X-Usuario-Permisos} (las que envíe el navegador se descartan en el Gateway). El puerto del servicio queda
+ * en la red interna, como en los demás microservicios. Permisos de SCRUM-435
+ * (docs/interacciones/registro-interacciones.md).
+ */
+public final class IdentidadGateway {
+
+    public static final String USUARIO = "X-Usuario";
+    public static final String ROL = "X-Usuario-Rol";
+    public static final String PERMISOS = "X-Usuario-Permisos";
+    public static final String ADMINISTRADOR_CRM = "ADMINISTRADOR_CRM";
+    public static final String AGENTE_ATENCION = "AGENTE_ATENCION";
+    public static final String INTERACCIONES_CONSULTAR = "INTERACCIONES_CONSULTAR";
+    public static final String INTERACCIONES_REGISTRAR = "INTERACCIONES_REGISTRAR";
+    public static final String AUDITORIA_CONSULTAR = "AUDITORIA_CONSULTAR";
+
+    private static final Set<String> ROLES_QUE_REGISTRAN = Set.of(ADMINISTRADOR_CRM, AGENTE_ATENCION);
+
+    private IdentidadGateway() {
+    }
+
+    /** @return el usuario; 401 sin identidad y 403 sin {@code INTERACCIONES_CONSULTAR} */
+    public static Identidad consulta(HttpServletRequest solicitud) {
+        Identidad identidad = identidad(solicitud);
+        if (!tienePermiso(solicitud, INTERACCIONES_CONSULTAR)) {
+            throw prohibido("No tiene permiso para consultar las interacciones de los clientes");
+        }
+        return identidad;
+    }
+
+    /**
+     * Registrar o modificar exige {@code INTERACCIONES_REGISTRAR} y el rol de Administrador de CRM o de Agente de
+     * Atención, aunque otro rol reciba el permiso por error.
+     */
+    public static Identidad registro(HttpServletRequest solicitud) {
+        Identidad identidad = identidad(solicitud);
+        if (!ROLES_QUE_REGISTRAN.contains(identidad.rol()) || !tienePermiso(solicitud, INTERACCIONES_REGISTRAR)) {
+            throw prohibido("Solo el Agente de Atención o el Administrador de CRM pueden registrar interacciones");
+        }
+        return identidad;
+    }
+
+    /** La auditoría de una interacción, como la pantalla de auditoría: Administrador con {@code AUDITORIA_CONSULTAR}. */
+    public static Identidad auditoria(HttpServletRequest solicitud) {
+        Identidad identidad = identidad(solicitud);
+        if (!identidad.esAdministrador() || !tienePermiso(solicitud, AUDITORIA_CONSULTAR)) {
+            throw prohibido("Solo el Administrador de CRM puede consultar la auditoría de las interacciones");
+        }
+        return identidad;
+    }
+
+    public static ResponseStatusException prohibido(String mensaje) {
+        return new ResponseStatusException(HttpStatus.FORBIDDEN, mensaje);
+    }
+
+    private static Identidad identidad(HttpServletRequest solicitud) {
+        String usuario = solicitud.getHeader(USUARIO);
+        if (usuario == null || usuario.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Se requiere la identidad del API Gateway");
+        }
+        String rol = solicitud.getHeader(ROL);
+        return new Identidad(usuario.strip(), rol == null || rol.isBlank() ? null : rol.strip());
+    }
+
+    private static boolean tienePermiso(HttpServletRequest solicitud, String permiso) {
+        String permisos = solicitud.getHeader(PERMISOS);
+        return permisos != null && Arrays.stream(permisos.split(",")).map(String::trim).anyMatch(permiso::equals);
+    }
+
+    /** Usuario autenticado en el Gateway y su rol. */
+    public record Identidad(String usuario, String rol) {
+
+        public boolean esAdministrador() {
+            return ADMINISTRADOR_CRM.equals(rol);
+        }
+    }
+}
