@@ -7,7 +7,8 @@ Administra el programa de puntos.
   (cola `crm.fidelizacion.movimientos`, routing key `puntos.movimiento`) y las anulaciones de compra RIO-CRM-05
   (cola `crm.fidelizacion.anulaciones`, routing key `compra.anulada`). Procesa la acumulación (SCRUM-45), la
   redención (SCRUM-48) y la reversa por compra anulada o devuelta (SCRUM-524).
-- **Responde** la consulta síncrona de saldo y nivel de Marketplace y Ventas (RIO-CRM-04) a través del API Gateway.
+- **Responde** la consulta síncrona de saldo, nivel y caducidad de Marketplace y Ventas (RIO-CRM-04, SCRUM-525) a
+  través del API Gateway, con token de servicio.
 - **Esquema en la base:** `fidelizacion`
 
 ## Acumulación de puntos (SCRUM-45)
@@ -70,3 +71,10 @@ PostgreSQL, RabbitMQ y servicio-perfil disponibles. Variables `DB_URL`, `DB_USUA
 mvn spring-boot:run
 mvn test   # requiere Docker (PostgreSQL, RabbitMQ y el emulador de Pub/Sub con Testcontainers)
 ```
+
+## Consulta de puntos por Marketplace y Ventas (SCRUM-525)
+
+`GET /api/fidelizacion/ventas/clientes/{idClienteVentas}/puntos`, solo con el token de servicio de Ventas.
+Devuelve el saldo disponible, el nivel y la fecha de caducidad (la última acumulación más
+`FIDELIZACION_VIGENCIA_MESES`, 12 por defecto); un cliente sin cuenta responde saldo cero. Contrato y errores en
+`docs/contratos-eventos/RIO-CRM-04-consulta-puntos.md`.

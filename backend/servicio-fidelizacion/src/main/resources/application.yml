@@ -11,6 +11,9 @@ crm:
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
 
 fidelizacion:
+  puntos:
+    # SCRUM-525: meses de vigencia del saldo desde la última acumulación (RIO-CRM-04 y la caducidad, SCRUM-50).
+    vigencia-meses: ${FIDELIZACION_VIGENCIA_MESES:12}
   niveles:
     # SCRUM-49: recálculo nocturno de los niveles (las compras antiguas salen del periodo de evaluación).
     recalculo-cron: ${FIDELIZACION_NIVELES_CRON:0 30 2 * * *}
