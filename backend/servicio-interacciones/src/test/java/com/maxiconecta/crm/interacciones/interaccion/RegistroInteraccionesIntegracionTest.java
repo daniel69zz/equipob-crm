@@ -67,6 +67,9 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
         assertThat(creada.get("registradoRol").asText()).isEqualTo("AGENTE_ATENCION");
         assertThat(creada.get("version").asLong()).isEqualTo(1);
         assertThat(creada.get("modificadoPor").isNull()).isTrue();
+        // SCRUM-449: toda interacción nueva empieza abierta.
+        assertThat(creada.get("estado").asText()).isEqualTo("ABIERTA");
+        assertThat(creada.get("estadoActualizadoPor").isNull()).isTrue();
         assertThat(OffsetDateTime.parse(creada.get("registradoEn").asText()))
                 .isCloseTo(antes, within(1, ChronoUnit.MINUTES));
         assertThat(jdbc.queryForObject("SELECT count(*) FROM interacciones.interaccion", Integer.class)).isEqualTo(1);

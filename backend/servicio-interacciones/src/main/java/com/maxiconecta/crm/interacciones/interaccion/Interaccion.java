@@ -6,11 +6,20 @@ import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Una consulta, un reclamo o una nota del historial unificado del cliente. */
+/**
+ * Una consulta, un reclamo o una nota del historial unificado del cliente, con su estado de seguimiento
+ * (SCRUM-55): quién lo cambió por última vez y cuándo.
+ */
 public record Interaccion(long id, long clienteId, String tipo, String canal, String asunto, String descripcion,
-                          String referenciaCompra, String registradoPor, String registradoRol,
+                          String referenciaCompra, String estado, String estadoActualizadoPor,
+                          OffsetDateTime estadoActualizadoEn, String registradoPor, String registradoRol,
                           OffsetDateTime registradoEn, String modificadoPor, OffsetDateTime modificadoEn,
                           long version) {
+
+    @JsonIgnore
+    public boolean cerrada() {
+        return EstadoInteraccion.CERRADA.name().equals(estado);
+    }
 
     /** Los campos editables, en el orden en que se muestran; se usan para comparar versiones. */
     @JsonIgnore

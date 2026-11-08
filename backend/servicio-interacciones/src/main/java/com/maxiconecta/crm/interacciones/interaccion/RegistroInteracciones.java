@@ -14,12 +14,15 @@ import java.util.Optional;
 public class RegistroInteracciones {
 
     private static final String COLUMNAS = "id, cliente_id, tipo, canal, asunto, descripcion, referencia_compra, "
-            + "registrado_por, registrado_rol, registrado_en, modificado_por, modificado_en, version";
+            + "estado, estado_actualizado_por, estado_actualizado_en, registrado_por, registrado_rol, registrado_en, "
+            + "modificado_por, modificado_en, version";
 
     private static final RowMapper<Interaccion> FILA = (rs, n) -> new Interaccion(rs.getLong("id"),
             rs.getLong("cliente_id"), rs.getString("tipo"), rs.getString("canal"), rs.getString("asunto"),
-            rs.getString("descripcion"), rs.getString("referencia_compra"), rs.getString("registrado_por"),
-            rs.getString("registrado_rol"), rs.getObject("registrado_en", OffsetDateTime.class),
+            rs.getString("descripcion"), rs.getString("referencia_compra"), rs.getString("estado"),
+            rs.getString("estado_actualizado_por"), rs.getObject("estado_actualizado_en", OffsetDateTime.class),
+            rs.getString("registrado_por"), rs.getString("registrado_rol"),
+            rs.getObject("registrado_en", OffsetDateTime.class),
             rs.getString("modificado_por"), rs.getObject("modificado_en", OffsetDateTime.class), rs.getLong("version"));
 
     private final JdbcTemplate jdbc;
