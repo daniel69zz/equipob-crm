@@ -25,6 +25,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         @if (auth.puedeConsultarSaldoPuntos()) {
           <a [routerLink]="['/clientes', id(), 'puntos']" routerLinkActive="activa" role="tab">Puntos</a>
         }
+        <a *appSiTienePermiso="permisos.INTERACCIONES_CONSULTAR" [routerLink]="['/clientes', id(), 'interacciones']" routerLinkActive="activa" role="tab">Interacciones</a>
         <a [routerLink]="['/clientes', id(), 'consentimiento']" routerLinkActive="activa" role="tab">Consentimiento</a>
       </div>
     </nav>
