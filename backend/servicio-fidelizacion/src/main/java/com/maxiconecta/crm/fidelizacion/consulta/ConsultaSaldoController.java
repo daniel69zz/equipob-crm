@@ -16,7 +16,8 @@ import java.util.Set;
  * Consulta del saldo, el nivel y los últimos movimientos de puntos de un cliente (SCRUM-47,
  * docs/fidelizacion/consulta-saldo-puntos.md). Exige la identidad del API Gateway y el permiso
  * {@code PUNTOS_CONSULTAR} (SCRUM-396), y está habilitada para el Administrador de CRM y el Agente de
- * Atención al Cliente (SCRUM-397): el rol se exige aunque otro rol reciba por error el permiso.
+ * Atención al Cliente (SCRUM-397): el rol se exige aunque otro rol reciba por error el permiso. Cada
+ * consulta respondida queda en la auditoría (SCRUM-401).
  */
 @RestController
 @RequestMapping("/api/fidelizacion/clientes")
@@ -26,9 +27,11 @@ public class ConsultaSaldoController {
     static final Set<String> ROLES_CONSULTA = Set.of(IdentidadGateway.ADMINISTRADOR_CRM, IdentidadGateway.AGENTE_ATENCION);
 
     private final ConsultaSaldoPuntos consulta;
+    private final AuditoriaConsultaSaldo auditoria;
 
-    public ConsultaSaldoController(ConsultaSaldoPuntos consulta) {
+    public ConsultaSaldoController(ConsultaSaldoPuntos consulta, AuditoriaConsultaSaldo auditoria) {
         this.consulta = consulta;
+        this.auditoria = auditoria;
     }
 
     @GetMapping("/{clienteId}/saldo")
@@ -40,10 +43,13 @@ public class ConsultaSaldoController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el Administrador de CRM y el Agente de "
                     + "Atención al Cliente pueden consultar el saldo y los movimientos de puntos de un cliente");
         }
+        ConsultaSaldoPuntos.SaldoCliente saldo;
         try {
-            return consulta.consultar(clienteId, movimientos);
+            saldo = consulta.consultar(clienteId, movimientos);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
+        auditoria.registrar(identidad.usuario(), identidad.rol(), saldo);
+        return saldo;
     }
 }
