@@ -191,7 +191,7 @@ public class LectorMovimientos {
         } catch (IllegalArgumentException ex) {
             // Se informa abajo con los tipos admitidos.
         }
-        // SCRUM-417: la caducidad solo la registra el CRM; un evento no puede traerla.
+        // SCRUM-417 y SCRUM-422: la caducidad y el ajuste solo los registra el CRM; un evento no puede traerlos.
         throw new EventoInvalidoException("movimiento.tipoMovimiento debe ser ACUMULACION, REDENCION o REVERSA");
     }
 

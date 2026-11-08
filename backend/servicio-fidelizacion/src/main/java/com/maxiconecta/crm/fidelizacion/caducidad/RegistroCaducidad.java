@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.caducidad;
 
+import com.maxiconecta.crm.fidelizacion.movimiento.RegistroPuntos;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -52,12 +53,12 @@ public class RegistroCaducidad {
                 FROM fidelizacion.saldo_puntos s
                 JOIN LATERAL (
                     SELECT max(m.fecha_transaccion) AS ultima FROM fidelizacion.movimiento_puntos m
-                    WHERE m.cliente_id = s.cliente_id AND m.tipo_movimiento = 'ACUMULACION' AND m.puntos > 0
+                    WHERE m.cliente_id = s.cliente_id AND (%s)
                 ) u ON true
                 WHERE s.saldo > 0
                   AND u.ultima <= ?::timestamptz - make_interval(months => ?) + interval '4 days'
                 ORDER BY s.cliente_id
-                """, Long.class, corte, vigenciaMeses);
+                """.formatted(RegistroPuntos.RENUEVA_VIGENCIA), Long.class, corte, vigenciaMeses);
     }
 
     /**
@@ -69,13 +70,16 @@ public class RegistroCaducidad {
                 Long.class, clienteId).stream().findFirst();
     }
 
-    /** Última compra que le dio puntos al cliente: desde ella corre la vigencia de su saldo (SCRUM-418). */
+    /**
+     * Último movimiento que renovó la vigencia del saldo (SCRUM-418): una compra con puntos o un ajuste positivo
+     * (SCRUM-429). Un ajuste no tiene cliente de Ventas.
+     */
     public Optional<UltimaCompra> ultimaCompra(long clienteId) {
         List<UltimaCompra> compra = jdbc.query("""
                 SELECT fecha_transaccion, id_cliente_origen FROM fidelizacion.movimiento_puntos
-                WHERE cliente_id = ? AND tipo_movimiento = 'ACUMULACION' AND puntos > 0
+                WHERE cliente_id = ? AND (%s)
                 ORDER BY fecha_transaccion DESC LIMIT 1
-                """, (r, n) -> new UltimaCompra(r.getObject("fecha_transaccion", OffsetDateTime.class),
+                """.formatted(RegistroPuntos.RENUEVA_VIGENCIA), (r, n) -> new UltimaCompra(r.getObject("fecha_transaccion", OffsetDateTime.class),
                 r.getString("id_cliente_origen")), clienteId);
         return compra.stream().findFirst();
     }
