@@ -2,6 +2,8 @@ package com.maxiconecta.crm.interacciones.interaccion;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maxiconecta.crm.interacciones.compras.ComprasCliente;
+import com.maxiconecta.crm.interacciones.compras.ComprasRecientes;
 import com.maxiconecta.crm.interacciones.perfil.ClientesPerfil;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -83,6 +87,10 @@ abstract class IntegracionInteracciones {
     @MockBean
     ClientesPerfil perfiles;
 
+    /** Compras de servicio-comportamiento (SCRUM-441); por defecto el cliente no tiene. */
+    @MockBean
+    ComprasCliente compras;
+
     @Autowired
     JdbcTemplate jdbc;
 
@@ -99,6 +107,7 @@ abstract class IntegracionInteracciones {
         // El cliente 42 es CLI-5521 en Marketplace y Ventas (SCRUM-53).
         when(perfiles.identificadores(anyLong())).thenAnswer(i -> i.getArgument(0, Long.class) == CLIENTE
                 ? Optional.of(List.of(ID_VENTAS)) : Optional.empty());
+        when(compras.recientes(anyLong(), anyList(), anyInt())).thenReturn(ComprasRecientes.ninguna());
     }
 
     // --- Apoyo ---

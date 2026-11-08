@@ -6,6 +6,9 @@ atendió. Así se arma el historial unificado de la relación del cliente con la
 - **No consume eventos:** todo entra desde la Aplicación Web, a través del API Gateway.
 - **Consulta a servicio-perfil** (`SERVICIO_PERFIL_URL`, por defecto `http://localhost:8081`) para comprobar que el
   cliente exista antes de guardar una interacción. Si Perfil no responde, devuelve `503` y no guarda nada.
+- **Consulta a servicio-comportamiento** (`SERVICIO_COMPORTAMIENTO_URL`, por defecto `http://localhost:8082`) para
+  mostrar las compras junto con las interacciones (SCRUM-53). Si no responde, el historial se muestra sin compras y
+  con un aviso.
 - **Esquema en la base:** `interacciones`
 - **Puerto:** `8085` (`PUERTO`)
 
@@ -32,13 +35,25 @@ Todas bajo `/api/interacciones/clientes/{clienteId}/interacciones` (`docs/seguri
   `auditoria.evento` como `INTERACCION_REGISTRADA` o `INTERACCION_MODIFICADA` (SCRUM-436).
 - Los errores de campo vienen en `campos`.
 
+## Historial del cliente (SCRUM-53)
+
+`GET /api/interacciones/clientes/{clienteId}/historial?limite=50` une las interacciones y las compras del cliente
+en una sola línea de tiempo, de la más reciente a la más antigua. El diseño está en
+`docs/interacciones/historial-cliente.md`.
+
 ## Ejecutar
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 26) mvn spring-boot:run
 ```
 
-Variables: `DB_URL`, `DB_USUARIO`, `DB_PASSWORD`, `SERVICIO_PERFIL_URL`, `PERFIL_TIEMPO_ESPERA` (por defecto `2s`).
+Variables:
+
+- Base de datos: `DB_URL`, `DB_USUARIO` y `DB_PASSWORD`.
+- Perfil: `SERVICIO_PERFIL_URL` y `PERFIL_TIEMPO_ESPERA`.
+- Comportamiento: `SERVICIO_COMPORTAMIENTO_URL` y `COMPORTAMIENTO_TIEMPO_ESPERA`.
+
+Los dos tiempos de espera son de `2s` por defecto.
 
 ## Pruebas
 
