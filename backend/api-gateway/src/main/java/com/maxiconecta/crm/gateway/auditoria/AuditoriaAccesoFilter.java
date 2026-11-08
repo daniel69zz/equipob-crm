@@ -27,9 +27,13 @@ public class AuditoriaAccesoFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(AuditoriaAccesoFilter.class);
 
-    /** /api/{servicio}/clientes[/{clienteId}[/...]] */
+    /**
+     * /api/{servicio}/clientes[/{clienteId}[/...]], y la consulta de Marketplace y Ventas
+     * /api/fidelizacion/ventas/clientes/{idClienteVentas}/puntos (RIO-CRM-04, SCRUM-546), donde el cliente es
+     * el identificador de Ventas.
+     */
     private static final Pattern RUTA_DE_CLIENTE = Pattern.compile(
-            "^/api/(?:perfil|comportamiento|segmentacion|fidelizacion|interacciones)/clientes(?:/([^/]+))?(?:/.*)?$");
+            "^/api/(?:perfil|comportamiento|segmentacion|fidelizacion(?:/ventas)?|interacciones)/clientes(?:/([^/]+))?(?:/.*)?$");
 
     private static final int LARGO_MAXIMO_CLIENTE_ID = 60;
 

@@ -24,6 +24,13 @@ cliente y en el detalle el rol, si tenía puntos y cuántos movimientos se mostr
 personales). Si ese registro falla, la consulta responde error y no muestra datos
 (`docs/fidelizacion/consulta-saldo-puntos.md`).
 
+La consulta de Marketplace y Ventas `GET /api/fidelizacion/ventas/clientes/{idClienteVentas}/puntos`
+(RIO-CRM-04, SCRUM-546) también es una ruta de cliente para el Gateway: registra `CLIENTE_CONSULTADO` o
+`ACCESO_DENEGADO` con el cliente de servicio como usuario y el identificador de Ventas como cliente.
+`servicio-fidelizacion` agrega `PUNTOS_CONSULTADOS_POR_VENTAS` por cada consulta respondida, con el cliente
+del CRM (sin número si aún no lo conoce) y en el detalle el identificador de Ventas, si tenía cuenta y si
+tenía puntos caducados, sin el saldo (`docs/contratos-eventos/RIO-CRM-04-consulta-puntos.md`).
+
 Estas operaciones se suman a las que ya registra la administración de seguridad (SCRUM-508): `ROL_CREADO`, `ROL_ACTUALIZADO`, `ROL_DESACTIVADO`, `USUARIO_CREADO`, `ROL_ASIGNADO` y `USUARIO_DESACTIVADO`.
 
 La ficha integral del cliente (SCRUM-10) se expone en `GET /api/perfil/clientes/{clienteId}/ficha-integral`, que sigue la misma convención de ruta que el perfil básico (`/api/perfil/clientes/{clienteId}`). Por eso queda cubierta automáticamente por este filtro, sin ningún cambio: una consulta exitosa se registra como `CLIENTE_CONSULTADO` y un intento sin el permiso `FICHA_INTEGRAL_CONSULTAR` (SCRUM-153) queda como `ACCESO_DENEGADO`, igual que con el resto de rutas de cliente (SCRUM-156, verificado en `TrazabilidadAuditoriaTest`).

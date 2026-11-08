@@ -23,24 +23,30 @@ public class ConsultaPuntosVentasController {
     static final int LARGO_MAXIMO_ID_CLIENTE = 64;
 
     private final ConsultaPuntosVentas consulta;
+    private final AuditoriaConsultaSaldo auditoria;
 
-    public ConsultaPuntosVentasController(ConsultaPuntosVentas consulta) {
+    public ConsultaPuntosVentasController(ConsultaPuntosVentas consulta, AuditoriaConsultaSaldo auditoria) {
         this.consulta = consulta;
+        this.auditoria = auditoria;
     }
 
     @GetMapping("/{idClienteVentas}/puntos")
     public PuntosParaVentas puntos(@PathVariable String idClienteVentas, HttpServletRequest solicitud) {
-        IdentidadGateway.sistemaVentas(solicitud);
+        String clienteServicio = IdentidadGateway.sistemaVentas(solicitud);
         String id = idClienteVentas.strip();
         if (id.isEmpty() || id.length() > LARGO_MAXIMO_ID_CLIENTE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "idClienteVentas debe tener entre 1 y " + LARGO_MAXIMO_ID_CLIENTE + " caracteres");
         }
+        PuntosParaVentas puntos;
         try {
-            return consulta.consultar(id);
+            puntos = consulta.consultar(id);
         } catch (PerfilNoDisponibleException ex) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "No se pudo vincular el cliente con su perfil del CRM; no aplique la redención y reintente");
         }
+        // SCRUM-546: ninguna consulta respondida queda sin registro (criterio de aceptación 4).
+        auditoria.registrarConsultaVentas(clienteServicio, puntos);
+        return puntos;
     }
 }
