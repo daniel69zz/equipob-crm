@@ -52,3 +52,35 @@ Además, cada registro y cada cambio quedan en la auditoría compartida `auditor
 (`docs/seguridad/alcance-auditoria.md`) como `INTERACCION_REGISTRADA` o `INTERACCION_MODIFICADA`, con la entidad
 `CLIENTE` y el número del cliente. El detalle lleva la interacción, su tipo y los campos cambiados, pero no el
 texto de la descripción. Así el Administrador ve en la pantalla de auditoría quién atendió a cada cliente.
+
+## Permisos de acceso (SCRUM-435)
+
+Los permisos ya existen en el Gateway (`docs/seguridad/matriz-permisos.md`): `INTERACCIONES_CONSULTAR` lo tienen
+los tres roles y `INTERACCIONES_REGISTRAR`, el Administrador de CRM y el Agente de Atención.
+
+| Acción | Administrador de CRM | Agente de Atención | Gerente Comercial |
+|---|:---:|:---:|:---:|
+| Registrar una interacción | ✅ | ✅ | ❌ `403` en el Gateway |
+| Modificar una interacción | ✅ cualquiera | ✅ solo las que registró él | ❌ `403` en el Gateway |
+| Consultar el historial de un cliente y el detalle | ✅ | ✅ | ✅ |
+| Consultar la auditoría de una interacción | ✅ | ❌ `403` | ❌ `403` |
+
+El control va en dos capas, como en los demás servicios:
+
+1. **API Gateway** (`SecurityConfig`):
+   - `GET /api/interacciones/**` exige `INTERACCIONES_CONSULTAR`.
+   - `POST` y `PUT` exigen `INTERACCIONES_REGISTRAR`.
+   - Sin sesión válida responde `401`; sin el permiso, `403`, y el intento sobre la ruta de un cliente queda como
+     `ACCESO_DENEGADO`.
+2. **servicio-interacciones** exige la identidad que reenvía el Gateway (`X-Usuario`, `X-Usuario-Rol`,
+   `X-Usuario-Permisos`). Sin ella responde `401`. Además:
+   - **Registrar o modificar** exige `INTERACCIONES_REGISTRAR` y el rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`,
+     aunque otro rol reciba el permiso por error.
+   - **Modificar una interacción ajena:** un Agente solo modifica las que él registró. Si la registró otro agente,
+     responde `403` "Solo puede modificar las interacciones que usted registró". El Administrador puede corregir
+     cualquiera.
+   - **Auditoría de una interacción:** exige el rol `ADMINISTRADOR_CRM` y `AUDITORIA_CONSULTAR`, como la pantalla
+     de auditoría.
+
+El permiso se comprueba antes de validar el cuerpo, así que un usuario sin permiso recibe `403` aunque su solicitud
+además sea inválida.
