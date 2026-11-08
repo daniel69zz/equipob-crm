@@ -104,11 +104,16 @@ movimientos distintos.
 
 Después de cada cambio de saldo, en la misma transacción, el procesador reevalúa el nivel del cliente con
 `AsignacionNiveles.recalcular` (SCRUM-49, `docs/fidelizacion/niveles-fidelizacion.md`). El nivel sale de
-los **puntos del periodo de evaluación** (acumulaciones de los últimos meses menos reversas) y de la
-configuración de niveles vigente, no del saldo: por regla de SCRUM-49, **una redención no baja el
-nivel**, porque el cliente no pierde su nivel por usar sus puntos. Una redención sí aplica la
-configuración vigente: si el Administrador de CRM cambió los umbrales, el cliente queda en el nivel que le
-corresponde ahora. Una redención fallida no toca el nivel.
+los **puntos del periodo de evaluación** con la configuración de niveles vigente, y una redención **resta**
+sus puntos de los del periodo:
+
+```
+puntosPeriodo = ACUMULACIONES − REVERSAS − REDENCIONES de los últimos N meses (nunca menos de 0)
+```
+
+Así, después de una redención el cliente queda en el nivel que corresponde a su nuevo saldo: con los
+niveles iniciales, un cliente con 600 puntos (Plata) que redime 200 queda con 400 y pasa a Bronce. Una
+redención fallida no toca el nivel.
 
 ## Confirmación de la redención (SCRUM-406)
 

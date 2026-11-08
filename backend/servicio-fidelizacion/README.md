@@ -21,7 +21,8 @@ saldo, y se puede reprocesar. Cada transacción deja su detalle de puntos. Regla
 Una `REDENCION` trae los puntos redimidos y los descuenta del saldo solo si alcanza, con la condición y la
 resta en una sola sentencia. Si no alcanza queda `FALLIDO` con la causa, sin cambiar el saldo, y se puede
 reprocesar. Una reentrega no descuenta dos veces. Después de cada cambio de saldo se reevalúa el nivel
-(`AsignacionNiveles`, SCRUM-49); una redención no lo baja. Detalle en `docs/fidelizacion/redencion-puntos.md`.
+(`AsignacionNiveles`, SCRUM-49): la redención resta sus puntos de los del periodo, así que el
+cliente queda en el nivel de su nuevo saldo. Detalle en `docs/fidelizacion/redencion-puntos.md`.
 
 | Método | Ruta | Permiso (Gateway) |
 |---|---|---|

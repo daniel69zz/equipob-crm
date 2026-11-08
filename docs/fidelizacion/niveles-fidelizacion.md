@@ -11,11 +11,14 @@ El nivel se calcula con los **puntos del periodo de evaluación**, no con el sal
 
 ```
 puntosPeriodo = puntos de las ACUMULACIONES con fecha de transacción en los últimos N meses
-              − puntos de las REVERSAS del mismo periodo (SCRUM-524), nunca menos de 0
+              − puntos de las REVERSAS (SCRUM-524) y de las REDENCIONES (SCRUM-48) del mismo periodo,
+                nunca menos de 0
 nivel         = el umbral de la configuración vigente que contiene puntosPeriodo (o ninguno)
 ```
 
-- Las **redenciones no bajan el nivel**: un cliente no pierde su nivel por usar sus puntos.
+- Las **redenciones del periodo bajan los puntos del periodo**: después de una redención el cliente queda
+  en el nivel que corresponde a su nuevo saldo (criterio 4 de SCRUM-48, `redencion-puntos.md`). Una
+  redención fallida no cambia nada.
 - Con el paso del tiempo, las compras antiguas salen del periodo y el cliente puede bajar de nivel.
 
 Configuración inicial (migración `V4__niveles_fidelizacion.sql`, usuario `sistema`):

@@ -124,7 +124,7 @@ sequenceDiagram
                 F->>DB: bitácora: FALLIDO con solicitados y disponibles (saldo sin cambios)
             else saldo suficiente
                 F->>DB: saldo resultante en el movimiento
-                F->>DB: AsignacionNiveles.recalcular: nivel con los puntos del periodo (la redención no lo baja)
+                F->>DB: AsignacionNiveles.recalcular: nivel con los puntos del periodo (la redención los resta)
                 F->>DB: bitácora PROCESADO
                 F->>DB: COMMIT
             end

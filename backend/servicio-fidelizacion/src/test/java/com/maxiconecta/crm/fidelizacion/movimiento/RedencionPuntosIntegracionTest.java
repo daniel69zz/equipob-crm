@@ -234,42 +234,55 @@ class RedencionPuntosIntegracionTest {
         assertThat(saldo()).isEqualTo(5);
     }
 
-    // --- Criterio 4: después de la redención se reevalúa el nivel; por regla de SCRUM-49 no baja ---
+    // --- Criterio 4: después de la redención el cliente queda en el nivel de su nuevo saldo ---
 
     @Test
-    void laRedencionReevaluaElNivelConLaConfiguracionVigente() throws Exception {
+    void trasLaRedencionElClienteQuedaEnElNivelDeSuNuevoSaldo() throws Exception {
+        plataDesde30Puntos();
+        acumularLos35DeAna();
+        assertThat(nivel()).isEqualTo("PLATA");
+
+        ingesta.recibir(ejemplo("movimiento-redencion.json"));
+
+        assertThat(saldo()).isEqualTo(15);
+        assertThat(nivel()).isEqualTo("BRONCE");
+        assertThat(puntosPeriodo()).isEqualTo(15);
+        mvc.perform(get("/api/fidelizacion/clientes/42/puntos"))
+                .andExpect(jsonPath("$.saldo").value(15))
+                .andExpect(jsonPath("$.nivel").value("BRONCE"));
+    }
+
+    @Test
+    void conLosNivelesInicialesUnaRedencionBajaDePlataABronce() {
+        ingesta.recibir(acumulacion("V-PLATA", "6000.00"));
+        assertThat(nivel()).isEqualTo("PLATA");
+
+        ingesta.recibir(redencion("R-200", 200));
+
+        assertThat(saldo()).isEqualTo(400);
+        assertThat(nivel()).isEqualTo("BRONCE");
+    }
+
+    @Test
+    void laRedencionReevaluaElNivelConLaConfiguracionVigente() {
         acumularLos35DeAna();
         assertThat(nivel()).isEqualTo("BRONCE");
         plataDesde30Puntos();
 
-        ingesta.recibir(ejemplo("movimiento-redencion.json"));
+        ingesta.recibir(redencion("R-1", 1));
 
-        assertThat(nivel()).isEqualTo("PLATA");
-        mvc.perform(get("/api/fidelizacion/clientes/42/puntos"))
-                .andExpect(jsonPath("$.saldo").value(15))
-                .andExpect(jsonPath("$.nivel").value("PLATA"));
-    }
-
-    @Test
-    void unaRedencionNoBajaElNivelAunqueElSaldoQuedeBajoElUmbral() {
-        plataDesde30Puntos();
-        acumularLos35DeAna();
-        assertThat(nivel()).isEqualTo("PLATA");
-
-        ingesta.recibir(redencion("R-TODO", 35));
-
-        assertThat(saldo()).isZero();
         assertThat(nivel()).isEqualTo("PLATA");
     }
 
     @Test
     void unaRedencionFallidaNoCambiaElNivel() {
-        acumularLos35DeAna();
         plataDesde30Puntos();
+        acumularLos35DeAna();
 
         ingesta.recibir(ejemplo("movimiento-redencion-saldo-insuficiente.json"));
 
-        assertThat(nivel()).isEqualTo("BRONCE");
+        assertThat(nivel()).isEqualTo("PLATA");
+        assertThat(puntosPeriodo()).isEqualTo(35);
     }
 
     // --- SCRUM-406: confirmación de la redención por su transacción de origen ---
@@ -373,6 +386,28 @@ class RedencionPuntosIntegracionTest {
                 + "VALUES (2, 12, 'prueba')");
         jdbc.update("INSERT INTO fidelizacion.umbral_nivel (version, nivel, puntos_minimos, puntos_maximos) VALUES "
                 + "(2, 'BRONCE', 0, 29), (2, 'PLATA', 30, 1999), (2, 'ORO', 2000, NULL)");
+    }
+
+    private long puntosPeriodo() {
+        return jdbc.queryForObject("SELECT puntos_periodo FROM fidelizacion.saldo_puntos WHERE cliente_id = ?",
+                Long.class, CLIENTE);
+    }
+
+    private static String acumulacion(String idTransaccion, String valorConsumido) {
+        return """
+                {
+                  "idEvento": "%s",
+                  "tipoEvento": "MOVIMIENTO_PUNTOS",
+                  "fechaEmision": "2026-10-18T12:00:00-04:00",
+                  "movimiento": {
+                    "idTransaccion": "%s",
+                    "idCliente": "CLI-5521",
+                    "tipoMovimiento": "ACUMULACION",
+                    "valorConsumido": %s,
+                    "fecha": "2026-10-18T11:59:40-04:00"
+                  }
+                }
+                """.formatted(UUID.randomUUID(), idTransaccion, valorConsumido);
     }
 
     private boolean saldoExiste() {
