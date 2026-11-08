@@ -46,7 +46,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 
 | Ruta | Método | Permiso |
 |---|---|---|
-| `/api/auth/login` | POST | Público |
+| `/api/auth/login` y `/api/auth/servicio/token` | POST | Público (el segundo emite el token de servicio, SCRUM-545) |
 | `/api/auth/**` | Todos | Usuario autenticado |
 | `/api/admin/auditoria/**` | Todos | `AUDITORIA_CONSULTAR` |
 | `/api/admin/**` | Todos | `USUARIOS_ADMINISTRAR` |
@@ -64,6 +64,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/segmentacion/**` | GET | `SEGMENTOS_CONSULTAR` |
 | `/api/segmentacion/**` | POST, PUT, PATCH, DELETE | `SEGMENTACION_CONFIGURAR` |
 | `/api/fidelizacion/clientes/*/saldo` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `PUNTOS_CONSULTAR` (SCRUM-397, regla anterior a la genérica) |
+| `/api/fidelizacion/ventas/clientes/*/puntos` | GET | Rol `SISTEMA` **y** `PUNTOS_CONSULTAR_VENTAS`: solo el token de servicio de Marketplace y Ventas (RIO-CRM-04, SCRUM-545) |
 | `/api/fidelizacion/**` | GET | `PUNTOS_CONSULTAR` |
 | `/api/fidelizacion/**` | POST, PUT, PATCH, DELETE | `FIDELIZACION_CONFIGURAR` |
 | `/api/interacciones/**` | GET | `INTERACCIONES_CONSULTAR` |
@@ -75,12 +76,26 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 - Sin token o con token inválido o vencido: **401 No autenticado**.
 - Con token válido pero sin el permiso requerido: **403 Acceso denegado**.
 
+## Clientes de servicio (SCRUM-545)
+
+Los sistemas del ERP que consultan el CRM no son usuarios internos: obtienen un **token JWT de servicio** con
+`POST /api/auth/servicio/token` (cliente y secreto) y tienen el rol `SISTEMA` con los permisos de su
+configuración (`crm.seguridad.servicios.clientes` en el Gateway). Hoy existe uno:
+
+| Cliente | Sistema | Secreto | Permisos |
+|---|---|---|---|
+| `marketplace-ventas` | Marketplace y Ventas | Variable `SERVICIO_VENTAS_SECRETO` (mínimo 32 caracteres; sin ella queda deshabilitado) | `PUNTOS_CONSULTAR_VENTAS` |
+
+`PUNTOS_CONSULTAR_VENTAS` no está en la tabla `seguridad.permiso`, así que no se puede asignar a un rol interno.
+El token lleva `tipo=SERVICIO` y el Gateway lo valida contra los clientes habilitados, no contra los usuarios.
+El contrato está en `docs/contratos-eventos/RIO-CRM-04-consulta-puntos.md`.
+
 ## Identidad hacia los microservicios
 
 Cuando la petición pasa el control de acceso, el Gateway la reenvía al microservicio con estas cabeceras. Las que traiga el cliente se descartan para que no puedan falsificarse:
 
 | Cabecera | Contenido |
 |---|---|
-| `X-Usuario` | Nombre de usuario autenticado |
+| `X-Usuario` | Nombre de usuario autenticado, o el cliente de servicio |
 | `X-Usuario-Rol` | Código del rol |
 | `X-Usuario-Permisos` | Permisos separados por comas |

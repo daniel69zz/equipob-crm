@@ -3,6 +3,9 @@ package com.maxiconecta.crm.gateway.auth;
 import com.maxiconecta.crm.gateway.auth.AuthDtos.LoginRequest;
 import com.maxiconecta.crm.gateway.auth.AuthDtos.LoginResponse;
 import com.maxiconecta.crm.gateway.auth.AuthDtos.SesionResponse;
+import com.maxiconecta.crm.gateway.auth.AuthDtos.TokenServicioRequest;
+import com.maxiconecta.crm.gateway.auth.AuthDtos.TokenServicioResponse;
+import com.maxiconecta.crm.gateway.seguridad.ClientesServicio;
 import com.maxiconecta.crm.gateway.seguridad.JwtService;
 import com.maxiconecta.crm.gateway.seguridad.JwtService.TokenEmitido;
 import com.maxiconecta.crm.gateway.seguridad.SesionToken;
@@ -24,10 +27,12 @@ public class AuthController {
 
     private final UsuarioService usuarioService;
     private final JwtService jwtService;
+    private final ClientesServicio clientesServicio;
 
-    public AuthController(UsuarioService usuarioService, JwtService jwtService) {
+    public AuthController(UsuarioService usuarioService, JwtService jwtService, ClientesServicio clientesServicio) {
         this.usuarioService = usuarioService;
         this.jwtService = jwtService;
+        this.clientesServicio = clientesServicio;
     }
 
     @PostMapping("/login")
@@ -39,6 +44,18 @@ public class AuthController {
         TokenEmitido token = jwtService.emitir(usuario.getNombreUsuario(), usuario.getNombreCompleto(), rol, permisos);
         return new LoginResponse(token.token(), "Bearer", token.expiraEn(), usuario.getNombreUsuario(),
                 usuario.getNombreCompleto(), rol, permisos);
+    }
+
+    /**
+     * SCRUM-545: token de servicio de un sistema del ERP (RIO-CRM-04). Un cliente o un secreto incorrecto
+     * responde 401 con el mismo mensaje, para no revelar qué clientes existen.
+     */
+    @PostMapping("/servicio/token")
+    public TokenServicioResponse tokenDeServicio(@Valid @RequestBody TokenServicioRequest solicitud) {
+        SesionToken cliente = clientesServicio.autenticar(solicitud.cliente(), solicitud.secreto())
+                .orElseThrow(() -> new CredencialesInvalidasException("Cliente de servicio o secreto incorrectos"));
+        TokenEmitido token = jwtService.emitirServicio(cliente);
+        return new TokenServicioResponse(token.token(), "Bearer", token.expiraEn(), cliente.usuario(), cliente.permisos());
     }
 
     @GetMapping("/yo")
