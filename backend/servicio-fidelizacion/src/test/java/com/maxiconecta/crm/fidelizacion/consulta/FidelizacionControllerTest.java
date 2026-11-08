@@ -43,6 +43,19 @@ class FidelizacionControllerTest {
     }
 
     @Test
+    void muestraElNivelActualConLosPuntosDelPeriodoConQueSeAsigno() throws Exception {
+        when(saldos.findById(9L)).thenReturn(Optional.of(new SaldoPuntos(9L, 3100, "ORO",
+                OffsetDateTime.parse("2026-11-07T10:00:00Z"), 2500, OffsetDateTime.parse("2026-11-07T10:00:00Z"))));
+
+        mvc.perform(get("/api/fidelizacion/clientes/9/puntos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nivel").value("ORO"))
+                .andExpect(jsonPath("$.saldo").value(3100))
+                .andExpect(jsonPath("$.puntosPeriodo").value(2500))
+                .andExpect(jsonPath("$.nivelActualizadoEn").exists());
+    }
+
+    @Test
     void unClienteSinPuntosAsignadosRespondeSinDatosEnVezDeError() throws Exception {
         when(saldos.findById(7L)).thenReturn(Optional.empty());
 

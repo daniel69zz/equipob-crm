@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.movimiento;
 
+import com.maxiconecta.crm.fidelizacion.regla.ReglaAcumulacion;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -23,20 +24,24 @@ public class RegistroPuntos {
 
     /**
      * Reserva el movimiento antes de tocar el saldo (SCRUM-243): la clave primaria detiene una segunda
-     * aplicación de la misma transacción aunque dos copias se procesen a la vez. En una redención
-     * (SCRUM-403) el valor consumido puede faltar y no hay tasa aplicada.
+     * aplicación de la misma transacción aunque dos copias se procesen a la vez. Guarda la versión de la
+     * regla aplicada (SCRUM-46): un cambio posterior de la regla no recalcula estos puntos. Una redención
+     * (SCRUM-403) no tiene regla ({@code regla} nulo) y su valor consumido puede faltar.
      */
     public void reservar(String idTransaccion, TipoMovimiento tipo, long clienteId, String idClienteOrigen,
-                         BigDecimal valorConsumido, long puntos, BigDecimal bolivianosPorPunto,
+                         BigDecimal valorConsumido, long puntos, ReglaAcumulacion regla,
                          OffsetDateTime fechaTransaccion, long idEventoMovimiento) {
         try {
             jdbc.update("""
                     INSERT INTO fidelizacion.movimiento_puntos
                         (id_transaccion, tipo_movimiento, cliente_id, id_cliente_origen, valor_consumido, puntos,
-                         bolivianos_por_punto, saldo_resultante, fecha_transaccion, id_evento_movimiento)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+                         bolivianos_por_punto, monto_minimo, version_regla, saldo_resultante, fecha_transaccion,
+                         id_evento_movimiento)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
                     """, idTransaccion, tipo.name(), clienteId, idClienteOrigen, valorConsumido, puntos,
-                    bolivianosPorPunto, fechaTransaccion, idEventoMovimiento);
+                    regla == null ? null : regla.bolivianosPorPunto(), regla == null ? null : regla.montoMinimo(),
+                    regla == null ? null : regla.version(), fechaTransaccion,
+                    idEventoMovimiento);
         } catch (DuplicateKeyException ex) {
             throw new MovimientoDuplicadoException(tipo == TipoMovimiento.REDENCION
                     ? "La transacción " + idTransaccion + " ya descontó sus puntos (REDENCION)"
@@ -79,11 +84,6 @@ public class RegistroPuntos {
                 .stream().findFirst().orElse(0L);
     }
 
-    /** Deja al cliente en el nivel que corresponde a su saldo (criterio de aceptación 4 de SCRUM-48). */
-    public void asignarNivel(long clienteId, String nivel) {
-        jdbc.update("UPDATE fidelizacion.saldo_puntos SET nivel = ? WHERE cliente_id = ? AND nivel IS DISTINCT FROM ?",
-                nivel, clienteId, nivel);
-    }
 
     public void anotarSaldoResultante(String idTransaccion, TipoMovimiento tipo, long saldo) {
         jdbc.update("UPDATE fidelizacion.movimiento_puntos SET saldo_resultante = ? "
@@ -93,12 +93,13 @@ public class RegistroPuntos {
     public List<DetalleMovimiento> movimientos(long clienteId) {
         return jdbc.query("""
                 SELECT id_transaccion, tipo_movimiento, id_cliente_origen, valor_consumido, puntos, bolivianos_por_punto,
-                       saldo_resultante, fecha_transaccion, registrado_en
+                       monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en
                 FROM fidelizacion.movimiento_puntos WHERE cliente_id = ? ORDER BY registrado_en DESC, fecha_transaccion DESC
                 """, (r, n) -> new DetalleMovimiento(r.getString("id_transaccion"), r.getString("tipo_movimiento"),
                 r.getString("id_cliente_origen"), r.getBigDecimal("valor_consumido"), r.getLong("puntos"),
                 variacion(r.getString("tipo_movimiento"), r.getLong("puntos")),
-                r.getBigDecimal("bolivianos_por_punto"), r.getLong("saldo_resultante"),
+                r.getBigDecimal("bolivianos_por_punto"), r.getBigDecimal("monto_minimo"),
+                r.getObject("version_regla", Long.class), r.getLong("saldo_resultante"),
                 r.getObject("fecha_transaccion", OffsetDateTime.class),
                 r.getObject("registrado_en", OffsetDateTime.class)), clienteId);
     }
@@ -109,13 +110,15 @@ public class RegistroPuntos {
     }
 
     /**
-     * Detalle de puntos de una transacción (criterio de aceptación 4 de SCRUM-45). {@code puntos} es
-     * siempre positivo y {@code variacionSaldo} indica si sumó o restó (SCRUM-403); una redención no
-     * tiene tasa y su valor consumido es opcional.
+     * Detalle de puntos de una transacción (criterio de aceptación 4 de SCRUM-45), con la regla aplicada
+     * (SCRUM-46). {@code puntos} es siempre positivo y {@code variacionSaldo} indica si sumó o restó
+     * (SCRUM-403); una redención no tiene regla (tasa, monto mínimo y versión nulos) y su valor consumido
+     * es opcional.
      */
     public record DetalleMovimiento(String idTransaccion, String tipoMovimiento, String idClienteOrigen,
                                     BigDecimal valorConsumido, long puntos, long variacionSaldo,
-                                    BigDecimal bolivianosPorPunto, long saldoResultante,
-                                    OffsetDateTime fechaTransaccion, OffsetDateTime registradoEn) {
+                                    BigDecimal bolivianosPorPunto, BigDecimal montoMinimo, Long versionRegla,
+                                    long saldoResultante, OffsetDateTime fechaTransaccion,
+                                    OffsetDateTime registradoEn) {
     }
 }

@@ -40,8 +40,8 @@ Los puntos los decide Marketplace y Ventas; el CRM no les aplica la tasa de acum
 ## Historial de movimientos (SCRUM-403)
 
 La redención queda en `fidelizacion.movimiento_puntos` con su transacción de origen, los puntos
-redimidos, el valor del beneficio (si vino) y el saldo resultante. No tiene tasa aplicada
-(`bolivianosPorPunto` nulo). El detalle por transacción suma `variacionSaldo`: positiva en una
+redimidos, el valor del beneficio (si vino) y el saldo resultante. No se le aplica la regla de acumulación
+(`bolivianosPorPunto`, `montoMinimo` y `versionRegla` nulos, SCRUM-46). El detalle por transacción suma `variacionSaldo`: positiva en una
 acumulación y negativa en una redención.
 
 ```
@@ -58,6 +58,8 @@ GET /api/fidelizacion/clientes/{clienteId}/movimientos      (PUNTOS_CONSULTAR)
     "puntos": 20,
     "variacionSaldo": -20,
     "bolivianosPorPunto": null,
+    "montoMinimo": null,
+    "versionRegla": null,
     "saldoResultante": 15,
     "fechaTransaccion": "2026-10-18T16:59:40Z",
     "registradoEn": "2026-10-18T17:00:01Z"
@@ -67,6 +69,7 @@ GET /api/fidelizacion/clientes/{clienteId}/movimientos      (PUNTOS_CONSULTAR)
     "tipoMovimiento": "ACUMULACION",
     "puntos": 35,
     "variacionSaldo": 35,
+    "versionRegla": 1,
     "saldoResultante": 35
   }
 ]
@@ -99,13 +102,13 @@ movimientos distintos.
 
 ## Nivel (criterio de aceptación 4)
 
-Después de cada cambio de saldo, en la misma transacción, el procesador pide a `ReevaluacionNivel` el
-nivel que corresponde al nuevo saldo y lo guarda en `fidelizacion.saldo_puntos.nivel`. Si al saldo no le
-corresponde ningún nivel, el cliente queda sin nivel. Una redención fallida no cambia el nivel.
-
-Los niveles bronce, plata y oro con sus umbrales son **SCRUM-49**: esa historia implementa
-`ReevaluacionNivel` como un bean de Spring. Mientras no exista, el nivel no se toca. Las pruebas usan
-niveles de prueba (plata desde 30 puntos, bronce desde 1) para verificar el criterio.
+Después de cada cambio de saldo, en la misma transacción, el procesador reevalúa el nivel del cliente con
+`AsignacionNiveles.recalcular` (SCRUM-49, `docs/fidelizacion/niveles-fidelizacion.md`). El nivel sale de
+los **puntos del periodo de evaluación** (acumulaciones de los últimos meses menos reversas) y de la
+configuración de niveles vigente, no del saldo: por regla de SCRUM-49, **una redención no baja el
+nivel**, porque el cliente no pierde su nivel por usar sus puntos. Una redención sí aplica la
+configuración vigente: si el Administrador de CRM cambió los umbrales, el cliente queda en el nivel que le
+corresponde ahora. Una redención fallida no toca el nivel.
 
 ## Confirmación de la redención (SCRUM-406)
 
@@ -118,7 +121,7 @@ GET /api/fidelizacion/redenciones/{idTransaccion}      (PUNTOS_CONSULTAR)
 
 | `estado` | Significado | Campos |
 |---|---|---|
-| `APLICADA` | Los puntos se descontaron | `puntos`, `saldoResultante`, `nivel` (actual), `fechaTransaccion`, `registradaEn`, `idEvento` |
+| `APLICADA` | Los puntos se descontaron | `puntos`, `saldoResultante`, `nivel` (actual, SCRUM-49), `fechaTransaccion`, `registradaEn`, `idEvento` |
 | `FALLIDA` | No se aplicó; se puede reprocesar | `causa`, `idEvento` (para el reproceso) |
 | `EN_PROCESO` | Recibida y todavía sin resultado | `idEvento` |
 
@@ -132,7 +135,7 @@ Responde `404` si nunca llegó una redención con esa transacción.
   "idClienteOrigen": "CLI-5521",
   "puntos": 20,
   "saldoResultante": 15,
-  "nivel": null,
+  "nivel": "BRONCE",
   "fechaTransaccion": "2026-10-18T16:59:40Z",
   "registradaEn": "2026-10-18T17:00:01Z",
   "idEvento": 2

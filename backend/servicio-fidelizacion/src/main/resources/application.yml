@@ -11,9 +11,10 @@ crm:
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
 
 fidelizacion:
-  puntos:
-    # Regla de cálculo (SCRUM-386): 1 punto por cada tramo completo de este valor consumido, en bolivianos.
-    bolivianos-por-punto: ${FIDELIZACION_BOLIVIANOS_POR_PUNTO:10}
+  niveles:
+    # SCRUM-49: recálculo nocturno de los niveles (las compras antiguas salen del periodo de evaluación).
+    recalculo-cron: ${FIDELIZACION_NIVELES_CRON:0 30 2 * * *}
+    zona-horaria: ${FIDELIZACION_ZONA_HORARIA:America/La_Paz}
 
 spring:
   application:

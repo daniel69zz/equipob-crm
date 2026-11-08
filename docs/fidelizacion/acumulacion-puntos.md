@@ -12,8 +12,9 @@ historia de integración asíncrona del Sprint 2. Diagramas en
 puntos = parte entera de (valorConsumido / bolivianosPorPunto)
 ```
 
-- **Tasa:** 1 punto por cada **Bs 10** consumidos (`FIDELIZACION_BOLIVIANOS_POR_PUNTO`, por defecto 10;
-  debe ser mayor que cero). La configuración de las reglas por el administrador es SCRUM-46.
+- **Tasa:** 1 punto por cada **Bs 10** consumidos (regla inicial). Desde SCRUM-46 la tasa y un monto
+  mínimo de compra los configura el Administrador de CRM, con versiones e historial
+  (`docs/fidelizacion/reglas-acumulacion.md`); ya no se usa la variable `FIDELIZACION_BOLIVIANOS_POR_PUNTO`.
 - **Redondeo:** hacia abajo; solo cuentan los bolivianos completos de cada tramo. Bs 350,50 → 35 puntos;
   Bs 9,99 → 0 puntos.
 - **Mínimo:** una transacción de menos de un tramo genera **0 puntos**: queda registrada en el detalle
@@ -45,8 +46,8 @@ puntos = parte entera de (valorConsumido / bolivianosPorPunto)
 
 `fidelizacion.saldo_puntos` guarda un saldo por cliente del CRM. La suma es atómica en la base
 (`INSERT … ON CONFLICT DO UPDATE SET saldo = saldo + puntos`), así que dos acumulaciones simultáneas del
-mismo cliente no se pisan. Un cliente que acumula por primera vez queda con saldo y **sin nivel** (los
-niveles son SCRUM-49); la ficha integral lo muestra sin nivel.
+mismo cliente no se pisan. Con cada cambio de saldo se recalcula también su nivel de fidelización
+(SCRUM-49, `docs/fidelizacion/niveles-fidelizacion.md`).
 
 ## Idempotencia (SCRUM-243, criterio de aceptación 2)
 

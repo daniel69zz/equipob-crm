@@ -43,12 +43,15 @@ classDiagram
         <<repository>>
         +reservar(idTransaccion, tipo, cliente, ...)
         +debitar(cliente, idTransaccion, puntos) long
-        +asignarNivel(cliente, nivel)
         +movimientos(cliente) List~DetalleMovimiento~
     }
-    class ReevaluacionNivel {
-        <<interface>>
-        +nivelPara(long saldo) Optional~String~
+    class ReglasAcumulacion {
+        <<repository>>
+        +vigente() ReglaAcumulacion
+    }
+    class AsignacionNiveles {
+        <<repository>>
+        +recalcular(long clienteId) Nivel
     }
     class SaldoInsuficienteException {
         +solicitados() long
@@ -78,7 +81,8 @@ classDiagram
     LectorMovimientos ..> Movimiento : produce
     ProcesadorMovimientos --> ClientesPerfil : vincula el cliente
     ProcesadorMovimientos --> RegistroPuntos : reserva, descuenta y anota
-    ProcesadorMovimientos --> ReevaluacionNivel : nivel del nuevo saldo (SCRUM-49)
+    ProcesadorMovimientos --> ReglasAcumulacion : solo en la acumulación (SCRUM-46)
+    ProcesadorMovimientos --> AsignacionNiveles : reevalúa el nivel (SCRUM-49)
     RegistroPuntos ..> SaldoInsuficienteException : lanza
     IngestaMovimientos ..> SaldoInsuficienteException : FALLIDO con la causa
     MovimientosController --> RegistroPuntos
@@ -120,8 +124,8 @@ sequenceDiagram
                 F->>DB: bitácora: FALLIDO con solicitados y disponibles (saldo sin cambios)
             else saldo suficiente
                 F->>DB: saldo resultante en el movimiento
-                F->>F: ReevaluacionNivel.nivelPara(saldo)
-                F->>DB: nivel del cliente y bitácora PROCESADO
+                F->>DB: AsignacionNiveles.recalcular: nivel con los puntos del periodo (la redención no lo baja)
+                F->>DB: bitácora PROCESADO
                 F->>DB: COMMIT
             end
         end

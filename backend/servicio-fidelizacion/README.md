@@ -11,7 +11,7 @@ Administra el programa de puntos.
 
 ## Acumulación de puntos (SCRUM-45)
 
-1 punto por cada Bs 10 consumidos (`FIDELIZACION_BOLIVIANOS_POR_PUNTO`), redondeando hacia abajo. Un
+1 punto por cada tramo completo de la tasa de la regla vigente (inicialmente Bs 10), redondeando hacia abajo. Un
 movimiento reentregado no acredita dos veces; uno inválido queda `FALLIDO` con la causa, sin cambiar el
 saldo, y se puede reprocesar. Cada transacción deja su detalle de puntos. Regla, API y pruebas en
 `docs/fidelizacion/acumulacion-puntos.md`; contrato en `docs/contratos-eventos/RIO-CRM-03-movimiento-puntos.md`.
@@ -21,7 +21,7 @@ saldo, y se puede reprocesar. Cada transacción deja su detalle de puntos. Regla
 Una `REDENCION` trae los puntos redimidos y los descuenta del saldo solo si alcanza, con la condición y la
 resta en una sola sentencia. Si no alcanza queda `FALLIDO` con la causa, sin cambiar el saldo, y se puede
 reprocesar. Una reentrega no descuenta dos veces. Después de cada cambio de saldo se reevalúa el nivel
-(`ReevaluacionNivel`, que implementa SCRUM-49). Detalle en `docs/fidelizacion/redencion-puntos.md`.
+(`AsignacionNiveles`, SCRUM-49); una redención no lo baja. Detalle en `docs/fidelizacion/redencion-puntos.md`.
 
 | Método | Ruta | Permiso (Gateway) |
 |---|---|---|
@@ -30,6 +30,33 @@ reprocesar. Una reentrega no descuenta dos veces. Después de cada cambio de sal
 | GET | `/api/fidelizacion/redenciones/{idTransaccion}` | `PUNTOS_CONSULTAR` |
 | GET | `/api/fidelizacion/eventos?estado=FALLIDO&tipo=REDENCION` | `PUNTOS_CONSULTAR` |
 | POST | `/api/fidelizacion/eventos/{id}/reprocesar` | `FIDELIZACION_CONFIGURAR` |
+
+## Reglas de acumulación (SCRUM-46)
+
+El Administrador de CRM configura los bolivianos por punto y el monto mínimo de compra. Cada cambio es
+una versión nueva que se aplica a los movimientos siguientes, sin recalcular los puntos ya otorgados, y
+queda en el historial con quién y cuándo la cambió. Detalle en `docs/fidelizacion/reglas-acumulacion.md`.
+
+| Método | Ruta | Permiso (Gateway) |
+|---|---|---|
+| GET | `/api/fidelizacion/reglas/acumulacion` | `PUNTOS_CONSULTAR` |
+| PUT | `/api/fidelizacion/reglas/acumulacion` | `FIDELIZACION_CONFIGURAR` + rol Administrador de CRM |
+| GET | `/api/fidelizacion/reglas/acumulacion/historial` | rol Administrador de CRM + `FIDELIZACION_CONFIGURAR` |
+
+## Niveles de fidelización (SCRUM-49)
+
+Bronce, Plata y Oro con umbrales de puntos acumulados en el periodo de evaluación (12 meses por defecto).
+El nivel se recalcula con cada cambio de saldo, al cambiar los umbrales y cada noche
+(`FIDELIZACION_NIVELES_CRON`, por defecto `0 30 2 * * *`, zona `FIDELIZACION_ZONA_HORARIA`). Los umbrales
+que se superponen o dejan huecos se rechazan indicando el conflicto. Detalle en
+`docs/fidelizacion/niveles-fidelizacion.md`.
+
+| Método | Ruta | Permiso (Gateway) |
+|---|---|---|
+| GET | `/api/fidelizacion/niveles` | `PUNTOS_CONSULTAR` |
+| PUT | `/api/fidelizacion/niveles` | `FIDELIZACION_CONFIGURAR` + rol Administrador de CRM |
+| GET | `/api/fidelizacion/niveles/historial` | rol Administrador de CRM + `FIDELIZACION_CONFIGURAR` |
+| POST | `/api/fidelizacion/niveles/recalcular` | `FIDELIZACION_CONFIGURAR` + rol Administrador de CRM |
 
 ## Ejecutar
 

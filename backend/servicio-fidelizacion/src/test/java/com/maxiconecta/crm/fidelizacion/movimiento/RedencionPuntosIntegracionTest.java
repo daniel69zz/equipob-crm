@@ -10,10 +10,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -48,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * SCRUM-48 · Redención de puntos (docs/fidelizacion/redencion-puntos.md) con eventos simulados
  * RIO-CRM-03 publicados en RabbitMQ, PostgreSQL real y el servicio de Perfil simulado: redención,
- * saldo insuficiente, reentrega, reevaluación del nivel, confirmación, reproceso y concurrencia.
+ * saldo insuficiente, reentrega, reevaluación del nivel (SCRUM-49), confirmación, reproceso y concurrencia.
  * CLI-5521 es el cliente 42 del CRM; su acumulación V-100234 le da 35 puntos.
  */
 @SpringBootTest
@@ -65,15 +63,6 @@ class RedencionPuntosIntegracionTest {
     @Container
     @ServiceConnection
     static final RabbitMQContainer RABBIT = new RabbitMQContainer("rabbitmq:3.13-alpine");
-
-    /** Niveles de prueba mientras SCRUM-49 no define los reales: PLATA desde 30 puntos, BRONCE desde 1. */
-    @TestConfiguration
-    static class NivelesDePrueba {
-        @Bean
-        ReevaluacionNivel nivelesDePrueba() {
-            return saldo -> saldo >= 30 ? Optional.of("PLATA") : saldo >= 1 ? Optional.of("BRONCE") : Optional.empty();
-        }
-    }
 
     @MockBean
     private ClientesPerfil perfiles;
@@ -96,6 +85,9 @@ class RedencionPuntosIntegracionTest {
     @BeforeEach
     void preparar() {
         jdbc.execute("TRUNCATE fidelizacion.movimiento_puntos, fidelizacion.evento_movimiento, fidelizacion.saldo_puntos");
+        // Niveles iniciales de SCRUM-49 (Bronce 0–499): los 35 puntos de Ana son BRONCE.
+        jdbc.update("DELETE FROM fidelizacion.umbral_nivel WHERE version > 1");
+        jdbc.update("DELETE FROM fidelizacion.configuracion_niveles WHERE version > 1");
         when(perfiles.buscar(anyString())).thenReturn(Optional.of(CLIENTE));
     }
 
@@ -128,9 +120,11 @@ class RedencionPuntosIntegracionTest {
                 .andExpect(jsonPath("$[0].variacionSaldo").value(-20))
                 .andExpect(jsonPath("$[0].valorConsumido").value(20.00))
                 .andExpect(jsonPath("$[0].bolivianosPorPunto").value(nullValue()))
+                .andExpect(jsonPath("$[0].versionRegla").value(nullValue()))
                 .andExpect(jsonPath("$[0].saldoResultante").value(15))
                 .andExpect(jsonPath("$[1].idTransaccion").value("V-100234"))
-                .andExpect(jsonPath("$[1].variacionSaldo").value(35));
+                .andExpect(jsonPath("$[1].variacionSaldo").value(35))
+                .andExpect(jsonPath("$[1].versionRegla").value(1));
     }
 
     @Test
@@ -240,36 +234,42 @@ class RedencionPuntosIntegracionTest {
         assertThat(saldo()).isEqualTo(5);
     }
 
-    // --- Criterio 4: después de una redención el cliente queda en el nivel de su nuevo saldo ---
+    // --- Criterio 4: después de la redención se reevalúa el nivel; por regla de SCRUM-49 no baja ---
 
     @Test
-    void trasLaRedencionElClienteQuedaEnElNivelDeSuNuevoSaldo() throws Exception {
+    void laRedencionReevaluaElNivelConLaConfiguracionVigente() throws Exception {
         acumularLos35DeAna();
-        assertThat(nivel()).isEqualTo("PLATA");
+        assertThat(nivel()).isEqualTo("BRONCE");
+        plataDesde30Puntos();
 
         ingesta.recibir(ejemplo("movimiento-redencion.json"));
 
-        assertThat(nivel()).isEqualTo("BRONCE");
+        assertThat(nivel()).isEqualTo("PLATA");
         mvc.perform(get("/api/fidelizacion/clientes/42/puntos"))
                 .andExpect(jsonPath("$.saldo").value(15))
-                .andExpect(jsonPath("$.nivel").value("BRONCE"));
+                .andExpect(jsonPath("$.nivel").value("PLATA"));
+    }
+
+    @Test
+    void unaRedencionNoBajaElNivelAunqueElSaldoQuedeBajoElUmbral() {
+        plataDesde30Puntos();
+        acumularLos35DeAna();
+        assertThat(nivel()).isEqualTo("PLATA");
+
+        ingesta.recibir(redencion("R-TODO", 35));
+
+        assertThat(saldo()).isZero();
+        assertThat(nivel()).isEqualTo("PLATA");
     }
 
     @Test
     void unaRedencionFallidaNoCambiaElNivel() {
         acumularLos35DeAna();
+        plataDesde30Puntos();
+
         ingesta.recibir(ejemplo("movimiento-redencion-saldo-insuficiente.json"));
 
-        assertThat(nivel()).isEqualTo("PLATA");
-    }
-
-    @Test
-    void siSeRedimeTodoElSaldoElClienteQuedaSinNivel() {
-        acumularLos35DeAna();
-        ingesta.recibir(redencion("R-TODO", 35));
-
-        assertThat(saldo()).isZero();
-        assertThat(nivel()).isNull();
+        assertThat(nivel()).isEqualTo("BRONCE");
     }
 
     // --- SCRUM-406: confirmación de la redención por su transacción de origen ---
@@ -365,6 +365,14 @@ class RedencionPuntosIntegracionTest {
 
     private String nivel() {
         return jdbc.queryForObject("SELECT nivel FROM fidelizacion.saldo_puntos WHERE cliente_id = ?", String.class, CLIENTE);
+    }
+
+    /** Versión 2 de los niveles, sin recalcular a nadie: Bronce 0–29, Plata 30–1.999, Oro desde 2.000. */
+    private void plataDesde30Puntos() {
+        jdbc.update("INSERT INTO fidelizacion.configuracion_niveles (version, periodo_meses, modificado_por) "
+                + "VALUES (2, 12, 'prueba')");
+        jdbc.update("INSERT INTO fidelizacion.umbral_nivel (version, nivel, puntos_minimos, puntos_maximos) VALUES "
+                + "(2, 'BRONCE', 0, 29), (2, 'PLATA', 30, 1999), (2, 'ORO', 2000, NULL)");
     }
 
     private boolean saldoExiste() {
