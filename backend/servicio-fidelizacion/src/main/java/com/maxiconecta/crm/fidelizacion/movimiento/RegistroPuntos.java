@@ -8,10 +8,11 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
- * Saldo de puntos (SCRUM-389) e historial de movimientos por transacción (SCRUM-390, SCRUM-403),
- * dentro de la transacción de {@link ProcesadorMovimientos}.
+ * Saldo de puntos (SCRUM-389) e historial de movimientos por transacción (SCRUM-390, SCRUM-403,
+ * SCRUM-539), dentro de la transacción de {@link ProcesadorMovimientos}.
  */
 @Repository
 public class RegistroPuntos {
@@ -84,6 +85,82 @@ public class RegistroPuntos {
                 .stream().findFirst().orElse(0L);
     }
 
+    /**
+     * Acumulación que revierte una reversa (SCRUM-540), con la regla con la que se calculó. Queda
+     * bloqueada hasta el fin de la transacción: las reversas de una misma compra se aplican de a una, así
+     * que dos devoluciones simultáneas no pueden revertir entre las dos más de lo que sigue vigente.
+     */
+    public Optional<ReglaReversa.Original> acumulacionParaRevertir(String idTransaccion) {
+        return jdbc.query("""
+                SELECT id_transaccion, cliente_id, valor_consumido, puntos, bolivianos_por_punto, monto_minimo,
+                       version_regla
+                FROM fidelizacion.movimiento_puntos
+                WHERE id_transaccion = ? AND tipo_movimiento = 'ACUMULACION'
+                FOR UPDATE
+                """, (r, n) -> new ReglaReversa.Original(r.getString("id_transaccion"), r.getLong("cliente_id"),
+                r.getBigDecimal("valor_consumido"), r.getLong("puntos"), r.getBigDecimal("bolivianos_por_punto"),
+                r.getBigDecimal("monto_minimo"), r.getObject("version_regla", Long.class)), idTransaccion)
+                .stream().findFirst();
+    }
+
+    /**
+     * Reserva la reversa con su referencia a la acumulación original (SCRUM-539) y la regla de esa compra,
+     * antes de calcular sus puntos. La clave primaria detiene una segunda aplicación de la misma reversa
+     * (criterio 3), venga por RIO-CRM-03 o por RIO-CRM-05.
+     */
+    public void reservarReversa(String idTransaccion, long clienteId, String idClienteOrigen, BigDecimal monto,
+                                ReglaReversa.Original original, OffsetDateTime fechaTransaccion,
+                                long idEventoMovimiento) {
+        try {
+            jdbc.update("""
+                    INSERT INTO fidelizacion.movimiento_puntos
+                        (id_transaccion, tipo_movimiento, cliente_id, id_cliente_origen, valor_consumido, puntos,
+                         bolivianos_por_punto, monto_minimo, version_regla, saldo_resultante, fecha_transaccion,
+                         id_evento_movimiento, id_transaccion_revertida, tipo_movimiento_revertido)
+                    VALUES (?, 'REVERSA', ?, ?, ?, 0, ?, ?, ?, 0, ?, ?, ?, 'ACUMULACION')
+                    """, idTransaccion, clienteId, idClienteOrigen, monto, original.bolivianosPorPunto(),
+                    original.montoMinimo(), original.versionRegla(), fechaTransaccion, idEventoMovimiento,
+                    original.idTransaccion());
+        } catch (DuplicateKeyException ex) {
+            throw new MovimientoDuplicadoException("La transacción " + idTransaccion + " ya revirtió sus puntos (REVERSA)");
+        }
+    }
+
+    /** Monto y puntos de las otras reversas de la misma acumulación. */
+    public Revertido revertidoAntes(String idTransaccionOriginal, String idReversa) {
+        return jdbc.queryForObject("""
+                SELECT COALESCE(SUM(valor_consumido), 0) AS monto, COALESCE(SUM(puntos), 0) AS puntos
+                FROM fidelizacion.movimiento_puntos
+                WHERE id_transaccion_revertida = ? AND tipo_movimiento_revertido = 'ACUMULACION'
+                  AND tipo_movimiento = 'REVERSA' AND id_transaccion <> ?
+                """, (r, n) -> new Revertido(r.getBigDecimal("monto"), r.getLong("puntos")),
+                idTransaccionOriginal, idReversa);
+    }
+
+    /**
+     * Descuenta los puntos de una reversa hasta donde alcance el saldo (SCRUM-538): si el cliente ya
+     * redimió parte de ellos, el saldo queda en 0 y nunca negativo.
+     */
+    public Descuento descontarHastaCero(long clienteId, long puntos) {
+        List<Long> anterior = jdbc.queryForList(
+                "SELECT saldo FROM fidelizacion.saldo_puntos WHERE cliente_id = ? FOR UPDATE", Long.class, clienteId);
+        if (anterior.isEmpty()) {
+            return new Descuento(0, 0);
+        }
+        long descontados = Math.min(anterior.get(0), puntos);
+        long saldo = jdbc.queryForObject("""
+                UPDATE fidelizacion.saldo_puntos SET saldo = saldo - ?, actualizado_en = now()
+                WHERE cliente_id = ? RETURNING saldo
+                """, Long.class, descontados, clienteId);
+        return new Descuento(saldo, descontados);
+    }
+
+    public void completarReversa(String idTransaccion, long puntos, long puntosNoRecuperados) {
+        jdbc.update("""
+                UPDATE fidelizacion.movimiento_puntos SET puntos = ?, puntos_no_recuperados = ?
+                WHERE id_transaccion = ? AND tipo_movimiento = 'REVERSA'
+                """, puntos, puntosNoRecuperados, idTransaccion);
+    }
 
     public void anotarSaldoResultante(String idTransaccion, TipoMovimiento tipo, long saldo) {
         jdbc.update("UPDATE fidelizacion.movimiento_puntos SET saldo_resultante = ? "
@@ -93,32 +170,51 @@ public class RegistroPuntos {
     public List<DetalleMovimiento> movimientos(long clienteId) {
         return jdbc.query("""
                 SELECT id_transaccion, tipo_movimiento, id_cliente_origen, valor_consumido, puntos, bolivianos_por_punto,
-                       monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en
+                       monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en,
+                       id_transaccion_revertida, puntos_no_recuperados
                 FROM fidelizacion.movimiento_puntos WHERE cliente_id = ? ORDER BY registrado_en DESC, fecha_transaccion DESC
                 """, (r, n) -> new DetalleMovimiento(r.getString("id_transaccion"), r.getString("tipo_movimiento"),
                 r.getString("id_cliente_origen"), r.getBigDecimal("valor_consumido"), r.getLong("puntos"),
-                variacion(r.getString("tipo_movimiento"), r.getLong("puntos")),
+                variacion(r.getString("tipo_movimiento"), r.getLong("puntos"), r.getLong("puntos_no_recuperados")),
                 r.getBigDecimal("bolivianos_por_punto"), r.getBigDecimal("monto_minimo"),
                 r.getObject("version_regla", Long.class), r.getLong("saldo_resultante"),
                 r.getObject("fecha_transaccion", OffsetDateTime.class),
-                r.getObject("registrado_en", OffsetDateTime.class)), clienteId);
+                r.getObject("registrado_en", OffsetDateTime.class), r.getString("id_transaccion_revertida"),
+                r.getLong("puntos_no_recuperados")), clienteId);
     }
 
-    /** Efecto del movimiento sobre el saldo: suma en una acumulación y resta en una redención (SCRUM-403). */
-    static long variacion(String tipoMovimiento, long puntos) {
-        return TipoMovimiento.REDENCION.name().equals(tipoMovimiento) ? -puntos : puntos;
+    /**
+     * Efecto del movimiento sobre el saldo: suma en una acumulación, resta en una redención (SCRUM-403) y
+     * en una reversa resta lo que se pudo descontar (SCRUM-524).
+     */
+    static long variacion(String tipoMovimiento, long puntos, long puntosNoRecuperados) {
+        return switch (TipoMovimiento.valueOf(tipoMovimiento)) {
+            case ACUMULACION -> puntos;
+            case REDENCION -> -puntos;
+            case REVERSA -> -(puntos - puntosNoRecuperados);
+        };
     }
 
     /**
      * Detalle de puntos de una transacción (criterio de aceptación 4 de SCRUM-45), con la regla aplicada
      * (SCRUM-46). {@code puntos} es siempre positivo y {@code variacionSaldo} indica si sumó o restó
      * (SCRUM-403); una redención no tiene regla (tasa, monto mínimo y versión nulos) y su valor consumido
-     * es opcional.
+     * es opcional. Una reversa (SCRUM-539) trae la transacción que revierte, el monto revertido en
+     * {@code valorConsumido}, la regla de la compra original y los puntos que no se pudieron descontar porque
+     * el cliente ya los había redimido.
      */
     public record DetalleMovimiento(String idTransaccion, String tipoMovimiento, String idClienteOrigen,
                                     BigDecimal valorConsumido, long puntos, long variacionSaldo,
                                     BigDecimal bolivianosPorPunto, BigDecimal montoMinimo, Long versionRegla,
                                     long saldoResultante, OffsetDateTime fechaTransaccion,
-                                    OffsetDateTime registradoEn) {
+                                    OffsetDateTime registradoEn, String idTransaccionRevertida,
+                                    long puntosNoRecuperados) {
+    }
+
+    public record Revertido(BigDecimal monto, long puntos) {
+    }
+
+    /** Saldo resultante y puntos que se pudieron descontar. */
+    public record Descuento(long saldo, long descontados) {
     }
 }

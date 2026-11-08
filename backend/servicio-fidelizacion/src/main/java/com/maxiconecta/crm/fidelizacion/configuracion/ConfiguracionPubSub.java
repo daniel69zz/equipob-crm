@@ -17,9 +17,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * Suscripción de Google Cloud Pub/Sub a los movimientos de puntos (perfil {@code pubsub},
- * docs/mensajeria/pubsub.md): la misma cola que {@link ConfiguracionRabbit}, con el mismo nombre y el
- * mismo tratamiento.
+ * Suscripciones de Google Cloud Pub/Sub a los movimientos de puntos y a las anulaciones de compra
+ * (perfil {@code pubsub}, docs/mensajeria/pubsub.md): las mismas colas que {@link ConfiguracionRabbit},
+ * con los mismos nombres y el mismo tratamiento.
  */
 @Configuration
 @ConditionalOnProperty(name = Mensajeria.PROPIEDAD_BROKER, havingValue = Mensajeria.PUBSUB)
@@ -35,9 +35,13 @@ public class ConfiguracionPubSub {
     public SuscriptorPubSub suscriptorPubSub(PubSubTemplate pubsub, RecursosPubSub recursos,
                                              @Value("${crm.mensajeria.pubsub.crear-recursos:true}") boolean crear,
                                              IngestaMovimientos ingesta) {
-        return new SuscriptorPubSub(pubsub, recursos, crear, List.of(new SuscripcionPubSub(
-                ConfiguracionRabbit.COLA_MOVIMIENTOS, ConfiguracionRabbit.EXCHANGE_VENTAS,
-                ConfiguracionRabbit.RUTA_MOVIMIENTO_PUNTOS,
-                cuerpo -> ingesta.recibir(new String(cuerpo, StandardCharsets.UTF_8)))));
+        return new SuscriptorPubSub(pubsub, recursos, crear, List.of(
+                new SuscripcionPubSub(ConfiguracionRabbit.COLA_MOVIMIENTOS, ConfiguracionRabbit.EXCHANGE_VENTAS,
+                        ConfiguracionRabbit.RUTA_MOVIMIENTO_PUNTOS,
+                        cuerpo -> ingesta.recibir(new String(cuerpo, StandardCharsets.UTF_8))),
+                // SCRUM-524: RIO-CRM-05 revierte los puntos de la compra anulada o devuelta.
+                new SuscripcionPubSub(ConfiguracionRabbit.COLA_ANULACIONES, ConfiguracionRabbit.EXCHANGE_VENTAS,
+                        ConfiguracionRabbit.RUTA_ANULACION,
+                        cuerpo -> ingesta.recibir(new String(cuerpo, StandardCharsets.UTF_8)))));
     }
 }

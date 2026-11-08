@@ -186,12 +186,12 @@ class AcumulacionPuntosIntegracionTest {
     }
 
     @Test
-    void unaReversaQuedaFallidaHastaQueSeProceseEnSuHistoria() {
+    void unaReversaSinLaTransaccionQueRevierteQuedaFallidaConElCampo() {
         ingesta.recibir(ejemplo("movimiento-acumulacion-ana.json").replace("ACUMULACION", "REVERSA"));
 
         EventoMovimiento evento = bitacora.listar(null, 10).get(0);
         assertThat(evento.estado()).isEqualTo(Estado.FALLIDO);
-        assertThat(evento.causa()).contains("REVERSA").contains("SCRUM-524");
+        assertThat(evento.causa()).contains("movimiento.idTransaccionOriginal es obligatorio");
         assertThat(saldoExiste()).isFalse();
     }
 

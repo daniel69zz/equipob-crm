@@ -7,12 +7,12 @@ Eventos a simular (según los contratos de `docs/contratos-eventos/`):
 - Alta y cambio de datos de un cliente (RIO-CRM-01) — **disponible**
 - Compra confirmada (RIO-CRM-02) — **disponible**
 - Anulación o devolución de compra (RIO-CRM-05) — **disponible**
-- Movimiento de puntos (RIO-CRM-03): acumulación y redención — **disponibles**; reversa, en SCRUM-524
+- Movimiento de puntos (RIO-CRM-03): acumulación, redención y reversa — **disponibles**
 - Casos de prueba: evento duplicado, evento con datos inválidos, evento que falla y va a la cola de fallidos
 
 ## Uso
 
-Requiere Python 3 y RabbitMQ con el plugin de administración (imagen `rabbitmq:3.13-management`). El servicio consumidor (`servicio-comportamiento` para compras y anulaciones, `servicio-perfil` para clientes) debe haber arrancado al menos una vez para que existan el exchange y su cola.
+Requiere Python 3 y RabbitMQ con el plugin de administración (imagen `rabbitmq:3.13-management`). El servicio consumidor (`servicio-comportamiento` para compras y anulaciones, `servicio-fidelizacion` para movimientos de puntos y anulaciones, `servicio-perfil` para clientes) debe haber arrancado al menos una vez para que existan el exchange y su cola.
 
 ```bash
 python3 publicar.py eventos/compra-ana.json
@@ -82,7 +82,7 @@ preferencias (`GET /api/comportamiento/clientes/{id}/preferencias`) y lo registr
 `.../preferencias/actualizaciones`; una reentrega no lo actualiza dos veces. Detalle en
 `docs/preferencias/actualizacion-por-eventos.md`.
 
-### Movimientos de puntos (RIO-CRM-03, SCRUM-45 y SCRUM-48)
+### Movimientos de puntos (RIO-CRM-03, SCRUM-45, SCRUM-48 y SCRUM-524)
 
 Con `servicio-fidelizacion` y `servicio-perfil` levantados y el perfil del cliente creado
 (`cliente-ana-alta.json`):
@@ -96,14 +96,21 @@ Con `servicio-fidelizacion` y `servicio-perfil` levantados y el perfil del clien
 | `movimiento-redencion.json` (después de la acumulación de Ana) | `PROCESADO`: R-5001 descuenta 20 puntos; el saldo de CLI-5521 queda en 15 |
 | `movimiento-redencion.json` publicado dos veces | El segundo, `DESCARTADO`: la transacción R-5001 ya descontó sus puntos |
 | `movimiento-redencion-saldo-insuficiente.json` | `FALLIDO`: R-5002 pide 500 puntos y el saldo no alcanza; el saldo no cambia |
+| `movimiento-reversa-parcial.json` (después de la acumulación de Ana) | `PROCESADO`: la devolución V-100234-D1 de Bs 50,50 quita 5 puntos (quedan Bs 300 → 30 puntos) |
+| `movimiento-reversa-total.json` (después de la parcial) | `PROCESADO`: la anulación V-100234-A1 de los Bs 300 restantes quita los 30 puntos que quedaban |
+| `anulacion-parcial.json` / `anulacion-total.json` (RIO-CRM-05) | Fidelización los recibe como las mismas reversas V-100234-D1 y V-100234-A1: si ya llegó la reversa RIO-CRM-03, `DESCARTADO` |
 
 ```bash
 python3 publicar.py eventos/movimiento-acumulacion-ana.json eventos/movimiento-redencion.json
 python3 publicar.py eventos/movimiento-redencion.json                       # reentrega: DESCARTADO
 python3 publicar.py eventos/movimiento-redencion-saldo-insuficiente.json    # FALLIDO por saldo insuficiente
+python3 publicar.py eventos/movimiento-acumulacion-ana.json eventos/movimiento-reversa-parcial.json \
+                    eventos/movimiento-reversa-total.json                   # 35 → 30 → 0
+python3 publicar.py eventos/anulacion-parcial.json                          # reversa ya aplicada: DESCARTADO
 ```
 
-Detalle en `docs/fidelizacion/acumulacion-puntos.md` y `docs/fidelizacion/redencion-puntos.md`.
+Detalle en `docs/fidelizacion/acumulacion-puntos.md`, `docs/fidelizacion/redencion-puntos.md` y
+`docs/fidelizacion/reversa-puntos.md`.
 
 ### Clientes (RIO-CRM-01)
 

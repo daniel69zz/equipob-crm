@@ -12,6 +12,11 @@ import java.util.UUID;
 /**
  * Lee y valida un evento RIO-CRM-03 según su contrato. Cualquier incumplimiento se informa con el
  * campo y la regla, para que la causa quede clara en la bitácora (criterio de aceptación 3).
+ * <p>
+ * También lee la anulación o devolución de compra RIO-CRM-05 (SCRUM-524) como un movimiento
+ * {@code REVERSA}: la transacción es {@code idAnulacion}, la transacción original es {@code idCompra} y el
+ * valor es {@code montoRevertido}. Así las dos fuentes de una misma reversa comparten su clave y no se
+ * aplican dos veces, y la bitácora conserva el mensaje original para reprocesarlo.
  */
 @Component
 public class LectorMovimientos {
@@ -29,6 +34,10 @@ public class LectorMovimientos {
     public Cabecera cabecera(String contenido) {
         try {
             JsonNode raiz = json.readTree(contenido);
+            if (esAnulacion(raiz)) {
+                return new Cabecera(texto(raiz.get("idEvento")), texto(raiz.path("anulacion").get("idAnulacion")),
+                        TipoMovimiento.REVERSA.name());
+            }
             JsonNode movimiento = raiz.path("movimiento");
             return new Cabecera(texto(raiz.get("idEvento")), texto(movimiento.get("idTransaccion")),
                     texto(movimiento.get("tipoMovimiento")));
@@ -38,6 +47,9 @@ public class LectorMovimientos {
     }
 
     public EventoMovimientoPuntos leer(String contenido) {
+        if (esAnulacion(contenido)) {
+            return leerAnulacion(contenido);
+        }
         EventoMovimientoPuntos evento;
         try {
             evento = json.readValue(contenido, EventoMovimientoPuntos.class);
@@ -82,17 +94,74 @@ public class LectorMovimientos {
         } else {
             valorConsumido(movimiento.valorConsumido());
         }
+        if (tipo == TipoMovimiento.REVERSA) {
+            // SCRUM-540: la reversa apunta a la compra que revierte; su valor es el monto revertido.
+            identificador("movimiento.idTransaccionOriginal", movimiento.idTransaccionOriginal());
+        }
         if (movimiento.fecha() == null) {
             throw new EventoInvalidoException("movimiento.fecha es obligatoria");
         }
     }
 
+    private boolean esAnulacion(String contenido) {
+        try {
+            return esAnulacion(json.readTree(contenido));
+        } catch (IOException | RuntimeException ex) {
+            return false;
+        }
+    }
+
+    private static boolean esAnulacion(JsonNode raiz) {
+        return raiz != null && EventoAnulacionCompra.TIPO.equals(raiz.path("tipoEvento").asText(null));
+    }
+
+    /** RIO-CRM-05 como movimiento REVERSA (SCRUM-524), con las reglas de su contrato que usa Fidelización. */
+    private EventoMovimientoPuntos leerAnulacion(String contenido) {
+        EventoAnulacionCompra evento;
+        try {
+            evento = json.readValue(contenido, EventoAnulacionCompra.class);
+        } catch (IOException ex) {
+            throw new EventoInvalidoException("El mensaje no es un JSON válido de RIO-CRM-05: " + ex.getMessage(), ex);
+        }
+        identificador("idEvento", evento.idEvento());
+        try {
+            UUID.fromString(evento.idEvento());
+        } catch (IllegalArgumentException ex) {
+            throw new EventoInvalidoException("idEvento debe tener formato UUID");
+        }
+        if (evento.fechaEmision() == null) {
+            throw new EventoInvalidoException("fechaEmision es obligatoria");
+        }
+        EventoAnulacionCompra.Anulacion anulacion = evento.anulacion();
+        if (anulacion == null) {
+            throw new EventoInvalidoException("anulacion es obligatoria");
+        }
+        identificador("anulacion.idAnulacion", anulacion.idAnulacion());
+        identificador("anulacion.idCompra", anulacion.idCompra());
+        identificador("anulacion.idCliente", anulacion.idCliente());
+        if (!"TOTAL".equals(anulacion.tipo()) && !"PARCIAL".equals(anulacion.tipo())) {
+            throw new EventoInvalidoException("anulacion.tipo debe ser TOTAL o PARCIAL");
+        }
+        decimal("anulacion.montoRevertido", anulacion.montoRevertido());
+        if (anulacion.fecha() == null) {
+            throw new EventoInvalidoException("anulacion.fecha es obligatoria");
+        }
+        return new EventoMovimientoPuntos(evento.idEvento(), evento.tipoEvento(), evento.fechaEmision(),
+                new EventoMovimientoPuntos.Movimiento(anulacion.idAnulacion(), anulacion.idCliente(),
+                        TipoMovimiento.REVERSA.name(), anulacion.montoRevertido(), null, anulacion.idCompra(),
+                        anulacion.fecha()));
+    }
+
     private static void valorConsumido(BigDecimal valor) {
+        decimal("movimiento.valorConsumido", valor);
+    }
+
+    private static void decimal(String campo, BigDecimal valor) {
         if (valor == null || valor.signum() <= 0) {
-            throw new EventoInvalidoException("movimiento.valorConsumido es obligatorio y mayor que cero");
+            throw new EventoInvalidoException(campo + " es obligatorio y mayor que cero");
         }
         if (valor.stripTrailingZeros().scale() > 2 || valor.precision() - valor.scale() > 12) {
-            throw new EventoInvalidoException("movimiento.valorConsumido debe tener formato decimal (12,2)");
+            throw new EventoInvalidoException(campo + " debe tener formato decimal (12,2)");
         }
     }
 

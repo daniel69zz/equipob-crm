@@ -1,0 +1,13 @@
+{
+  "idEvento": "5e6f7a8b-9c0d-4e1f-a2b3-c4d5e6f7a8b9",
+  "tipoEvento": "MOVIMIENTO_PUNTOS",
+  "fechaEmision": "2026-10-20T11:05:00-04:00",
+  "movimiento": {
+    "idTransaccion": "V-100234-D1",
+    "idCliente": "CLI-5521",
+    "tipoMovimiento": "REVERSA",
+    "idTransaccionOriginal": "V-100234",
+    "valorConsumido": 50.50,
+    "fecha": "2026-10-20T11:02:30-04:00"
+  }
+}

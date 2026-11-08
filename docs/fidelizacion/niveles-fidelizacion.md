@@ -19,6 +19,9 @@ nivel         = el umbral de la configuración vigente que contiene puntosPeriod
 - Las **redenciones del periodo bajan los puntos del periodo**: después de una redención el cliente queda
   en el nivel que corresponde a su nuevo saldo (criterio 4 de SCRUM-48, `redencion-puntos.md`). Una
   redención fallida no cambia nada.
+- Una **reversa** (compra anulada o devuelta, SCRUM-524) resta todos sus puntos, aunque el cliente ya los
+  hubiera redimido, y cuenta con la **fecha de la compra que revierte** (SCRUM-541): sale del periodo junto
+  con esa compra y no le quita puntos a compras posteriores.
 - Con el paso del tiempo, las compras antiguas salen del periodo y el cliente puede bajar de nivel.
 
 Configuración inicial (migración `V4__niveles_fidelizacion.sql`, usuario `sistema`):
@@ -61,6 +64,24 @@ y `nivel_actualizado_en` (fecha del último cambio de nivel). El nivel se recalc
 
 El cálculo es una sola sentencia SQL (`AsignacionNiveles`) que suma los puntos del periodo y busca el
 umbral vigente, para un cliente o para todos.
+
+### Historial de cambios de nivel (SCRUM-541)
+
+Cada vez que un cliente cambia de nivel, la misma sentencia lo anota en `fidelizacion.cambio_nivel` con el
+nivel anterior, el nuevo, los puntos del periodo y su origen: el **movimiento** que lo causó (transacción y
+tipo, por ejemplo la reversa que lo hace descender) o un **recálculo** (configuración nueva, recálculo
+nocturno o a pedido).
+
+```
+GET /api/fidelizacion/clientes/{clienteId}/cambios-nivel      (PUNTOS_CONSULTAR)
+```
+
+```json
+[
+  { "nivelAnterior": "PLATA", "nivelNuevo": "BRONCE", "puntosPeriodo": 420, "origen": "MOVIMIENTO",
+    "idTransaccion": "V-200100-A1", "tipoMovimiento": "REVERSA", "cambiadoEn": "2026-11-07T14:00:00Z" }
+]
+```
 
 ## Versiones e historial
 
