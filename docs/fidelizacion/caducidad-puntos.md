@@ -78,3 +78,31 @@ descontado todavía. Para que esos puntos no se usen:
 La caducidad no cambia los puntos del periodo de evaluación del nivel (SCRUM-49), porque esos puntos se
 calculan con las compras del periodo y no con el saldo. Aun así, el nivel se recalcula con la caducidad. Si
 cambia, el cambio queda en el historial de niveles con la caducidad como origen.
+
+## Configuración de la vigencia (SCRUM-416)
+
+```
+GET /api/fidelizacion/caducidad/configuracion
+```
+
+```json
+{
+  "vigenciaMeses": 12,
+  "regla": "El saldo completo caduca 12 meses después de la última compra que acumuló puntos",
+  "procesoCron": "0 0 2 * * *",
+  "zonaHoraria": "America/La_Paz"
+}
+```
+
+El API Gateway exige `PUNTOS_CONSULTAR`, como en los demás GET de fidelización. El servicio exige además la
+identidad que reenvía el Gateway.
+
+| Variable | Por defecto | Uso |
+|---|---|---|
+| `FIDELIZACION_VIGENCIA_MESES` | `12` | Meses de vigencia del saldo, de 1 a 120. Fuera de ese rango, el servicio no arranca |
+| `FIDELIZACION_CADUCIDAD_CRON` | `0 0 2 * * *` | Hora del proceso diario, antes del recálculo de niveles (02:30) |
+| `FIDELIZACION_ZONA_HORARIA` | `America/La_Paz` | Zona del horario del proceso, la misma del recálculo de niveles |
+
+Las consultas de puntos, RIO-CRM-04, el proceso de caducidad y la caducidad antes de cada movimiento leen la
+vigencia de un mismo componente (`VigenciaPuntos`). Cuando SCRUM-65 la lleve a los parámetros generales, solo
+cambiará ese componente.
