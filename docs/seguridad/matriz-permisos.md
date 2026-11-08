@@ -63,6 +63,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/segmentacion/clientes/*/historial-segmentos` | GET | `SEGMENTOS_CONSULTAR`; los métodos de escritura y las subrutas se deniegan antes de la regla genérica |
 | `/api/segmentacion/**` | GET | `SEGMENTOS_CONSULTAR` |
 | `/api/segmentacion/**` | POST, PUT, PATCH, DELETE | `SEGMENTACION_CONFIGURAR` |
+| `/api/fidelizacion/clientes/*/saldo` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `PUNTOS_CONSULTAR` (SCRUM-397, regla anterior a la genérica) |
 | `/api/fidelizacion/**` | GET | `PUNTOS_CONSULTAR` |
 | `/api/fidelizacion/**` | POST, PUT, PATCH, DELETE | `FIDELIZACION_CONFIGURAR` |
 | `/api/interacciones/**` | GET | `INTERACCIONES_CONSULTAR` |

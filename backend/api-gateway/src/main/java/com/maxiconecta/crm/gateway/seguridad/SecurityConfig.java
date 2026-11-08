@@ -120,6 +120,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/segmentacion/**").hasAuthority(SEGMENTOS_CONSULTAR)
                         .requestMatchers("/api/segmentacion/**").hasAuthority(SEGMENTACION_CONFIGURAR)
 
+                        // SCRUM-397: el saldo y los movimientos de un cliente, solo para el Administrador de CRM y el Agente.
+                        .requestMatchers(HttpMethod.GET, "/api/fidelizacion/clientes/*/saldo")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole("ADMINISTRADOR_CRM", "AGENTE_ATENCION"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(PUNTOS_CONSULTAR)))
                         .requestMatchers(HttpMethod.GET, "/api/fidelizacion/**").hasAuthority(PUNTOS_CONSULTAR)
                         .requestMatchers("/api/fidelizacion/**").hasAuthority(FIDELIZACION_CONFIGURAR)
 

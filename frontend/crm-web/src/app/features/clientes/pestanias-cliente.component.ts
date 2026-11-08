@@ -22,6 +22,9 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         <a [routerLink]="['/clientes', id(), 'compras']" routerLinkActive="activa" role="tab">Compras e indicadores</a>
         <a *appSiTienePermiso="permisos.EVOLUCION_CONSUMO_CONSULTAR" [routerLink]="['/clientes', id(), 'evolucion-consumo']" routerLinkActive="activa" role="tab">Evolución por categoría</a>
         <a *appSiTienePermiso="permisos.SUGERENCIAS_CONSULTAR" [routerLink]="['/clientes', id(), 'sugerencias']" routerLinkActive="activa" role="tab">Sugerencias</a>
+        @if (auth.puedeConsultarSaldoPuntos()) {
+          <a [routerLink]="['/clientes', id(), 'puntos']" routerLinkActive="activa" role="tab">Puntos</a>
+        }
         <a [routerLink]="['/clientes', id(), 'consentimiento']" routerLinkActive="activa" role="tab">Consentimiento</a>
       </div>
     </nav>

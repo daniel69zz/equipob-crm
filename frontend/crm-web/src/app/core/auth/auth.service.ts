@@ -69,6 +69,13 @@ export class AuthService {
       && sesion.permisos.includes('FICHA_INTEGRAL_CONSULTAR');
   }
 
+  /** SCRUM-47: misma combinación de rol y permiso que exige el Gateway para el saldo de un cliente. */
+  puedeConsultarSaldoPuntos(): boolean {
+    const sesion = this.sesionVigente();
+    return !!sesion && ['ADMINISTRADOR_CRM', 'AGENTE_ATENCION'].includes(sesion.rol)
+      && sesion.permisos.includes('PUNTOS_CONSULTAR');
+  }
+
   token(): string | null {
     return this.sesionVigente()?.token ?? null;
   }
