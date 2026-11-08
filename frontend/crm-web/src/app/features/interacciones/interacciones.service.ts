@@ -3,6 +3,8 @@ import { Injectable, inject } from '@angular/core';
 
 /** Tipos de interacción (SCRUM-433, docs/interacciones/registro-interacciones.md). */
 export type TipoInteraccion = 'CONSULTA' | 'RECLAMO' | 'NOTA';
+/** Estados de seguimiento (SCRUM-451, docs/interacciones/seguimiento-interacciones.md). */
+export type EstadoInteraccion = 'ABIERTA' | 'EN_PROCESO' | 'CERRADA';
 export type CanalInteraccion = 'TELEFONO' | 'CORREO' | 'PRESENCIAL' | 'CHAT' | 'WHATSAPP' | 'OTRO';
 
 export const TIPOS_INTERACCION: { valor: TipoInteraccion; nombre: string }[] = [
@@ -10,6 +12,16 @@ export const TIPOS_INTERACCION: { valor: TipoInteraccion; nombre: string }[] = [
   { valor: 'RECLAMO', nombre: 'Reclamo' },
   { valor: 'NOTA', nombre: 'Nota' },
 ];
+
+export const ESTADOS_INTERACCION: { valor: EstadoInteraccion; nombre: string }[] = [
+  { valor: 'ABIERTA', nombre: 'Abierta' },
+  { valor: 'EN_PROCESO', nombre: 'En proceso' },
+  { valor: 'CERRADA', nombre: 'Cerrada' },
+];
+
+/** Largo del comentario al reabrir una interacción cerrada (SCRUM-453). */
+export const LARGO_MINIMO_COMENTARIO_REAPERTURA = 10;
+export const LARGO_MAXIMO_COMENTARIO = 500;
 
 export const CANALES_INTERACCION: { valor: CanalInteraccion; nombre: string }[] = [
   { valor: 'TELEFONO', nombre: 'Teléfono' },
@@ -33,6 +45,10 @@ export interface Interaccion {
   asunto: string | null;
   descripcion: string;
   referenciaCompra: string | null;
+  estado: EstadoInteraccion;
+  /** Quién cambió el estado por última vez y cuándo; nulos mientras siga como se registró. */
+  estadoActualizadoPor: string | null;
+  estadoActualizadoEn: string | null;
   registradoPor: string;
   registradoRol: string | null;
   registradoEn: string;
@@ -58,9 +74,17 @@ export interface DatosInteraccion {
   referenciaCompra: string | null;
 }
 
-/** Filtros del historial (SCRUM-431). Las fechas son días (aaaa-mm-dd) en la hora de Bolivia. */
+/** Cambio de seguimiento (SCRUM-452): lo que no se envía no cambia. */
+export interface CambioSeguimiento {
+  estado?: EstadoInteraccion;
+  tipo?: TipoInteraccion;
+  comentario?: string | null;
+}
+
+/** Filtros del historial (SCRUM-431 y SCRUM-55). Las fechas son días (aaaa-mm-dd) en la hora de Bolivia. */
 export interface FiltroInteracciones {
   tipo?: TipoInteraccion | '';
+  estado?: EstadoInteraccion | '';
   texto?: string;
   desde?: string;
   hasta?: string;
@@ -98,10 +122,18 @@ export class InteraccionesService {
   modificar(clienteId: number, id: number, datos: DatosInteraccion, version: number) {
     return this.http.put<Interaccion>(`${this.ruta(clienteId)}/${id}`, { ...datos, version });
   }
+
+  seguimiento(clienteId: number, id: number, cambio: CambioSeguimiento, version: number) {
+    return this.http.patch<Interaccion>(`${this.ruta(clienteId)}/${id}`, { ...cambio, version });
+  }
 }
 
 export function nombreTipo(tipo: string): string {
   return TIPOS_INTERACCION.find(t => t.valor === tipo)?.nombre ?? tipo;
+}
+
+export function nombreEstado(estado: string): string {
+  return ESTADOS_INTERACCION.find(e => e.valor === estado)?.nombre ?? estado;
 }
 
 export function nombreCanal(canal: string | null): string {
