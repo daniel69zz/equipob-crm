@@ -3,6 +3,7 @@ package com.maxiconecta.crm.fidelizacion.movimiento;
 import com.maxiconecta.crm.fidelizacion.regla.ReglaAcumulacion;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -168,20 +169,35 @@ public class RegistroPuntos {
     }
 
     public List<DetalleMovimiento> movimientos(long clienteId) {
-        return jdbc.query("""
-                SELECT id_transaccion, tipo_movimiento, id_cliente_origen, valor_consumido, puntos, bolivianos_por_punto,
-                       monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en,
-                       id_transaccion_revertida, puntos_no_recuperados
-                FROM fidelizacion.movimiento_puntos WHERE cliente_id = ? ORDER BY registrado_en DESC, fecha_transaccion DESC
-                """, (r, n) -> new DetalleMovimiento(r.getString("id_transaccion"), r.getString("tipo_movimiento"),
-                r.getString("id_cliente_origen"), r.getBigDecimal("valor_consumido"), r.getLong("puntos"),
-                variacion(r.getString("tipo_movimiento"), r.getLong("puntos"), r.getLong("puntos_no_recuperados")),
-                r.getBigDecimal("bolivianos_por_punto"), r.getBigDecimal("monto_minimo"),
-                r.getObject("version_regla", Long.class), r.getLong("saldo_resultante"),
-                r.getObject("fecha_transaccion", OffsetDateTime.class),
-                r.getObject("registrado_en", OffsetDateTime.class), r.getString("id_transaccion_revertida"),
-                r.getLong("puntos_no_recuperados")), clienteId);
+        return jdbc.query(CONSULTA_MOVIMIENTOS, DETALLE, clienteId);
     }
+
+    /** Los últimos {@code limite} movimientos del cliente, del más reciente al más antiguo (SCRUM-400). */
+    public List<DetalleMovimiento> ultimosMovimientos(long clienteId, int limite) {
+        return jdbc.query(CONSULTA_MOVIMIENTOS + " LIMIT ?", DETALLE, clienteId, limite);
+    }
+
+    public long contarMovimientos(long clienteId) {
+        return jdbc.queryForObject("SELECT count(*) FROM fidelizacion.movimiento_puntos WHERE cliente_id = ?",
+                Long.class, clienteId);
+    }
+
+    private static final String CONSULTA_MOVIMIENTOS = """
+            SELECT id_transaccion, tipo_movimiento, id_cliente_origen, valor_consumido, puntos, bolivianos_por_punto,
+                   monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en,
+                   id_transaccion_revertida, puntos_no_recuperados
+            FROM fidelizacion.movimiento_puntos WHERE cliente_id = ? ORDER BY registrado_en DESC, fecha_transaccion DESC
+            """;
+
+    private static final RowMapper<DetalleMovimiento> DETALLE = (r, n) -> new DetalleMovimiento(
+            r.getString("id_transaccion"), r.getString("tipo_movimiento"),
+            r.getString("id_cliente_origen"), r.getBigDecimal("valor_consumido"), r.getLong("puntos"),
+            variacion(r.getString("tipo_movimiento"), r.getLong("puntos"), r.getLong("puntos_no_recuperados")),
+            r.getBigDecimal("bolivianos_por_punto"), r.getBigDecimal("monto_minimo"),
+            r.getObject("version_regla", Long.class), r.getLong("saldo_resultante"),
+            r.getObject("fecha_transaccion", OffsetDateTime.class),
+            r.getObject("registrado_en", OffsetDateTime.class), r.getString("id_transaccion_revertida"),
+            r.getLong("puntos_no_recuperados"));
 
     /**
      * Efecto del movimiento sobre el saldo: suma en una acumulación, resta en una redención (SCRUM-403) y
