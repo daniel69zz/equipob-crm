@@ -13,9 +13,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * Detalle de puntos por transacción (SCRUM-390), bitácora de movimientos y reproceso (criterio de
- * aceptación 3). El API Gateway exige PUNTOS_CONSULTAR para los GET y FIDELIZACION_CONFIGURAR para el
- * reproceso.
+ * Detalle de puntos por transacción (SCRUM-390), confirmación de redenciones (SCRUM-406), bitácora de
+ * movimientos y reproceso. El API Gateway exige PUNTOS_CONSULTAR para los GET y FIDELIZACION_CONFIGURAR
+ * para el reproceso.
  */
 @RestController
 @RequestMapping("/api/fidelizacion")
@@ -26,11 +26,14 @@ public class MovimientosController {
     private final RegistroPuntos registro;
     private final BitacoraMovimientos bitacora;
     private final IngestaMovimientos ingesta;
+    private final ConfirmacionRedenciones confirmaciones;
 
-    public MovimientosController(RegistroPuntos registro, BitacoraMovimientos bitacora, IngestaMovimientos ingesta) {
+    public MovimientosController(RegistroPuntos registro, BitacoraMovimientos bitacora, IngestaMovimientos ingesta,
+                                 ConfirmacionRedenciones confirmaciones) {
         this.registro = registro;
         this.bitacora = bitacora;
         this.ingesta = ingesta;
+        this.confirmaciones = confirmaciones;
     }
 
     @GetMapping("/clientes/{clienteId}/movimientos")
@@ -38,9 +41,18 @@ public class MovimientosController {
         return registro.movimientos(clienteId);
     }
 
+    /** Bitácora filtrable por estado y tipo: {@code ?estado=FALLIDO&tipo=REDENCION} (SCRUM-408). */
     @GetMapping("/eventos")
-    public List<BitacoraMovimientos.EventoMovimiento> eventos(@RequestParam(required = false) Estado estado) {
-        return bitacora.listar(estado, LIMITE_BITACORA);
+    public List<BitacoraMovimientos.EventoMovimiento> eventos(@RequestParam(required = false) Estado estado,
+                                                              @RequestParam(required = false) TipoMovimiento tipo) {
+        return bitacora.listar(estado, tipo, LIMITE_BITACORA);
+    }
+
+    /** Confirmación de una redención por su transacción de origen (SCRUM-406). */
+    @GetMapping("/redenciones/{idTransaccion}")
+    public ConfirmacionRedenciones.Confirmacion redencion(@PathVariable String idTransaccion) {
+        return confirmaciones.confirmar(idTransaccion).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "No se recibió ninguna redención con la transacción " + idTransaccion));
     }
 
     @PostMapping("/eventos/{id}/reprocesar")

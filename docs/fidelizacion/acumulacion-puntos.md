@@ -36,7 +36,8 @@ puntos = parte entera de (valorConsumido / bolivianosPorPunto)
    con la routing key `puntos.movimiento`.
 2. Anota el mensaje en la **bitácora de movimientos** (`fidelizacion.evento_movimiento`) con su contenido
    original, en una transacción propia.
-3. En otra transacción: valida el evento, comprueba que sea una acumulación, vincula el cliente de
+3. En otra transacción: valida el evento, comprueba su tipo (la redención sigue el flujo de
+   `docs/fidelizacion/redencion-puntos.md`), vincula el cliente de
    Marketplace y Ventas con su perfil del CRM (servicio de Perfil, igual que las compras), calcula los
    puntos, suma al saldo y guarda el detalle. Todo se guarda junto o no se guarda nada.
 4. Marca el evento `PROCESADO`, `DESCARTADO` o `FALLIDO` con la causa.
@@ -57,7 +58,7 @@ copias se procesen a la vez.
 
 ## Eventos inválidos y reproceso (criterio de aceptación 3)
 
-Un evento ilegible, incompleto o inválido, de un tipo aún no soportado (redención o reversa), de un
+Un evento ilegible, incompleto o inválido, de un tipo aún no soportado (reversa, SCRUM-524), de un
 cliente que todavía no tiene perfil en el CRM, o que no se pudo procesar porque Perfil no respondió,
 queda `FALLIDO` con la causa y su contenido original, **sin cambiar el saldo**.
 

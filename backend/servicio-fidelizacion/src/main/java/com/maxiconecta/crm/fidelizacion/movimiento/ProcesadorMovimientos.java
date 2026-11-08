@@ -7,9 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Acumula los puntos de un movimiento ya anotado en la bitácora (SCRUM-387). Todo ocurre en una
- * transacción: el detalle, el saldo y el estado PROCESADO se guardan juntos o no se guarda nada, así
- * que un evento inválido o un error no cambian el saldo (criterio de aceptación 3).
+ * Aplica un movimiento ya anotado en la bitácora: acumula los puntos de una compra (SCRUM-387) o
+ * descuenta los de una redención (SCRUM-404). Todo ocurre en una transacción: el detalle, el saldo, el
+ * nivel y el estado PROCESADO se guardan juntos o no se guarda nada, así que un evento inválido, una
+ * redención sin saldo suficiente o un error no cambian el saldo.
  */
 @Service
 public class ProcesadorMovimientos {
@@ -31,28 +32,46 @@ public class ProcesadorMovimientos {
         this.niveles = niveles;
     }
 
+    /** @return el saldo resultante del cliente */
     @Transactional
     public long procesar(long idEventoMovimiento, String contenido) {
         EventoMovimientoPuntos.Movimiento movimiento = lector.leer(contenido).movimiento();
         TipoMovimiento tipo = LectorMovimientos.tipo(movimiento.tipoMovimiento());
-        if (tipo != TipoMovimiento.ACUMULACION) {
-            throw new EventoInvalidoException("El tipo de movimiento " + tipo + " todavía no se procesa ("
-                    + (tipo == TipoMovimiento.REDENCION ? "SCRUM-48" : "SCRUM-524") + "); queda para reproceso");
+        if (tipo == TipoMovimiento.REVERSA) {
+            throw new EventoInvalidoException("El tipo de movimiento REVERSA todavía no se procesa (SCRUM-524); "
+                    + "queda para reproceso");
         }
         long clienteId = perfiles.buscar(movimiento.idCliente())
                 .orElseThrow(() -> new EventoInvalidoException("El cliente " + movimiento.idCliente()
                         + " no tiene perfil en el CRM; el movimiento queda para reproceso"));
-        // SCRUM-46: la regla vigente al procesar el movimiento; su versión queda en el detalle.
-        ReglaAcumulacion regla = reglas.vigente();
-        long puntos = regla.puntos(movimiento.valorConsumido());
-
-        registro.reservar(movimiento.idTransaccion(), tipo, clienteId, movimiento.idCliente(),
-                movimiento.valorConsumido(), puntos, regla, movimiento.fecha(), idEventoMovimiento);
-        long saldo = registro.acreditar(clienteId, puntos);
+        long saldo = tipo == TipoMovimiento.REDENCION
+                ? redimir(clienteId, movimiento, idEventoMovimiento)
+                : acumular(clienteId, movimiento, idEventoMovimiento);
         registro.anotarSaldoResultante(movimiento.idTransaccion(), tipo, saldo);
-        // SCRUM-49: con el saldo cambia también el nivel, en la misma transacción.
+        // SCRUM-49: con el saldo cambia también el nivel, en la misma transacción (criterio 4 de SCRUM-48).
         niveles.recalcular(clienteId);
         bitacora.marcarProcesado(idEventoMovimiento);
         return saldo;
+    }
+
+    private long acumular(long clienteId, EventoMovimientoPuntos.Movimiento movimiento, long idEventoMovimiento) {
+        // SCRUM-46: la regla vigente al procesar el movimiento; su versión queda en el detalle.
+        ReglaAcumulacion regla = reglas.vigente();
+        long puntos = regla.puntos(movimiento.valorConsumido());
+        registro.reservar(movimiento.idTransaccion(), TipoMovimiento.ACUMULACION, clienteId, movimiento.idCliente(),
+                movimiento.valorConsumido(), puntos, regla, movimiento.fecha(), idEventoMovimiento);
+        return registro.acreditar(clienteId, puntos);
+    }
+
+    /**
+     * SCRUM-404: primero se reserva la transacción (una reentrega queda DESCARTADO, criterio 3) y después
+     * se descuentan los puntos solo si el saldo alcanza (SCRUM-407, criterio 2). No se aplica la regla de
+     * acumulación: los puntos los decide Marketplace y Ventas.
+     */
+    private long redimir(long clienteId, EventoMovimientoPuntos.Movimiento movimiento, long idEventoMovimiento) {
+        long puntos = movimiento.puntos().longValueExact();
+        registro.reservar(movimiento.idTransaccion(), TipoMovimiento.REDENCION, clienteId, movimiento.idCliente(),
+                movimiento.valorConsumido(), puntos, null, movimiento.fecha(), idEventoMovimiento);
+        return registro.debitar(clienteId, movimiento.idTransaccion(), puntos);
     }
 }

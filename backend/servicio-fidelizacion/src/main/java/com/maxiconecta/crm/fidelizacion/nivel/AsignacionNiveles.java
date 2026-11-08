@@ -7,8 +7,9 @@ import org.springframework.stereotype.Repository;
  * Asignación automática del nivel (SCRUM-411) con los puntos del periodo de evaluación (SCRUM-409).
  * <p>
  * Puntos del periodo = puntos de las acumulaciones con fecha de transacción dentro de los últimos
- * {@code periodo_meses} meses, menos las reversas del mismo periodo (SCRUM-524), nunca menos de cero. Las
- * redenciones no bajan el nivel: el cliente no pierde su nivel por usar sus puntos. El nivel es el del
+ * {@code periodo_meses} meses, menos las reversas (SCRUM-524) y las redenciones (SCRUM-48) del mismo
+ * periodo, nunca menos de cero: después de una redención el cliente queda en el nivel que corresponde a su
+ * nuevo saldo (criterio 4 de SCRUM-48). El nivel es el del
  * umbral de la configuración vigente que contiene esos puntos, o ninguno si no alcanzan el umbral más bajo.
  * <p>
  * Todo se calcula en una sola sentencia en la base, para un cliente (dentro de la transacción que cambia
@@ -23,7 +24,8 @@ public class AsignacionNiveles {
             ), periodo AS (
                 SELECT s.cliente_id, s.nivel AS anterior,
                        GREATEST(0, COALESCE(SUM(CASE m.tipo_movimiento WHEN 'ACUMULACION' THEN m.puntos
-                                                                       WHEN 'REVERSA' THEN -m.puntos ELSE 0 END), 0)) AS puntos
+                                                                       WHEN 'REVERSA' THEN -m.puntos
+                                                                       WHEN 'REDENCION' THEN -m.puntos ELSE 0 END), 0)) AS puntos
                 FROM fidelizacion.saldo_puntos s
                 CROSS JOIN config c
                 LEFT JOIN fidelizacion.movimiento_puntos m

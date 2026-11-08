@@ -4,8 +4,8 @@ Administra el programa de puntos.
 
 - **Guarda:** saldo y movimientos de puntos, reglas de acumulación, niveles y vigencia.
 - **Consume de RabbitMQ (o Pub/Sub, perfil `pubsub`):** los movimientos de puntos RIO-CRM-03 de Marketplace y Ventas
-  (cola `crm.fidelizacion.movimientos`, routing key `puntos.movimiento`). Hoy procesa la acumulación (SCRUM-45);
-  la redención y la reversa por anulación son SCRUM-48 y SCRUM-524.
+  (cola `crm.fidelizacion.movimientos`, routing key `puntos.movimiento`). Procesa la acumulación (SCRUM-45) y la
+  redención (SCRUM-48); la reversa por anulación es SCRUM-524.
 - **Responde** la consulta síncrona de saldo y nivel de Marketplace y Ventas (RIO-CRM-04) a través del API Gateway.
 - **Esquema en la base:** `fidelizacion`
 
@@ -16,11 +16,20 @@ movimiento reentregado no acredita dos veces; uno inválido queda `FALLIDO` con 
 saldo, y se puede reprocesar. Cada transacción deja su detalle de puntos. Regla, API y pruebas en
 `docs/fidelizacion/acumulacion-puntos.md`; contrato en `docs/contratos-eventos/RIO-CRM-03-movimiento-puntos.md`.
 
+## Redención de puntos (SCRUM-48)
+
+Una `REDENCION` trae los puntos redimidos y los descuenta del saldo solo si alcanza, con la condición y la
+resta en una sola sentencia. Si no alcanza queda `FALLIDO` con la causa, sin cambiar el saldo, y se puede
+reprocesar. Una reentrega no descuenta dos veces. Después de cada cambio de saldo se reevalúa el nivel
+(`AsignacionNiveles`, SCRUM-49): la redención resta sus puntos de los del periodo, así que el
+cliente queda en el nivel de su nuevo saldo. Detalle en `docs/fidelizacion/redencion-puntos.md`.
+
 | Método | Ruta | Permiso (Gateway) |
 |---|---|---|
 | GET | `/api/fidelizacion/clientes/{clienteId}/puntos` | `PUNTOS_CONSULTAR` |
 | GET | `/api/fidelizacion/clientes/{clienteId}/movimientos` | `PUNTOS_CONSULTAR` |
-| GET | `/api/fidelizacion/eventos?estado=FALLIDO` | `PUNTOS_CONSULTAR` |
+| GET | `/api/fidelizacion/redenciones/{idTransaccion}` | `PUNTOS_CONSULTAR` |
+| GET | `/api/fidelizacion/eventos?estado=FALLIDO&tipo=REDENCION` | `PUNTOS_CONSULTAR` |
 | POST | `/api/fidelizacion/eventos/{id}/reprocesar` | `FIDELIZACION_CONFIGURAR` |
 
 ## Reglas de acumulación (SCRUM-46)

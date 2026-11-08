@@ -6,7 +6,8 @@
     "idTransaccion": "R-5001",
     "idCliente": "CLI-5521",
     "tipoMovimiento": "REDENCION",
-    "valorConsumido": 50.00,
+    "puntos": 20,
+    "valorConsumido": 20.00,
     "fecha": "2026-10-18T12:59:40-04:00"
   }
 }

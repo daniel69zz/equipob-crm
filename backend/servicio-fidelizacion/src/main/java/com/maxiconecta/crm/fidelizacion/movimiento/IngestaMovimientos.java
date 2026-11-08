@@ -8,8 +8,10 @@ import org.springframework.stereotype.Service;
 
 /**
  * Flujo de un movimiento RIO-CRM-03: primero se anota en la bitácora y después se procesa en una
- * transacción aparte. El resultado queda PROCESADO, DESCARTADO (transacción ya acreditada) o FALLIDO
- * con su causa y su contenido, disponible para reproceso.
+ * transacción aparte. El resultado queda PROCESADO, DESCARTADO (transacción ya aplicada) o FALLIDO
+ * con su causa y su contenido, disponible para reproceso. Una redención sin saldo suficiente queda
+ * FALLIDO con los puntos solicitados y el saldo disponible (SCRUM-408), y se puede reprocesar si el
+ * cliente acumula los puntos que faltaban.
  */
 @Service
 public class IngestaMovimientos {
@@ -48,12 +50,16 @@ public class IngestaMovimientos {
     private Estado procesar(long id, String contenido) {
         try {
             long saldo = procesador.procesar(id, contenido);
-            log.info("Movimiento {} acreditado; saldo resultante {}", id, saldo);
+            log.info("Movimiento {} aplicado; saldo resultante {}", id, saldo);
             return Estado.PROCESADO;
         } catch (MovimientoDuplicadoException ex) {
             log.info("Movimiento {} descartado: {}", id, ex.getMessage());
             bitacora.marcar(id, Estado.DESCARTADO, ex.getMessage());
             return Estado.DESCARTADO;
+        } catch (SaldoInsuficienteException ex) {
+            log.info("Movimiento {} fallido: {}", id, ex.getMessage());
+            bitacora.marcar(id, Estado.FALLIDO, causa(ex));
+            return Estado.FALLIDO;
         } catch (RuntimeException ex) {
             String causa = causa(ex);
             log.warn("Movimiento {} fallido: {}", id, causa);
@@ -64,6 +70,7 @@ public class IngestaMovimientos {
 
     static String causa(Throwable error) {
         Throwable raiz = error instanceof EventoInvalidoException || error instanceof ClientesPerfil.PerfilNoDisponibleException
+                || error instanceof SaldoInsuficienteException
                 ? error : NestedExceptionUtils.getMostSpecificCause(error);
         String mensaje = raiz.getMessage();
         return raiz.getClass().getSimpleName() + (mensaje != null ? ": " + mensaje : "");
