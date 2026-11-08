@@ -68,6 +68,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/fidelizacion/clientes/*/ajustes` | POST | Rol `ADMINISTRADOR_CRM` **y** `FIDELIZACION_CONFIGURAR`: ajuste manual del saldo (SCRUM-424, regla anterior a la genérica). El historial (`GET`) sigue la regla genérica de `PUNTOS_CONSULTAR` |
 | `/api/fidelizacion/**` | GET | `PUNTOS_CONSULTAR` (incluye `/api/fidelizacion/caducidad/configuracion`, SCRUM-416) |
 | `/api/fidelizacion/**` | POST, PUT, PATCH, DELETE | `FIDELIZACION_CONFIGURAR` (incluye `POST /api/fidelizacion/caducidad/ejecutar`, que el servicio limita además al rol `ADMINISTRADOR_CRM`, SCRUM-415) |
+| `/api/interacciones/clientes/*/historial` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, con `INTERACCIONES_CONSULTAR` e `INDICADORES_CONSULTAR`: historial del cliente con sus compras (SCRUM-53) |
 | `/api/interacciones/**` | GET | `INTERACCIONES_CONSULTAR` |
 | `/api/interacciones/**` | POST, PUT, PATCH, DELETE | `INTERACCIONES_REGISTRAR` (servicio-interacciones exige además el rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y un Agente solo modifica las interacciones que registró; SCRUM-435. El estado y el tipo los actualiza cualquier Agente o el Administrador, y solo el Administrador reabre una interacción cerrada; SCRUM-55) |
 | Cualquier otra | — | Denegado |

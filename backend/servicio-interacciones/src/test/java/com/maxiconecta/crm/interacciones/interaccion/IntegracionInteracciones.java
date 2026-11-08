@@ -2,6 +2,8 @@ package com.maxiconecta.crm.interacciones.interaccion;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maxiconecta.crm.interacciones.compras.ComprasCliente;
+import com.maxiconecta.crm.interacciones.compras.ComprasRecientes;
 import com.maxiconecta.crm.interacciones.perfil.ClientesPerfil;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,10 +28,14 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -58,12 +64,14 @@ abstract class IntegracionInteracciones {
     }
 
     static final long CLIENTE = 42;
+    static final String ID_VENTAS = "CLI-5521";
     /** Rutas bajo el cliente (docs/seguridad/convencion-rutas-clientes.md). */
     static final String RUTA = "/api/interacciones/clientes/{clienteId}/interacciones";
     static final String RUTA_INTERACCION = RUTA + "/{id}";
     static final String AGENTE = "agente.ana";
     static final String OTRO_AGENTE = "agente.luis";
-    static final String PERMISOS_AGENTE = "CLIENTE_CONSULTAR,INTERACCIONES_CONSULTAR,INTERACCIONES_REGISTRAR";
+    static final String PERMISOS_AGENTE = "CLIENTE_CONSULTAR,INDICADORES_CONSULTAR,INTERACCIONES_CONSULTAR,"
+            + "INTERACCIONES_REGISTRAR";
     static final String PERMISOS_ADMIN = PERMISOS_AGENTE + ",AUDITORIA_CONSULTAR";
 
     @DynamicPropertySource
@@ -80,6 +88,10 @@ abstract class IntegracionInteracciones {
     @MockBean
     ClientesPerfil perfiles;
 
+    /** Compras de servicio-comportamiento (SCRUM-441); por defecto el cliente no tiene. */
+    @MockBean
+    ComprasCliente compras;
+
     @Autowired
     JdbcTemplate jdbc;
 
@@ -93,6 +105,10 @@ abstract class IntegracionInteracciones {
     void preparar() {
         jdbc.execute("TRUNCATE interacciones.interaccion RESTART IDENTITY CASCADE");
         when(perfiles.existe(anyLong())).thenAnswer(i -> i.getArgument(0, Long.class) == CLIENTE);
+        // El cliente 42 es CLI-5521 en Marketplace y Ventas (SCRUM-53).
+        when(perfiles.identificadores(anyLong())).thenAnswer(i -> i.getArgument(0, Long.class) == CLIENTE
+                ? Optional.of(List.of(ID_VENTAS)) : Optional.empty());
+        when(compras.recientes(anyLong(), anyList(), anyInt())).thenReturn(ComprasRecientes.ninguna());
     }
 
     // --- Apoyo ---

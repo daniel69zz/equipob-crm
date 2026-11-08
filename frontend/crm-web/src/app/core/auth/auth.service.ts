@@ -101,6 +101,13 @@ export class AuthService {
     return this.puedeRegistrarInteracciones() && this.sesionVigente()!.rol === 'ADMINISTRADOR_CRM';
   }
 
+  /** SCRUM-438: el historial del cliente con sus compras, con la misma combinación de rol y permisos que el Gateway. */
+  puedeConsultarHistorialCliente(): boolean {
+    const sesion = this.sesionVigente();
+    return !!sesion && ['ADMINISTRADOR_CRM', 'AGENTE_ATENCION'].includes(sesion.rol)
+      && sesion.permisos.includes('INTERACCIONES_CONSULTAR') && sesion.permisos.includes('INDICADORES_CONSULTAR');
+  }
+
   token(): string | null {
     return this.sesionVigente()?.token ?? null;
   }

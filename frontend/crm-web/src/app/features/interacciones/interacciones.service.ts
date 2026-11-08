@@ -90,6 +90,36 @@ export interface FiltroInteracciones {
   hasta?: string;
 }
 
+/** Compra del cliente en la línea de tiempo (servicio-comportamiento, SCRUM-441). */
+export interface CompraHistorial {
+  fecha: string;
+  referencia: string;
+  montoTotal: number;
+  estado: 'CONFIRMADA' | 'DEVOLUCION_PARCIAL' | 'ANULADA' | string;
+  items: { categoria: string; cantidad: number; monto: number }[];
+}
+
+/** Un evento del historial del cliente: una interacción o una compra (SCRUM-53). */
+export interface EventoHistorial {
+  tipo: 'INTERACCION' | 'COMPRA';
+  fecha: string;
+  interaccion?: Interaccion;
+  compra?: CompraHistorial;
+}
+
+/** GET /api/interacciones/clientes/{clienteId}/historial (docs/interacciones/historial-cliente.md). */
+export interface HistorialCliente {
+  clienteId: number;
+  /** Del más reciente al más antiguo. */
+  eventos: EventoHistorial[];
+  totalInteracciones: number;
+  totalCompras: number;
+  sinInteracciones: boolean;
+  comprasDisponibles: boolean;
+  hayMas: boolean;
+  avisos: string[];
+}
+
 /**
  * Rutas bajo el cliente (docs/seguridad/convencion-rutas-clientes.md): el Gateway audita cada consulta y cada cambio
  * con el cliente afectado.
@@ -109,6 +139,13 @@ export class InteraccionesService {
       if (texto) params = params.set(clave, texto);
     }
     return this.http.get<PaginaInteracciones>(this.ruta(clienteId), { params });
+  }
+
+  /** Interacciones y compras del cliente en una línea de tiempo (SCRUM-53). */
+  historialCliente(clienteId: number, limite: number) {
+    return this.http.get<HistorialCliente>(`/api/interacciones/clientes/${clienteId}/historial`, {
+      params: new HttpParams().set('limite', limite),
+    });
   }
 
   detalle(clienteId: number, id: number) {

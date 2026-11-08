@@ -192,6 +192,25 @@ class AccesoPorRolTest {
     }
 
     @Test
+    void soloElAdministradorYElAgenteConsultanElHistorialDelClienteConSusCompras() throws Exception {
+        // SCRUM-53 / SCRUM-438.
+        String ruta = "/api/interacciones/clientes/42/historial";
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+        List<String> sinIndicadores = PERMISOS_AGENTE.stream().filter(p -> !p.equals("INDICADORES_CONSULTAR")).toList();
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", sinIndicadores)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        // El Gerente sigue consultando la lista de interacciones del cliente.
+        mvc.perform(get(ruta.replace("historial", "interacciones"))
+                .header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
     void elAgenteRegistraYCorrigeInteraccionesBajoLaRutaDelCliente() throws Exception {
         // SCRUM-52: las rutas van bajo el cliente (docs/seguridad/convencion-rutas-clientes.md).
         String ruta = "/api/interacciones/clientes/42/interacciones";

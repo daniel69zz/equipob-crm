@@ -6,6 +6,10 @@ crm:
     # SCRUM-432: comprueba que el cliente de cada interacción exista en el CRM.
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
+  comportamiento:
+    # SCRUM-441: compras del cliente para el historial de atención (SCRUM-53).
+    url: ${SERVICIO_COMPORTAMIENTO_URL:http://localhost:8082}
+    tiempo-espera: ${COMPORTAMIENTO_TIEMPO_ESPERA:2s}
 
 spring:
   application:
