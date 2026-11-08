@@ -84,7 +84,6 @@ public class RegistroPuntos {
                 .stream().findFirst().orElse(0L);
     }
 
-
     public void anotarSaldoResultante(String idTransaccion, TipoMovimiento tipo, long saldo) {
         jdbc.update("UPDATE fidelizacion.movimiento_puntos SET saldo_resultante = ? "
                 + "WHERE id_transaccion = ? AND tipo_movimiento = ?", saldo, idTransaccion, tipo.name());
@@ -93,32 +92,44 @@ public class RegistroPuntos {
     public List<DetalleMovimiento> movimientos(long clienteId) {
         return jdbc.query("""
                 SELECT id_transaccion, tipo_movimiento, id_cliente_origen, valor_consumido, puntos, bolivianos_por_punto,
-                       monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en
+                       monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en,
+                       id_transaccion_revertida, puntos_no_recuperados
                 FROM fidelizacion.movimiento_puntos WHERE cliente_id = ? ORDER BY registrado_en DESC, fecha_transaccion DESC
                 """, (r, n) -> new DetalleMovimiento(r.getString("id_transaccion"), r.getString("tipo_movimiento"),
                 r.getString("id_cliente_origen"), r.getBigDecimal("valor_consumido"), r.getLong("puntos"),
-                variacion(r.getString("tipo_movimiento"), r.getLong("puntos")),
+                variacion(r.getString("tipo_movimiento"), r.getLong("puntos"), r.getLong("puntos_no_recuperados")),
                 r.getBigDecimal("bolivianos_por_punto"), r.getBigDecimal("monto_minimo"),
                 r.getObject("version_regla", Long.class), r.getLong("saldo_resultante"),
                 r.getObject("fecha_transaccion", OffsetDateTime.class),
-                r.getObject("registrado_en", OffsetDateTime.class)), clienteId);
+                r.getObject("registrado_en", OffsetDateTime.class), r.getString("id_transaccion_revertida"),
+                r.getLong("puntos_no_recuperados")), clienteId);
     }
 
-    /** Efecto del movimiento sobre el saldo: suma en una acumulación y resta en una redención (SCRUM-403). */
-    static long variacion(String tipoMovimiento, long puntos) {
-        return TipoMovimiento.REDENCION.name().equals(tipoMovimiento) ? -puntos : puntos;
+    /**
+     * Efecto del movimiento sobre el saldo: suma en una acumulación, resta en una redención (SCRUM-403) y
+     * en una reversa resta lo que se pudo descontar (SCRUM-524).
+     */
+    static long variacion(String tipoMovimiento, long puntos, long puntosNoRecuperados) {
+        return switch (TipoMovimiento.valueOf(tipoMovimiento)) {
+            case ACUMULACION -> puntos;
+            case REDENCION -> -puntos;
+            case REVERSA -> -(puntos - puntosNoRecuperados);
+        };
     }
 
     /**
      * Detalle de puntos de una transacción (criterio de aceptación 4 de SCRUM-45), con la regla aplicada
      * (SCRUM-46). {@code puntos} es siempre positivo y {@code variacionSaldo} indica si sumó o restó
      * (SCRUM-403); una redención no tiene regla (tasa, monto mínimo y versión nulos) y su valor consumido
-     * es opcional.
+     * es opcional. Una reversa (SCRUM-539) trae la transacción que revierte, el monto revertido en
+     * {@code valorConsumido}, la regla de la compra original y los puntos que no se pudieron descontar porque
+     * el cliente ya los había redimido.
      */
     public record DetalleMovimiento(String idTransaccion, String tipoMovimiento, String idClienteOrigen,
                                     BigDecimal valorConsumido, long puntos, long variacionSaldo,
                                     BigDecimal bolivianosPorPunto, BigDecimal montoMinimo, Long versionRegla,
                                     long saldoResultante, OffsetDateTime fechaTransaccion,
-                                    OffsetDateTime registradoEn) {
+                                    OffsetDateTime registradoEn, String idTransaccionRevertida,
+                                    long puntosNoRecuperados) {
     }
 }
