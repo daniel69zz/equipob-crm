@@ -48,6 +48,7 @@ El Gateway reenvía la **ruta completa**, sin quitar el prefijo: el controlador 
 | Segmentación | Clientes de un segmento | `GET /api/segmentacion/clientes?segmento={codigo}` |
 | Fidelización | Saldo y nivel | `GET /api/fidelizacion/clientes/{clienteId}/puntos` |
 | Fidelización | Ajuste manual de puntos | `POST /api/fidelizacion/clientes/{clienteId}/ajustes` |
+| Fidelización | Saldo, nivel y caducidad para Marketplace y Ventas (RIO-CRM-04, con el identificador de Ventas) | `GET /api/fidelizacion/ventas/clientes/{idClienteVentas}/puntos` |
 | Interacciones | Historial de interacciones | `GET /api/interacciones/clientes/{clienteId}/interacciones` |
 | Interacciones | Registrar una interacción | `POST /api/interacciones/clientes/{clienteId}/interacciones` |
 | Interacciones | Cambiar el estado de una interacción | `PATCH /api/interacciones/clientes/{clienteId}/interacciones/{interaccionId}` |

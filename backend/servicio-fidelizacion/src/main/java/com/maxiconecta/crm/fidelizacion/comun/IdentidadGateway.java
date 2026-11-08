@@ -24,6 +24,9 @@ public final class IdentidadGateway {
     public static final String AGENTE_ATENCION = "AGENTE_ATENCION";
     public static final String FIDELIZACION_CONFIGURAR = "FIDELIZACION_CONFIGURAR";
     public static final String PUNTOS_CONSULTAR = "PUNTOS_CONSULTAR";
+    /** SCRUM-545: rol y permiso de un cliente de servicio del ERP (token de servicio del Gateway). */
+    public static final String SISTEMA = "SISTEMA";
+    public static final String PUNTOS_CONSULTAR_VENTAS = "PUNTOS_CONSULTAR_VENTAS";
 
     private IdentidadGateway() {
     }
@@ -50,6 +53,22 @@ public final class IdentidadGateway {
         }
         String rol = solicitud.getHeader(ROL);
         return new Identidad(usuario, rol == null ? null : rol.strip());
+    }
+
+    /**
+     * SCRUM-545 (RIO-CRM-04): la consulta de puntos de Marketplace y Ventas exige la identidad de un cliente de
+     * servicio con el permiso {@code PUNTOS_CONSULTAR_VENTAS}. Un usuario interno no la usa, aunque tenga
+     * {@code PUNTOS_CONSULTAR}.
+     *
+     * @return el cliente de servicio; 401 sin identidad, 403 si no es un sistema con el permiso
+     */
+    public static String sistemaVentas(HttpServletRequest solicitud) {
+        String cliente = usuario(solicitud);
+        if (!SISTEMA.equals(solicitud.getHeader(ROL)) || !tienePermiso(solicitud, PUNTOS_CONSULTAR_VENTAS)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Esta consulta es solo para Marketplace y Ventas, con su token de servicio");
+        }
+        return cliente;
     }
 
     private static String usuario(HttpServletRequest solicitud) {

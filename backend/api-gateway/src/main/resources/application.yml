@@ -56,6 +56,14 @@ crm:
       # Mínimo 32 caracteres. Se define con la variable de entorno JWT_SECRETO; nunca se sube al repositorio.
       secreto: ${JWT_SECRETO:}
       expiracion-minutos: ${JWT_EXPIRACION_MINUTOS:60}
+    servicios:
+      # SCRUM-545: sistemas del ERP que consultan el CRM con token de servicio (RIO-CRM-04). Sin secreto
+      # (mínimo 32 caracteres) el cliente queda deshabilitado. El secreto nunca se sube al repositorio.
+      clientes:
+        marketplace-ventas:
+          nombre: Marketplace y Ventas
+          secreto: ${SERVICIO_VENTAS_SECRETO:}
+          permisos: PUNTOS_CONSULTAR_VENTAS
     admin-inicial:
       # Si la base no tiene usuarios, se crea este administrador al arrancar (solo si ADMIN_PASSWORD está definido).
       usuario: ${ADMIN_USUARIO:admin}

@@ -182,6 +182,17 @@ public class RegistroPuntos {
                 Long.class, clienteId);
     }
 
+    /**
+     * Fecha de la última compra que le dio puntos al cliente (SCRUM-544): desde ella corre la vigencia de su
+     * saldo. Una compra bajo el monto mínimo, que no acumuló puntos, no la renueva.
+     */
+    public Optional<OffsetDateTime> ultimaAcumulacion(long clienteId) {
+        return Optional.ofNullable(jdbc.queryForObject("""
+                SELECT max(fecha_transaccion) FROM fidelizacion.movimiento_puntos
+                WHERE cliente_id = ? AND tipo_movimiento = 'ACUMULACION' AND puntos > 0
+                """, OffsetDateTime.class, clienteId));
+    }
+
     private static final String CONSULTA_MOVIMIENTOS = """
             SELECT id_transaccion, tipo_movimiento, id_cliente_origen, valor_consumido, puntos, bolivianos_por_punto,
                    monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en,

@@ -21,6 +21,8 @@ import java.util.List;
  * El token solo identifica al usuario: el rol y los permisos se leen de la base en cada
  * petición, para que un cambio de rol o una desactivación rijan de inmediato.
  * Un token ausente, inválido o de un usuario desactivado deja la petición sin autenticar (401).
+ * Un token de servicio (SCRUM-545) se resuelve igual, pero contra los clientes de servicio habilitados:
+ * un usuario interno con el mismo nombre que un sistema no obtiene sus permisos, ni al revés.
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -28,10 +30,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UsuarioService usuarioService;
+    private final ClientesServicio clientesServicio;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UsuarioService usuarioService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UsuarioService usuarioService,
+                                   ClientesServicio clientesServicio) {
         this.jwtService = jwtService;
         this.usuarioService = usuarioService;
+        this.clientesServicio = clientesServicio;
     }
 
     @Override
@@ -39,8 +44,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String cabecera = solicitud.getHeader(HttpHeaders.AUTHORIZATION);
         if (cabecera != null && cabecera.startsWith(PREFIJO)) {
-            jwtService.validar(cabecera.substring(PREFIJO.length()))
-                    .flatMap(token -> usuarioService.sesionVigente(token.usuario()))
+            jwtService.verificar(cabecera.substring(PREFIJO.length()))
+                    .flatMap(token -> token.servicio()
+                            ? clientesServicio.sesionVigente(token.sesion().usuario())
+                            : usuarioService.sesionVigente(token.sesion().usuario()))
                     .ifPresent(sesion -> {
                         List<GrantedAuthority> autoridades = new ArrayList<>();
                         autoridades.add(new SimpleGrantedAuthority("ROLE_" + sesion.rol()));

@@ -34,6 +34,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.INDICADORES_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_REGISTRAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR_VENTAS;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SUGERENCIAS_CONSULTAR;
@@ -45,13 +46,18 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.USUARIOS_ADMINISTRAR;
  */
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, ClientesServicio.Propiedades.class})
 public class SecurityConfig {
+
+    @Bean
+    public ClientesServicio clientesServicio(ClientesServicio.Propiedades propiedades) {
+        return new ClientesServicio(propiedades);
+    }
 
     @Bean
     public SecurityFilterChain cadenaDeSeguridad(HttpSecurity http, JwtService jwtService,
                                                  UsuarioService usuarioService, AuditoriaService auditoriaService,
-                                                 ObjectMapper objectMapper)
+                                                 ClientesServicio clientesServicio, ObjectMapper objectMapper)
             throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -67,7 +73,7 @@ public class SecurityConfig {
                                 respuesta, HttpServletResponse.SC_FORBIDDEN, "Acceso denegado",
                                 "Su rol no tiene permiso para esta operación")))
                 .authorizeHttpRequests(reglas -> reglas
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/servicio/token").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/api/auth/**").authenticated()
 
@@ -125,6 +131,11 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole("ADMINISTRADOR_CRM", "AGENTE_ATENCION"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(PUNTOS_CONSULTAR)))
+                        // SCRUM-545 (RIO-CRM-04): la consulta de Marketplace y Ventas, solo con su token de servicio.
+                        .requestMatchers(HttpMethod.GET, "/api/fidelizacion/ventas/clientes/*/puntos")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole(ClientesServicio.ROL),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(PUNTOS_CONSULTAR_VENTAS)))
                         .requestMatchers(HttpMethod.GET, "/api/fidelizacion/**").hasAuthority(PUNTOS_CONSULTAR)
                         .requestMatchers("/api/fidelizacion/**").hasAuthority(FIDELIZACION_CONFIGURAR)
 
@@ -132,7 +143,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/interacciones/**").hasAuthority(INTERACCIONES_REGISTRAR)
 
                         .anyRequest().denyAll())
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService, usuarioService),
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, usuarioService, clientesServicio),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new AuditoriaAccesoFilter(auditoriaService), JwtAuthenticationFilter.class)
                 .addFilterAfter(new IdentidadHeadersFilter(), AuthorizationFilter.class);

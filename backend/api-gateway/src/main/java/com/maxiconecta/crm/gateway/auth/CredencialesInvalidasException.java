@@ -7,6 +7,10 @@ package com.maxiconecta.crm.gateway.auth;
 public class CredencialesInvalidasException extends RuntimeException {
 
     public CredencialesInvalidasException() {
-        super("Usuario o contraseña incorrectos");
+        this("Usuario o contraseña incorrectos");
+    }
+
+    public CredencialesInvalidasException(String mensaje) {
+        super(mensaje);
     }
 }

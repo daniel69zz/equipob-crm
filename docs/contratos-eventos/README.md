@@ -7,7 +7,7 @@ Definición de los mensajes que intercambian el CRM y el módulo **Marketplace y
 | [RIO-CRM-01](RIO-CRM-01-datos-cliente.md) | Evento (RabbitMQ) | Datos del cliente |
 | [RIO-CRM-02](RIO-CRM-02-compra-confirmada.md) | Evento (RabbitMQ) | Compra confirmada |
 | [RIO-CRM-03](RIO-CRM-03-movimiento-puntos.md) | Evento (RabbitMQ) | Movimiento de puntos: acumulación, redención y reversa |
-| RIO-CRM-04 | Consulta síncrona (REST) | Saldo y nivel de puntos de un cliente |
+| [RIO-CRM-04](RIO-CRM-04-consulta-puntos.md) | Consulta síncrona (REST) | Saldo, nivel y caducidad de puntos de un cliente, para Marketplace y Ventas |
 | [RIO-CRM-05](RIO-CRM-05-anulacion-compra.md) | Evento (RabbitMQ) | Anulación o devolución de compra |
 
 Cada contrato se documenta en su propio archivo con sus campos, tipos y un ejemplo en JSON.

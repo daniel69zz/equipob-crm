@@ -17,6 +17,14 @@ public final class AuthDtos {
                                 String rol, List<String> permisos) {
     }
 
+    /** SCRUM-545: credenciales de un sistema del ERP para obtener su token de servicio. */
+    public record TokenServicioRequest(@NotBlank String cliente, @NotBlank String secreto) {
+    }
+
+    public record TokenServicioResponse(String token, String tipo, Instant expiraEn, String cliente,
+                                        List<String> permisos) {
+    }
+
     public record SesionResponse(String usuario, String nombreCompleto, String rol, List<String> permisos) {
     }
 }

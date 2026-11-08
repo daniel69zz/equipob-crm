@@ -1,0 +1,227 @@
+openapi: 3.0.3
+info:
+  title: CRM MaxiConecta · RIO-CRM-04 Consulta de puntos para Marketplace y Ventas
+  version: 1.0.0
+  description: |
+    Consulta síncrona y de solo lectura del saldo disponible, el nivel de fidelización y la fecha de caducidad
+    de los puntos de un cliente, que Marketplace y Ventas invoca antes de aplicar una redención (RF-61,
+    SCRUM-525). Se autentica con un token JWT de servicio y cada consulta queda en la auditoría.
+    Descripción completa: docs/contratos-eventos/RIO-CRM-04-consulta-puntos.md.
+servers:
+  - url: http://localhost:8080
+    description: API Gateway del CRM
+tags:
+  - name: Autenticación de servicio
+  - name: Puntos
+paths:
+  /api/auth/servicio/token:
+    post:
+      tags: [Autenticación de servicio]
+      summary: Obtener el token de servicio
+      operationId: obtenerTokenDeServicio
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudToken'
+            example:
+              cliente: marketplace-ventas
+              secreto: secreto-entregado-al-equipo-de-ventas-0123456789
+      responses:
+        '200':
+          description: Token emitido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenServicio'
+              example:
+                token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtYXJrZXRwbGFjZS12ZW50YXMifQ.firma
+                tipo: Bearer
+                expiraEn: '2026-11-08T15:00:00Z'
+                cliente: marketplace-ventas
+                permisos: [PUNTOS_CONSULTAR_VENTAS]
+        '400':
+          description: Falta el cliente o el secreto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Cliente de servicio o secreto incorrectos, o cliente deshabilitado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                estado: 401
+                error: No autenticado
+                mensaje: Cliente de servicio o secreto incorrectos
+                ruta: /api/auth/servicio/token
+  /api/fidelizacion/ventas/clientes/{idClienteVentas}/puntos:
+    get:
+      tags: [Puntos]
+      summary: Consultar el saldo, el nivel y la caducidad de los puntos de un cliente
+      operationId: consultarPuntosParaVentas
+      security:
+        - tokenDeServicio: []
+      parameters:
+        - name: idClienteVentas
+          in: path
+          required: true
+          description: Identificador del cliente en Marketplace y Ventas (el idCliente de RIO-CRM-01 y RIO-CRM-03)
+          schema:
+            type: string
+            maxLength: 64
+          example: CLI-5521
+      responses:
+        '200':
+          description: |
+            Puntos del cliente. Un cliente sin cuenta de puntos, o que el CRM aún no conoce, responde con saldo
+            cero (no es un error).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PuntosCliente'
+              examples:
+                conPuntos:
+                  summary: Cliente con puntos vigentes
+                  value:
+                    idClienteVentas: CLI-5521
+                    clienteId: 42
+                    tieneCuenta: true
+                    saldoDisponible: 15
+                    nivel: BRONCE
+                    fechaCaducidad: '2027-10-18T14:14:50Z'
+                    puntosCaducados: 0
+                    vigenciaMeses: 12
+                    consultadoEn: '2026-11-08T14:02:11Z'
+                caducado:
+                  summary: Saldo con la vigencia vencida
+                  value:
+                    idClienteVentas: CLI-5521
+                    clienteId: 42
+                    tieneCuenta: true
+                    saldoDisponible: 0
+                    nivel: BRONCE
+                    fechaCaducidad: '2025-10-18T14:14:50Z'
+                    puntosCaducados: 35
+                    vigenciaMeses: 12
+                    consultadoEn: '2026-11-08T14:02:11Z'
+                sinCuenta:
+                  summary: Cliente sin cuenta de puntos
+                  value:
+                    idClienteVentas: CLI-9999
+                    clienteId: null
+                    tieneCuenta: false
+                    saldoDisponible: 0
+                    nivel: null
+                    fechaCaducidad: null
+                    puntosCaducados: 0
+                    vigenciaMeses: 12
+                    consultadoEn: '2026-11-08T14:02:11Z'
+        '401':
+          description: Sin token, con un token inválido o vencido, o de un cliente de servicio deshabilitado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Token válido sin el permiso PUNTOS_CONSULTAR_VENTAS (por ejemplo, el de un usuario interno)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: El servicio de Perfil no responde; no aplique la redención y reintente
+components:
+  securitySchemes:
+    tokenDeServicio:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token de servicio de POST /api/auth/servicio/token
+  schemas:
+    SolicitudToken:
+      type: object
+      required: [cliente, secreto]
+      properties:
+        cliente:
+          type: string
+          description: Identificador del cliente de servicio
+        secreto:
+          type: string
+          format: password
+          minLength: 32
+    TokenServicio:
+      type: object
+      required: [token, tipo, expiraEn, cliente, permisos]
+      properties:
+        token:
+          type: string
+        tipo:
+          type: string
+          enum: [Bearer]
+        expiraEn:
+          type: string
+          format: date-time
+        cliente:
+          type: string
+        permisos:
+          type: array
+          items:
+            type: string
+    PuntosCliente:
+      type: object
+      required: [idClienteVentas, tieneCuenta, saldoDisponible, puntosCaducados, vigenciaMeses, consultadoEn]
+      properties:
+        idClienteVentas:
+          type: string
+        clienteId:
+          type: integer
+          format: int64
+          nullable: true
+          description: Cliente del CRM; nulo si Ventas aún no lo sincronizó por RIO-CRM-01
+        tieneCuenta:
+          type: boolean
+          description: Falso si el cliente nunca tuvo puntos
+        saldoDisponible:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Puntos que se pueden redimir ahora; Ventas no debe aplicar una redención mayor
+        nivel:
+          type: string
+          enum: [BRONCE, PLATA, ORO]
+          nullable: true
+        fechaCaducidad:
+          type: string
+          format: date-time
+          nullable: true
+          description: Última acumulación más la vigencia; el saldo caduca entonces si el cliente no vuelve a acumular
+        puntosCaducados:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Puntos del saldo con la vigencia vencida, que no se pueden redimir
+        vigenciaMeses:
+          type: integer
+          minimum: 1
+        consultadoEn:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      properties:
+        fecha:
+          type: string
+          format: date-time
+        estado:
+          type: integer
+        error:
+          type: string
+        mensaje:
+          type: string
+        ruta:
+          type: string

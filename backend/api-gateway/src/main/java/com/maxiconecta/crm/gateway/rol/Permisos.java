@@ -16,6 +16,11 @@ public final class Permisos {
     public static final String SEGMENTOS_CONSULTAR = "SEGMENTOS_CONSULTAR";
     public static final String SEGMENTACION_CONFIGURAR = "SEGMENTACION_CONFIGURAR";
     public static final String PUNTOS_CONSULTAR = "PUNTOS_CONSULTAR";
+    /**
+     * SCRUM-545: permiso de un cliente de servicio (RIO-CRM-04), no de un rol interno. Se asigna en la
+     * configuración del cliente de servicio y no está en la tabla seguridad.permiso.
+     */
+    public static final String PUNTOS_CONSULTAR_VENTAS = "PUNTOS_CONSULTAR_VENTAS";
     public static final String FIDELIZACION_CONFIGURAR = "FIDELIZACION_CONFIGURAR";
     public static final String INTERACCIONES_CONSULTAR = "INTERACCIONES_CONSULTAR";
     public static final String INTERACCIONES_REGISTRAR = "INTERACCIONES_REGISTRAR";
