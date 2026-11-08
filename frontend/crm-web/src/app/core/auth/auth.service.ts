@@ -76,6 +76,12 @@ export class AuthService {
       && sesion.permisos.includes('PUNTOS_CONSULTAR');
   }
 
+  /** SCRUM-424: misma combinación de rol y permiso que exige el Gateway para ajustar el saldo de puntos. */
+  puedeAjustarPuntos(): boolean {
+    const sesion = this.sesionVigente();
+    return !!sesion && sesion.rol === 'ADMINISTRADOR_CRM' && sesion.permisos.includes('FIDELIZACION_CONFIGURAR');
+  }
+
   token(): string | null {
     return this.sesionVigente()?.token ?? null;
   }
