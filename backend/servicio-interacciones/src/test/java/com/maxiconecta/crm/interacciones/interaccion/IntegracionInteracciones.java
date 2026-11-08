@@ -50,6 +50,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 abstract class IntegracionInteracciones {
 
     static final long CLIENTE = 42;
+    /** Rutas bajo el cliente (docs/seguridad/convencion-rutas-clientes.md). */
+    static final String RUTA = "/api/interacciones/clientes/{clienteId}/interacciones";
+    static final String RUTA_INTERACCION = RUTA + "/{id}";
     static final String AGENTE = "agente.ana";
     static final String OTRO_AGENTE = "agente.luis";
     static final String PERMISOS_AGENTE = "CLIENTE_CONSULTAR,INTERACCIONES_CONSULTAR,INTERACCIONES_REGISTRAR";
@@ -95,21 +98,21 @@ abstract class IntegracionInteracciones {
     }
 
     ResultActions historial(String consulta) throws Exception {
-        return conIdentidad(get("/api/interacciones/clientes/" + CLIENTE + consulta), AGENTE, "AGENTE_ATENCION",
-                PERMISOS_AGENTE);
+        return conIdentidad(get("/api/interacciones/clientes/" + CLIENTE + "/interacciones" + consulta), AGENTE,
+                "AGENTE_ATENCION", PERMISOS_AGENTE);
     }
 
     ResultActions porTexto(String texto) throws Exception {
-        return conIdentidad(get("/api/interacciones/clientes/{id}", CLIENTE).param("texto", texto), AGENTE,
+        return conIdentidad(get(RUTA, CLIENTE).param("texto", texto), AGENTE,
                 "AGENTE_ATENCION", PERMISOS_AGENTE);
     }
 
     ResultActions registrar(String usuario, String rol, String permisos, Map<String, Object> cuerpo) throws Exception {
-        return conIdentidad(post("/api/interacciones"), usuario, rol, permisos, cuerpo);
+        return conIdentidad(post(RUTA, CLIENTE), usuario, rol, permisos, cuerpo);
     }
 
     ResultActions modificar(long id, String usuario, String rol, Map<String, Object> cuerpo) throws Exception {
-        return conIdentidad(put("/api/interacciones/{id}", id), usuario, rol,
+        return conIdentidad(put(RUTA_INTERACCION, CLIENTE, id), usuario, rol,
                 "ADMINISTRADOR_CRM".equals(rol) ? PERMISOS_ADMIN : PERMISOS_AGENTE, cuerpo);
     }
 
@@ -125,14 +128,11 @@ abstract class IntegracionInteracciones {
                 .header("X-Usuario-Permisos", permisos));
     }
 
-    /** Cuerpo con el cliente 42 por defecto; los pares clave-valor lo completan o lo reemplazan. */
+    /** Cuerpo con los pares clave-valor dados. */
     static Map<String, Object> cuerpo(Object... pares) {
         Map<String, Object> cuerpo = new HashMap<>();
         for (int i = 0; i < pares.length; i += 2) {
             cuerpo.put((String) pares[i], pares[i + 1]);
-        }
-        if (!cuerpo.containsKey("clienteId") && !cuerpo.containsKey("version")) {
-            cuerpo.put("clienteId", CLIENTE);
         }
         return cuerpo;
     }

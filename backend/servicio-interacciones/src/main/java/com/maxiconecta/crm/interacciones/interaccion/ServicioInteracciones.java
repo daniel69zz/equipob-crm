@@ -45,27 +45,26 @@ public class ServicioInteracciones {
         this.transacciones = transacciones;
     }
 
-    public Interaccion registrar(SolicitudInteraccion solicitud, Identidad identidad) {
+    public Interaccion registrar(long clienteId, SolicitudInteraccion solicitud, Identidad identidad) {
         RegistroInteracciones.Campos campos = normalizar(solicitud.tipo(), solicitud.canal(), solicitud.asunto(),
                 solicitud.descripcion(), solicitud.referenciaCompra());
         // Fuera de la transacción: la consulta a Perfil no retiene una conexión de la base.
-        if (!perfiles.existe(solicitud.clienteId())) {
-            throw new ReglaInvalidaException("El cliente " + solicitud.clienteId() + " no existe en el CRM",
-                    Map.of("clienteId", "no existe en el CRM"));
+        if (clienteId <= 0 || !perfiles.existe(clienteId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe el cliente " + clienteId + " en el CRM");
         }
         // La interacción y su auditoría (SCRUM-436) se guardan juntas o no se guarda ninguna.
         return transacciones.execute(estado -> {
-            Interaccion creada = registro.registrar(solicitud.clienteId(), campos, identidad.usuario(), identidad.rol());
+            Interaccion creada = registro.registrar(clienteId, campos, identidad.usuario(), identidad.rol());
             auditoria.creada(creada);
             return creada;
         });
     }
 
-    public Interaccion modificar(long id, SolicitudCambio solicitud, Identidad identidad) {
+    public Interaccion modificar(long clienteId, long id, SolicitudCambio solicitud, Identidad identidad) {
         RegistroInteracciones.Campos campos = normalizar(solicitud.tipo(), solicitud.canal(), solicitud.asunto(),
                 solicitud.descripcion(), solicitud.referenciaCompra());
         return transacciones.execute(estado -> {
-            Interaccion actual = registro.bloquear(id).orElseThrow(() -> noEncontrada(id));
+            Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
             if (!identidad.esAdministrador() && !identidad.usuario().equals(actual.registradoPor())) {
                 throw IdentidadGateway.prohibido("Solo puede modificar las interacciones que usted registró");
             }
@@ -84,13 +83,13 @@ public class ServicioInteracciones {
         });
     }
 
-    public Interaccion detalle(long id) {
-        return registro.buscar(id).orElseThrow(() -> noEncontrada(id));
+    public Interaccion detalle(long clienteId, long id) {
+        return registro.buscar(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
     }
 
     /** La auditoría de una interacción, de la creación al último cambio. */
-    public List<AuditoriaInteracciones.RegistroAuditoria> auditoria(long id) {
-        detalle(id);
+    public List<AuditoriaInteracciones.RegistroAuditoria> auditoria(long clienteId, long id) {
+        detalle(clienteId, id);
         return auditoria.de(id);
     }
 
@@ -163,8 +162,9 @@ public class ServicioInteracciones {
         return valor == null || valor.isBlank() ? null : valor.strip();
     }
 
-    private static ResponseStatusException noEncontrada(long id) {
-        return new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe la interacción " + id);
+    private static ResponseStatusException noEncontrada(long clienteId, long id) {
+        return new ResponseStatusException(HttpStatus.NOT_FOUND,
+                "El cliente " + clienteId + " no tiene la interacción " + id);
     }
 
     /** Valor anterior y nuevo de un campo. */

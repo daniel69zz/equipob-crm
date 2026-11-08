@@ -20,10 +20,12 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * API de interacciones con el cliente (SCRUM-52). El acceso se comprueba antes de validar el cuerpo (SCRUM-435).
+ * API de interacciones con el cliente (SCRUM-52). Todas las rutas van bajo el cliente, como pide
+ * docs/seguridad/convencion-rutas-clientes.md: así el Gateway audita cada consulta y cada cambio con el cliente
+ * afectado. El acceso se comprueba antes de validar el cuerpo (SCRUM-435).
  */
 @RestController
-@RequestMapping("/api/interacciones")
+@RequestMapping("/api/interacciones/clientes/{clienteId}/interacciones")
 public class InteraccionesController {
 
     private final ServicioInteracciones servicio;
@@ -36,36 +38,38 @@ public class InteraccionesController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Interaccion registrar(@RequestBody(required = false) SolicitudInteraccion solicitud,
+    public Interaccion registrar(@PathVariable long clienteId,
+                                 @RequestBody(required = false) SolicitudInteraccion solicitud,
                                  HttpServletRequest http) {
         Identidad identidad = IdentidadGateway.registro(http);
         validaciones.validar(solicitud, "La interacción no es válida");
-        return servicio.registrar(solicitud, identidad);
+        return servicio.registrar(clienteId, solicitud, identidad);
     }
 
     @PutMapping("/{id}")
-    public Interaccion modificar(@PathVariable long id, @RequestBody(required = false) SolicitudCambio solicitud,
-                                 HttpServletRequest http) {
+    public Interaccion modificar(@PathVariable long clienteId, @PathVariable long id,
+                                 @RequestBody(required = false) SolicitudCambio solicitud, HttpServletRequest http) {
         Identidad identidad = IdentidadGateway.registro(http);
         validaciones.validar(solicitud, "El cambio no es válido");
-        return servicio.modificar(id, solicitud, identidad);
+        return servicio.modificar(clienteId, id, solicitud, identidad);
     }
 
     @GetMapping("/{id}")
-    public Interaccion detalle(@PathVariable long id, HttpServletRequest http) {
+    public Interaccion detalle(@PathVariable long clienteId, @PathVariable long id, HttpServletRequest http) {
         IdentidadGateway.consulta(http);
-        return servicio.detalle(id);
+        return servicio.detalle(clienteId, id);
     }
 
     /** Quién creó y quién cambió la interacción, con los valores anteriores y nuevos (SCRUM-436). */
     @GetMapping("/{id}/auditoria")
-    public List<AuditoriaInteracciones.RegistroAuditoria> auditoria(@PathVariable long id, HttpServletRequest http) {
+    public List<AuditoriaInteracciones.RegistroAuditoria> auditoria(@PathVariable long clienteId, @PathVariable long id,
+                                                                    HttpServletRequest http) {
         IdentidadGateway.auditoria(http);
-        return servicio.auditoria(id);
+        return servicio.auditoria(clienteId, id);
     }
 
-    /** Historial de un cliente, de la más reciente a la más antigua, con los filtros de SCRUM-431. */
-    @GetMapping("/clientes/{clienteId}")
+    /** Historial del cliente, de la más reciente a la más antigua, con los filtros de SCRUM-431. */
+    @GetMapping
     public PaginaInteracciones historial(@PathVariable long clienteId,
                                          @RequestParam(required = false) String tipo,
                                          @RequestParam(required = false) String texto,

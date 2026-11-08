@@ -35,15 +35,16 @@ public class RegistroInteracciones {
                 campos.descripcion(), campos.referenciaCompra(), usuario, rol);
     }
 
-    public Optional<Interaccion> buscar(long id) {
-        return jdbc.query("SELECT " + COLUMNAS + " FROM interacciones.interaccion WHERE id = ?", FILA, id)
-                .stream().findFirst();
+    /** La interacción, solo si es del cliente indicado en la ruta. */
+    public Optional<Interaccion> buscar(long clienteId, long id) {
+        return jdbc.query("SELECT " + COLUMNAS + " FROM interacciones.interaccion WHERE id = ? AND cliente_id = ?",
+                FILA, id, clienteId).stream().findFirst();
     }
 
     /** La interacción bloqueada hasta el fin de la transacción, para que dos ediciones se apliquen de a una. */
-    public Optional<Interaccion> bloquear(long id) {
-        return jdbc.query("SELECT " + COLUMNAS + " FROM interacciones.interaccion WHERE id = ? FOR UPDATE", FILA, id)
-                .stream().findFirst();
+    public Optional<Interaccion> bloquear(long clienteId, long id) {
+        return jdbc.query("SELECT " + COLUMNAS + " FROM interacciones.interaccion WHERE id = ? AND cliente_id = ? "
+                + "FOR UPDATE", FILA, id, clienteId).stream().findFirst();
     }
 
     public Interaccion modificar(long id, Campos campos, String usuario) {

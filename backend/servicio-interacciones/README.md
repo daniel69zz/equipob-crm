@@ -15,11 +15,15 @@ El modelo de datos, las reglas y los permisos están en `docs/interacciones/regi
 
 | Método | Ruta | Quién |
 |---|---|---|
-| POST | `/api/interacciones` | Agente de Atención o Administrador de CRM (`INTERACCIONES_REGISTRAR`) |
-| PUT | `/api/interacciones/{id}` | El agente que la registró o el Administrador de CRM |
-| GET | `/api/interacciones/{id}` | `INTERACCIONES_CONSULTAR` |
-| GET | `/api/interacciones/clientes/{clienteId}?tipo=&texto=&desde=&hasta=&pagina=&tamanio=` | `INTERACCIONES_CONSULTAR` |
-| GET | `/api/interacciones/{id}/auditoria` | Administrador de CRM con `AUDITORIA_CONSULTAR` |
+Todas bajo `/api/interacciones/clientes/{clienteId}/interacciones` (`docs/seguridad/convencion-rutas-clientes.md`):
+
+| Método | Ruta | Quién |
+|---|---|---|
+| POST | `…/interacciones` | Agente de Atención o Administrador de CRM (`INTERACCIONES_REGISTRAR`) |
+| PUT | `…/interacciones/{id}` | El agente que la registró o el Administrador de CRM |
+| GET | `…/interacciones?tipo=&texto=&desde=&hasta=&pagina=&tamanio=` | `INTERACCIONES_CONSULTAR` |
+| GET | `…/interacciones/{id}` | `INTERACCIONES_CONSULTAR` |
+| GET | `…/interacciones/{id}/auditoria` | Administrador de CRM con `AUDITORIA_CONSULTAR` |
 
 - Una edición lleva la `version` que el usuario tenía en pantalla. Si otra persona la cambió antes, responde `409`.
 - Una interacción no se borra.

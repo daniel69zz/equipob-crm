@@ -7,8 +7,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 /**
- * Cuerpo de {@code PUT /api/interacciones/{id}}: los campos editables y la versión que el usuario tenía en pantalla.
- * El cliente no se cambia: una interacción mal asignada se corrige registrando otra.
+ * Cuerpo de {@code PUT /api/interacciones/clientes/{clienteId}/interacciones/{id}}: los campos editables y la versión que el usuario tenía en pantalla.
+ * El cliente no se cambia: una interacción registrada en otro cliente por error se corrige registrando otra.
  */
 public record SolicitudCambio(
         @NotBlank(message = "es obligatorio")

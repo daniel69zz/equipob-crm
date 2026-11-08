@@ -84,19 +84,17 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
     }
 
     @Test
-    void sinClienteOSinDescripcionSeRechazaPorCampo() throws Exception {
-        Map<String, Object> sinCliente = cuerpo("tipo", "CONSULTA", "descripcion", "   ");
-        sinCliente.remove("clienteId");
-        registrar(AGENTE, "AGENTE_ATENCION", PERMISOS_AGENTE, sinCliente)
+    void sinTipoOSinDescripcionSeRechazaPorCampo() throws Exception {
+        registrar(AGENTE, "AGENTE_ATENCION", PERMISOS_AGENTE, cuerpo("descripcion", "   "))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.campos.clienteId").exists())
+                .andExpect(jsonPath("$.campos.tipo").exists())
                 .andExpect(jsonPath("$.campos.descripcion").exists());
         assertThat(jdbc.queryForObject("SELECT count(*) FROM interacciones.interaccion", Integer.class)).isZero();
     }
 
     @Test
     void unTipoOCanalDesconocidoYLosLargosMaximosSeRechazan() throws Exception {
-        Map<String, Object> cuerpo = cuerpo("clienteId", CLIENTE, "tipo", "QUEJA", "canal", "FAX",
+        Map<String, Object> cuerpo = cuerpo("tipo", "QUEJA", "canal", "FAX",
                 "asunto", "a".repeat(121), "descripcion", "b".repeat(4001), "referenciaCompra", "c".repeat(65));
         registrar(AGENTE, "AGENTE_ATENCION", PERMISOS_AGENTE, cuerpo)
                 .andExpect(status().isBadRequest())
@@ -117,11 +115,11 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
 
     @Test
     void unClienteQueNoExisteEnElCrmSeRechaza() throws Exception {
-        Map<String, Object> cuerpo = cuerpo("tipo", "CONSULTA", "descripcion", "Pregunta por su saldo");
-        cuerpo.put("clienteId", 999);
-        registrar(AGENTE, "AGENTE_ATENCION", PERMISOS_AGENTE, cuerpo)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.campos.clienteId").value("no existe en el CRM"));
+        conIdentidad(post(RUTA, 999), AGENTE, "AGENTE_ATENCION", PERMISOS_AGENTE,
+                cuerpo("tipo", "CONSULTA", "descripcion", "Pregunta por su saldo"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value("No existe el cliente 999 en el CRM"));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM interacciones.interaccion", Integer.class)).isZero();
     }
 
     @Test
@@ -137,10 +135,10 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
 
     @Test
     void sinIdentidadDelGatewayResponde401() throws Exception {
-        mvc.perform(post("/api/interacciones").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post(RUTA, CLIENTE).contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(cuerpo("tipo", "NOTA", "descripcion", "x"))))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/interacciones/clientes/{id}", CLIENTE)).andExpect(status().isUnauthorized());
+        mvc.perform(get(RUTA, CLIENTE)).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -149,9 +147,9 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
                 .andExpect(status().isForbidden());
         registrar(AGENTE, "AGENTE_ATENCION", "INTERACCIONES_CONSULTAR", Map.of())
                 .andExpect(status().isForbidden());
-        conIdentidad(get("/api/interacciones/clientes/{id}", CLIENTE), "gerente", "GERENTE_COMERCIAL",
+        conIdentidad(get(RUTA, CLIENTE), "gerente", "GERENTE_COMERCIAL",
                 "INTERACCIONES_CONSULTAR").andExpect(status().isOk());
-        conIdentidad(get("/api/interacciones/clientes/{id}", CLIENTE), "gerente", "GERENTE_COMERCIAL",
+        conIdentidad(get(RUTA, CLIENTE), "gerente", "GERENTE_COMERCIAL",
                 "CLIENTE_CONSULTAR").andExpect(status().isForbidden());
     }
 
@@ -183,7 +181,7 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.mensaje").value("Solo puede modificar las interacciones que usted registró"));
 
-        conIdentidad(put("/api/interacciones/{id}", id), "admin", "ADMINISTRADOR_CRM", PERMISOS_ADMIN, cambio)
+        conIdentidad(put(RUTA_INTERACCION, CLIENTE, id), "admin", "ADMINISTRADOR_CRM", PERMISOS_ADMIN, cambio)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.modificadoPor").value("admin"))
                 .andExpect(jsonPath("$.registradoPor").value(AGENTE));
@@ -212,6 +210,9 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
                 .andExpect(jsonPath("$.mensaje").value("La interacción no tiene cambios para guardar"));
         modificar(9999, AGENTE, "AGENTE_ATENCION", cuerpo("tipo", "RECLAMO", "descripcion", "x", "version", 1))
                 .andExpect(status().isNotFound());
+        // La interacción del cliente 42 no se edita por la ruta de otro cliente.
+        conIdentidad(put(RUTA_INTERACCION, 43, id), AGENTE, "AGENTE_ATENCION", PERMISOS_AGENTE,
+                cuerpo("tipo", "NOTA", "descripcion", "x", "version", 1)).andExpect(status().isNotFound());
         modificar(id, AGENTE, "AGENTE_ATENCION", cuerpo("tipo", "RECLAMO", "descripcion", "x"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.campos.version").exists());
@@ -227,7 +228,7 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
         jdbc.update("INSERT INTO interacciones.interaccion (cliente_id, tipo, descripcion, registrado_por) "
                 + "VALUES (43, 'NOTA', 'De otro cliente', 'x')");
 
-        conIdentidad(get("/api/interacciones/clientes/{id}", CLIENTE), "gerente", "GERENTE_COMERCIAL",
+        conIdentidad(get(RUTA, CLIENTE), "gerente", "GERENTE_COMERCIAL",
                 "INTERACCIONES_CONSULTAR")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(2))
@@ -236,11 +237,13 @@ class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
                 .andExpect(jsonPath("$.interacciones[0].id").value(segunda))
                 .andExpect(jsonPath("$.interacciones[1].id").value(primera));
 
-        conIdentidad(get("/api/interacciones/{id}", primera), "gerente", "GERENTE_COMERCIAL",
+        conIdentidad(get(RUTA_INTERACCION, CLIENTE, primera), "gerente", "GERENTE_COMERCIAL",
                 "INTERACCIONES_CONSULTAR")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tipo").value("RECLAMO"));
-        conIdentidad(get("/api/interacciones/{id}", 9999), "gerente", "GERENTE_COMERCIAL",
+        conIdentidad(get(RUTA_INTERACCION, CLIENTE, 9999), "gerente", "GERENTE_COMERCIAL",
+                "INTERACCIONES_CONSULTAR").andExpect(status().isNotFound());
+        conIdentidad(get(RUTA_INTERACCION, 43, primera), "gerente", "GERENTE_COMERCIAL",
                 "INTERACCIONES_CONSULTAR").andExpect(status().isNotFound());
     }
 

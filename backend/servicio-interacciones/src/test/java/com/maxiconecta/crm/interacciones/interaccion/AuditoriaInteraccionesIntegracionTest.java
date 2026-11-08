@@ -78,7 +78,7 @@ class AuditoriaInteraccionesIntegracionTest extends IntegracionInteracciones {
         modificar(id, "admin", "ADMINISTRADOR_CRM", cuerpo("tipo", "CONSULTA", "canal", "TELEFONO",
                 "descripcion", "Consulta por el envío pendiente.", "version", 2)).andExpect(status().isOk());
 
-        conIdentidad(get("/api/interacciones/{id}/auditoria", id), "admin", "ADMINISTRADOR_CRM", PERMISOS_ADMIN)
+        conIdentidad(get(RUTA_INTERACCION + "/auditoria", CLIENTE, id), "admin", "ADMINISTRADOR_CRM", PERMISOS_ADMIN)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
                 .andExpect(jsonPath("$[0].operacion").value("CREADA"))
@@ -146,11 +146,11 @@ class AuditoriaInteraccionesIntegracionTest extends IntegracionInteracciones {
     @Test
     void soloElAdministradorConAuditoriaConsultarVeLaAuditoria() throws Exception {
         long id = registrarReclamo(AGENTE);
-        conIdentidad(get("/api/interacciones/{id}/auditoria", id), AGENTE, "AGENTE_ATENCION", PERMISOS_ADMIN)
+        conIdentidad(get(RUTA_INTERACCION + "/auditoria", CLIENTE, id), AGENTE, "AGENTE_ATENCION", PERMISOS_ADMIN)
                 .andExpect(status().isForbidden());
-        conIdentidad(get("/api/interacciones/{id}/auditoria", id), "admin", "ADMINISTRADOR_CRM", PERMISOS_AGENTE)
+        conIdentidad(get(RUTA_INTERACCION + "/auditoria", CLIENTE, id), "admin", "ADMINISTRADOR_CRM", PERMISOS_AGENTE)
                 .andExpect(status().isForbidden());
-        conIdentidad(get("/api/interacciones/{id}/auditoria", 9999), "admin", "ADMINISTRADOR_CRM", PERMISOS_ADMIN)
+        conIdentidad(get(RUTA_INTERACCION + "/auditoria", CLIENTE, 9999), "admin", "ADMINISTRADOR_CRM", PERMISOS_ADMIN)
                 .andExpect(status().isNotFound());
     }
 

@@ -110,7 +110,7 @@ export class FormularioInteraccionComponent implements OnInit {
   private static siguiente = 0;
   private readonly servicio = inject(InteraccionesService);
 
-  /** Cliente de la interacción nueva. */
+  /** Cliente de la interacción. */
   readonly clienteId = input.required<number>();
   /** La interacción que se edita; sin ella, se registra una nueva. */
   readonly interaccion = input<Interaccion | null>(null);
@@ -157,7 +157,7 @@ export class FormularioInteraccionComponent implements OnInit {
     if (!datos) return;
     const actual = this.interaccion();
     const solicitud = actual
-      ? this.servicio.modificar(actual.id, datos, actual.version)
+      ? this.servicio.modificar(actual.clienteId, actual.id, datos, actual.version)
       : this.servicio.registrar(this.clienteId(), datos);
     this.guardando.set(true);
     this.error.set('');

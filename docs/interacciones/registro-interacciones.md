@@ -12,7 +12,7 @@ consume eventos. Diagramas en `docs/interacciones/registro-interacciones-diagram
 | Columna | Tipo | Regla |
 |---|---|---|
 | `id` | `BIGSERIAL` | Número de la interacción |
-| `cliente_id` | `BIGINT` | Obligatorio. Cliente del CRM (`servicio-perfil`); el servicio comprueba que exista |
+| `cliente_id` | `BIGINT` | Obligatorio. Cliente del CRM (`servicio-perfil`), tomado de la ruta; el servicio comprueba que exista |
 | `tipo` | `VARCHAR(20)` | Obligatorio: `CONSULTA`, `RECLAMO` o `NOTA` |
 | `canal` | `VARCHAR(20)` | Opcional: `TELEFONO`, `CORREO`, `PRESENCIAL`, `CHAT`, `WHATSAPP` u `OTRO` |
 | `asunto` | `VARCHAR(120)` | Opcional: resumen de una línea para el historial |
@@ -55,7 +55,7 @@ texto de la descripción. Así el Administrador ve en la pantalla de auditoría 
 
 Los dos registros van en la misma transacción que la interacción (SCRUM-436): si uno falla, la interacción no se
 guarda ni cambia. Un cambio rechazado (sin permiso, con una versión anterior o sin cambios) no deja registro.
-`GET /api/interacciones/{id}/auditoria` devuelve los registros de una interacción, de la creación al último
+`GET /api/interacciones/clientes/{clienteId}/interacciones/{id}/auditoria` devuelve los registros de una interacción, de la creación al último
 cambio:
 
 ```json
@@ -101,3 +101,63 @@ El control va en dos capas, como en los demás servicios:
 
 El permiso se comprueba antes de validar el cuerpo, así que un usuario sin permiso recibe `403` aunque su solicitud
 además sea inválida.
+
+## API (SCRUM-432)
+
+Todas las rutas van bajo el cliente, como pide `docs/seguridad/convencion-rutas-clientes.md`: el Gateway audita
+cada consulta y cada cambio con el cliente afectado.
+
+| Método y ruta | Quién | Respuesta |
+|---|---|---|
+| `POST /api/interacciones/clientes/{clienteId}/interacciones` | Agente de Atención o Administrador de CRM | `201` con la interacción |
+| `PUT /api/interacciones/clientes/{clienteId}/interacciones/{id}` | Quien la registró o el Administrador de CRM | `200` con la interacción y su versión nueva |
+| `GET /api/interacciones/clientes/{clienteId}/interacciones` | Los tres roles | `200` con una página del historial |
+| `GET /api/interacciones/clientes/{clienteId}/interacciones/{id}` | Los tres roles | `200` con la interacción |
+| `GET /api/interacciones/clientes/{clienteId}/interacciones/{id}/auditoria` | Administrador de CRM con `AUDITORIA_CONSULTAR` | `200` con su auditoría |
+
+Registro:
+
+```json
+{
+  "tipo": "RECLAMO",
+  "canal": "TELEFONO",
+  "asunto": "Pedido incompleto",
+  "descripcion": "Llegaron 2 de los 3 productos de la compra.",
+  "referenciaCompra": "V-100234"
+}
+```
+
+| Campo | Regla |
+|---|---|
+| `tipo` | Obligatorio: `CONSULTA`, `RECLAMO` o `NOTA` |
+| `canal` | Opcional; vacío equivale a no indicarlo |
+| `asunto` | Opcional, hasta 120 caracteres |
+| `descripcion` | Obligatoria, de 1 a 4.000 caracteres sin contar los espacios de los extremos |
+| `referenciaCompra` | Opcional, hasta 64 caracteres |
+
+- **Errores de validación:** responden `400` con cada campo en `campos`. Sin descripción, la interacción no se
+  guarda.
+- **Cliente que no existe** en el CRM: `404`.
+- **Perfil no responde:** `503`, y no se guarda nada.
+- **Responsable y fecha:** los pone el servidor.
+- **Espacios:** los textos se guardan sin los espacios de los extremos, y los opcionales vacíos quedan nulos.
+
+Una corrección (`PUT`) envía los mismos campos y la `version` que el usuario tenía en pantalla:
+
+- Si otra persona la cambió antes, responde `409` con `campos.version`.
+- Si no cambia nada, responde `400`.
+- Una interacción de otro cliente responde `404`.
+- El cliente no se cambia.
+
+El historial va de la más reciente a la más antigua, con `pagina` (desde 0) y `tamanio` (de 1 a 100, por defecto
+20). Se filtra con (SCRUM-431):
+
+- `tipo`: un tipo de interacción.
+- `texto`: hasta 100 caracteres, sin distinguir mayúsculas. Se busca en el asunto, la descripción y la referencia,
+  y `%` y `_` se buscan literalmente.
+- `desde` y `hasta`: días `aaaa-mm-dd` en la hora de Bolivia, incluidos. `desde` posterior a `hasta` responde
+  `400`.
+
+```json
+{ "interacciones": [ { "id": 7, "clienteId": 42, "tipo": "RECLAMO", "...": "..." } ], "total": 1, "pagina": 0, "tamanio": 20 }
+```

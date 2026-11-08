@@ -1,19 +1,14 @@
 package com.maxiconecta.crm.interacciones.interaccion;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 /**
- * Cuerpo de {@code POST /api/interacciones} (SCRUM-432). El responsable y la fecha no se envían: salen de la sesión
- * validada por el Gateway y del reloj de la base.
+ * Cuerpo de {@code POST /api/interacciones/clientes/{clienteId}/interacciones} (SCRUM-432). El cliente va en la
+ * ruta; el responsable y la fecha no se envían: salen de la sesión validada por el Gateway y del reloj de la base.
  */
 public record SolicitudInteraccion(
-        @NotNull(message = "es obligatorio: indique el cliente de la interacción")
-        @Positive(message = "debe ser un cliente del CRM")
-        Long clienteId,
         @NotBlank(message = "es obligatorio")
         @Pattern(regexp = TipoInteraccion.PATRON, message = TipoInteraccion.MENSAJE)
         String tipo,

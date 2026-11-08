@@ -272,7 +272,9 @@ export class InteraccionesClienteComponent {
 
   /** Trae la versión vigente después de un 409 y vuelve a abrir el formulario con ella. */
   recargar(id: number): void {
-    this.servicio.detalle(id).subscribe({
+    const numero = this.numeroCliente();
+    if (numero === null) return;
+    this.servicio.detalle(numero, id).subscribe({
       next: vigente => this.reemplazar(vigente),
       error: (e: HttpErrorResponse) => this.error.set(this.mensaje(e, 'No se pudo recargar la interacción.')),
     });

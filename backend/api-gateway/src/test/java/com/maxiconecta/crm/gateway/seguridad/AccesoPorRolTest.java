@@ -192,6 +192,21 @@ class AccesoPorRolTest {
     }
 
     @Test
+    void elAgenteRegistraYCorrigeInteraccionesBajoLaRutaDelCliente() throws Exception {
+        // SCRUM-52: las rutas van bajo el cliente (docs/seguridad/convencion-rutas-clientes.md).
+        String ruta = "/api/interacciones/clientes/42/interacciones";
+        String agente = bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE);
+        String gerente = bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE);
+
+        mvc.perform(post(ruta).header("Authorization", agente)).andExpect(pasaElControlDeAcceso());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(ruta + "/7").header("Authorization", agente)).andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta + "?tipo=RECLAMO").header("Authorization", gerente)).andExpect(pasaElControlDeAcceso());
+        mvc.perform(post(ruta).header("Authorization", gerente)).andExpect(status().isForbidden());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(ruta + "/7").header("Authorization", gerente)).andExpect(status().isForbidden());
+        mvc.perform(post(ruta)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void soloElAdministradorPuedeReprocesarEventos() throws Exception {
         mvc.perform(post("/api/comportamiento/eventos/7/reprocesar")
                         .header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))

@@ -66,9 +66,17 @@ export interface FiltroInteracciones {
   hasta?: string;
 }
 
+/**
+ * Rutas bajo el cliente (docs/seguridad/convencion-rutas-clientes.md): el Gateway audita cada consulta y cada cambio
+ * con el cliente afectado.
+ */
 @Injectable({ providedIn: 'root' })
 export class InteraccionesService {
   private readonly http = inject(HttpClient);
+
+  private ruta(clienteId: number): string {
+    return `/api/interacciones/clientes/${clienteId}/interacciones`;
+  }
 
   historial(clienteId: number, filtro: FiltroInteracciones, pagina: number, tamanio: number) {
     let params = new HttpParams().set('pagina', pagina).set('tamanio', tamanio);
@@ -76,19 +84,19 @@ export class InteraccionesService {
       const texto = typeof valor === 'string' ? valor.trim() : '';
       if (texto) params = params.set(clave, texto);
     }
-    return this.http.get<PaginaInteracciones>(`/api/interacciones/clientes/${clienteId}`, { params });
+    return this.http.get<PaginaInteracciones>(this.ruta(clienteId), { params });
   }
 
-  detalle(id: number) {
-    return this.http.get<Interaccion>(`/api/interacciones/${id}`);
+  detalle(clienteId: number, id: number) {
+    return this.http.get<Interaccion>(`${this.ruta(clienteId)}/${id}`);
   }
 
   registrar(clienteId: number, datos: DatosInteraccion) {
-    return this.http.post<Interaccion>('/api/interacciones', { clienteId, ...datos });
+    return this.http.post<Interaccion>(this.ruta(clienteId), datos);
   }
 
-  modificar(id: number, datos: DatosInteraccion, version: number) {
-    return this.http.put<Interaccion>(`/api/interacciones/${id}`, { ...datos, version });
+  modificar(clienteId: number, id: number, datos: DatosInteraccion, version: number) {
+    return this.http.put<Interaccion>(`${this.ruta(clienteId)}/${id}`, { ...datos, version });
   }
 }
 
