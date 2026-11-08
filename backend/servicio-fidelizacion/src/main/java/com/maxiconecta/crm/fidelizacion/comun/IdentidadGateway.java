@@ -21,6 +21,7 @@ public final class IdentidadGateway {
     public static final String ROL = "X-Usuario-Rol";
     public static final String PERMISOS = "X-Usuario-Permisos";
     public static final String ADMINISTRADOR_CRM = "ADMINISTRADOR_CRM";
+    public static final String AGENTE_ATENCION = "AGENTE_ATENCION";
     public static final String FIDELIZACION_CONFIGURAR = "FIDELIZACION_CONFIGURAR";
     public static final String PUNTOS_CONSULTAR = "PUNTOS_CONSULTAR";
 

@@ -10,14 +10,20 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Set;
+
 /**
  * Consulta del saldo, el nivel y los últimos movimientos de puntos de un cliente (SCRUM-47,
  * docs/fidelizacion/consulta-saldo-puntos.md). Exige la identidad del API Gateway y el permiso
- * {@code PUNTOS_CONSULTAR} (SCRUM-396).
+ * {@code PUNTOS_CONSULTAR} (SCRUM-396), y está habilitada para el Administrador de CRM y el Agente de
+ * Atención al Cliente (SCRUM-397): el rol se exige aunque otro rol reciba por error el permiso.
  */
 @RestController
 @RequestMapping("/api/fidelizacion/clientes")
 public class ConsultaSaldoController {
+
+    /** SCRUM-397: roles que consultan el saldo y los movimientos de un cliente. */
+    static final Set<String> ROLES_CONSULTA = Set.of(IdentidadGateway.ADMINISTRADOR_CRM, IdentidadGateway.AGENTE_ATENCION);
 
     private final ConsultaSaldoPuntos consulta;
 
@@ -29,7 +35,11 @@ public class ConsultaSaldoController {
     public ConsultaSaldoPuntos.SaldoCliente saldo(@PathVariable long clienteId,
                                                   @RequestParam(defaultValue = "" + ConsultaSaldoPuntos.MOVIMIENTOS_POR_DEFECTO)
                                                   int movimientos, HttpServletRequest solicitud) {
-        IdentidadGateway.consultaPuntos(solicitud);
+        IdentidadGateway.Identidad identidad = IdentidadGateway.consultaPuntos(solicitud);
+        if (identidad.rol() == null || !ROLES_CONSULTA.contains(identidad.rol())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el Administrador de CRM y el Agente de "
+                    + "Atención al Cliente pueden consultar el saldo y los movimientos de puntos de un cliente");
+        }
         try {
             return consulta.consultar(clienteId, movimientos);
         } catch (IllegalArgumentException ex) {
