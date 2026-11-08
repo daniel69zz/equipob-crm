@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.interacciones.configuracion;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import java.time.Duration;
 public class ConfiguracionPerfil {
 
     @Bean
+    @Qualifier("perfil")
     RestClient restClientePerfil(RestClient.Builder builder,
                                  @Value("${crm.perfil.url}") String url,
                                  @Value("${crm.perfil.tiempo-espera}") Duration tiempoEspera) {
