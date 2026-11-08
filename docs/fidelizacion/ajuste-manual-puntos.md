@@ -62,3 +62,71 @@ registros:
 `GET /api/fidelizacion/clientes/{clienteId}/ajustes` devuelve los ajustes del cliente, del más reciente al más
 antiguo, con su motivo, su responsable y su fecha. La ficha integral los muestra en el bloque **Ajustes de
 puntos**.
+
+## Reglas de validación (SCRUM-429)
+
+```
+POST /api/fidelizacion/clientes/{clienteId}/ajustes
+```
+
+```json
+{
+  "idSolicitud": "3f0c2a4e-8d1b-4c55-9a8e-2b7d6c1e0f42",
+  "puntos": 20,
+  "motivo": "Compra V-100236 del 18/10 que no acumuló puntos",
+  "referencia": "V-100236",
+  "saldoActual": 15
+}
+```
+
+| Campo | Regla | Si no se cumple |
+|---|---|---|
+| `idSolicitud` | Obligatorio, UUID. La pantalla genera uno nuevo para cada ajuste | `400`; si ya se aplicó, `409` "Este ajuste ya se aplicó" |
+| `puntos` | Entero distinto de 0 y de hasta 100.000 en valor absoluto: positivo suma, negativo resta | `400` |
+| `motivo` | Obligatorio, de 10 a 250 caracteres sin contar los espacios de los extremos | `400` |
+| `referencia` | Opcional, hasta 64 caracteres | `400` |
+| `saldoActual` | Obligatorio: el saldo disponible que el Administrador vio al confirmar | `409` si el saldo cambió mientras revisaba: debe volver a revisar |
+
+Los errores de campo vienen en `campos`, como en las demás pantallas de configuración. Además:
+
+1. **Saldo negativo (criterio de aceptación 2).** Si el ajuste deja el saldo por debajo de 0, se rechaza con
+   `400` y el saldo no cambia. Ejemplo:
+   `El ajuste dejaría el saldo en -5: el saldo disponible es 15 y se quieren restar 20 puntos`. Para dejar el saldo
+   en 0 hay que restar exactamente el saldo disponible.
+2. **Solo el Administrador de CRM (criterio de aceptación 3).** El API Gateway exige el rol `ADMINISTRADOR_CRM` y
+   el permiso `FIDELIZACION_CONFIGURAR`. Sin sesión responde `401`, y con otro rol o sin el permiso, `403`, que
+   queda en la auditoría como `ACCESO_DENEGADO`. El servicio vuelve a exigir lo mismo con la identidad que
+   reenvía el Gateway. La consulta del historial de ajustes exige `PUNTOS_CONSULTAR`, como las demás consultas de
+   puntos.
+3. **Primero la caducidad.** Antes de ajustar, si el saldo del cliente ya estaba vencido, se caduca en la misma
+   transacción (SCRUM-50). El ajuste parte del saldo disponible, el mismo que muestran las consultas, y un saldo
+   vencido no se puede ajustar como si siguiera vigente.
+4. **Bloqueo del saldo.** El saldo se bloquea (`SELECT … FOR UPDATE`) mientras se ajusta. Si al mismo tiempo
+   llega una redención o una caducidad del mismo cliente, se aplican de a una, y la segunda ve el saldo que dejó
+   la primera.
+5. **Vigencia.** Un ajuste positivo renueva la vigencia del saldo, como una compra que acumula puntos: los
+   puntos que se abonan tienen la vigencia completa. Un ajuste negativo no la cambia.
+6. **Nivel.** El ajuste cuenta en los puntos del periodo de evaluación con su signo y su fecha, igual que una
+   acumulación o una redención. El nivel se recalcula, y si cambia queda en el historial de niveles con el
+   ajuste como origen.
+7. **Cliente sin cuenta de puntos.** Un ajuste positivo le crea la cuenta. Uno negativo se rechaza porque el
+   saldo disponible es 0.
+
+Respuesta `201`:
+
+```json
+{
+  "id": 7,
+  "idTransaccion": "AJUSTE-3f0c2a4e-8d1b-4c55-9a8e-2b7d6c1e0f42",
+  "clienteId": 42,
+  "puntos": 20,
+  "saldoAnterior": 15,
+  "saldoResultante": 35,
+  "motivo": "Compra V-100236 del 18/10 que no acumuló puntos",
+  "referencia": "V-100236",
+  "usuario": "admin",
+  "rol": "ADMINISTRADOR_CRM",
+  "registradoEn": "2026-11-08T15:20:11Z",
+  "nivel": "BRONCE"
+}
+```
