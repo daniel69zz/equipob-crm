@@ -4,10 +4,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
 
 /**
- * Movimientos de caducidad en el historial de puntos (SCRUM-417), dentro de la transacción que descuenta el
- * saldo del cliente.
+ * Movimientos de caducidad en el historial de puntos (SCRUM-417) y descuento del saldo vencido (SCRUM-414),
+ * dentro de la transacción que caduca los puntos del cliente.
  */
 @Repository
 public class RegistroCaducidad {
@@ -36,5 +38,48 @@ public class RegistroCaducidad {
                 VALUES (?, 'CADUCIDAD', ?, ?, ?, 0, ?)
                 ON CONFLICT (id_transaccion, tipo_movimiento) DO NOTHING
                 """, idTransaccion, clienteId, idClienteOrigen, puntos, fechaCaducidad) == 1;
+    }
+
+    /**
+     * Saldo del cliente, bloqueado hasta el fin de la transacción: mientras se caduca, ningún movimiento del mismo
+     * cliente puede cambiarlo, y dos caducidades simultáneas se aplican de a una.
+     */
+    public Optional<Long> bloquearSaldo(long clienteId) {
+        return jdbc.queryForList("SELECT saldo FROM fidelizacion.saldo_puntos WHERE cliente_id = ? FOR UPDATE",
+                Long.class, clienteId).stream().findFirst();
+    }
+
+    /** Última compra que le dio puntos al cliente: desde ella corre la vigencia de su saldo (SCRUM-418). */
+    public Optional<UltimaCompra> ultimaCompra(long clienteId) {
+        List<UltimaCompra> compra = jdbc.query("""
+                SELECT fecha_transaccion, id_cliente_origen FROM fidelizacion.movimiento_puntos
+                WHERE cliente_id = ? AND tipo_movimiento = 'ACUMULACION' AND puntos > 0
+                ORDER BY fecha_transaccion DESC LIMIT 1
+                """, (r, n) -> new UltimaCompra(r.getObject("fecha_transaccion", OffsetDateTime.class),
+                r.getString("id_cliente_origen")), clienteId);
+        return compra.stream().findFirst();
+    }
+
+    /** SCRUM-414: al caducar se descuenta todo el saldo. */
+    public void vaciarSaldo(long clienteId) {
+        jdbc.update("UPDATE fidelizacion.saldo_puntos SET saldo = 0, actualizado_en = now() WHERE cliente_id = ?",
+                clienteId);
+    }
+
+    /**
+     * Si los puntos de esa compra ya caducaron: hubo una caducidad del cliente después de la fecha de la compra,
+     * y esa caducidad descontó todo el saldo de entonces.
+     */
+    public boolean caducaronLosPuntosDe(String idCompra) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+                SELECT EXISTS (
+                    SELECT 1 FROM fidelizacion.movimiento_puntos c
+                    JOIN fidelizacion.movimiento_puntos o
+                      ON o.id_transaccion = ? AND o.tipo_movimiento = 'ACUMULACION' AND o.cliente_id = c.cliente_id
+                    WHERE c.tipo_movimiento = 'CADUCIDAD' AND c.fecha_transaccion > o.fecha_transaccion)
+                """, Boolean.class, idCompra));
+    }
+
+    public record UltimaCompra(OffsetDateTime fecha, String idClienteOrigen) {
     }
 }

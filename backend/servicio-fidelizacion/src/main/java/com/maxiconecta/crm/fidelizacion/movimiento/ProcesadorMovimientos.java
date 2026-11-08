@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.movimiento;
 
+import com.maxiconecta.crm.fidelizacion.caducidad.ProcesoCaducidad;
 import com.maxiconecta.crm.fidelizacion.nivel.AsignacionNiveles;
 import com.maxiconecta.crm.fidelizacion.regla.ReglaAcumulacion;
 import com.maxiconecta.crm.fidelizacion.regla.ReglasAcumulacion;
@@ -22,15 +23,18 @@ public class ProcesadorMovimientos {
     private final ReglasAcumulacion reglas;
     private final RegistroPuntos registro;
     private final AsignacionNiveles niveles;
+    private final ProcesoCaducidad caducidad;
 
     public ProcesadorMovimientos(BitacoraMovimientos bitacora, LectorMovimientos lector, ClientesPerfil perfiles,
-                                 ReglasAcumulacion reglas, RegistroPuntos registro, AsignacionNiveles niveles) {
+                                 ReglasAcumulacion reglas, RegistroPuntos registro, AsignacionNiveles niveles,
+                                 ProcesoCaducidad caducidad) {
         this.bitacora = bitacora;
         this.lector = lector;
         this.perfiles = perfiles;
         this.reglas = reglas;
         this.registro = registro;
         this.niveles = niveles;
+        this.caducidad = caducidad;
     }
 
     /** @return el saldo resultante del cliente */
@@ -97,7 +101,11 @@ public class ProcesadorMovimientos {
         RegistroPuntos.Revertido antes = registro.revertidoAntes(idOriginal, movimiento.idTransaccion());
         long puntos = ReglaReversa.puntosARevertir(original, antes.monto(), antes.puntos(), movimiento.idTransaccion(),
                 movimiento.valorConsumido());
-        RegistroPuntos.Descuento descuento = registro.descontarHastaCero(clienteId, puntos);
+        // SCRUM-414: si los puntos de la compra ya caducaron, no hay nada que descontar; todos quedan como no
+        // recuperados y la reversa no le quita puntos a compras posteriores.
+        RegistroPuntos.Descuento descuento = caducidad.caducaronLosPuntosDe(idOriginal)
+                ? new RegistroPuntos.Descuento(registro.saldoDisponible(clienteId), 0)
+                : registro.descontarHastaCero(clienteId, puntos);
         registro.completarReversa(movimiento.idTransaccion(), puntos, puntos - descuento.descontados());
         return descuento.saldo();
     }
