@@ -458,6 +458,41 @@ class AccesoPorRolTest {
         mvc.perform(get("/api/fidelizacion/clientes/42/saldo")).andExpect(status().isUnauthorized());
     }
 
+    // --- Ajuste manual del saldo de puntos (SCRUM-51, SCRUM-424): solo el Administrador de CRM ---
+
+    @Test
+    void soloElAdministradorDeCrmAjustaElSaldoDePuntos() throws Exception {
+        String ruta = "/api/fidelizacion/clientes/42/ajustes";
+        mvc.perform(post(ruta).header("Authorization", bearerAdministrador())).andExpect(pasaElControlDeAcceso());
+        mvc.perform(post(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(ruta)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void otroRolConElPermisoDeConfiguracionNoAjustaElSaldo() throws Exception {
+        List<String> conConfiguracion = new java.util.ArrayList<>(PERMISOS_AGENTE);
+        conConfiguracion.add("FIDELIZACION_CONFIGURAR");
+
+        mvc.perform(post("/api/fidelizacion/clientes/42/ajustes")
+                        .header("Authorization", bearer("ana", "AGENTE_ATENCION", conConfiguracion)))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/fidelizacion/clientes/42/ajustes")
+                        .header("Authorization", bearer("sin-permiso", "ADMINISTRADOR_CRM", List.of("PUNTOS_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void elHistorialDeAjustesSeConsultaConElPermisoDePuntos() throws Exception {
+        String ruta = "/api/fidelizacion/clientes/42/ajustes";
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
     private static ResultMatcher pasaElControlDeAcceso() {
         return resultado -> assertThat(resultado.getResponse().getStatus()).isNotIn(401, 403);
     }

@@ -136,6 +136,11 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole(ClientesServicio.ROL),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(PUNTOS_CONSULTAR_VENTAS)))
+                        // SCRUM-424: el ajuste manual del saldo, solo el Administrador de CRM con FIDELIZACION_CONFIGURAR.
+                        .requestMatchers(HttpMethod.POST, "/api/fidelizacion/clientes/*/ajustes")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(FIDELIZACION_CONFIGURAR)))
                         .requestMatchers(HttpMethod.GET, "/api/fidelizacion/**").hasAuthority(PUNTOS_CONSULTAR)
                         .requestMatchers("/api/fidelizacion/**").hasAuthority(FIDELIZACION_CONFIGURAR)
 

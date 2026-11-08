@@ -11,8 +11,8 @@ import java.util.List;
  * <p>
  * Puntos del periodo = puntos de las acumulaciones con fecha de transacción dentro de los últimos
  * {@code periodo_meses} meses, menos las reversas (SCRUM-524) y las redenciones (SCRUM-48) del mismo
- * periodo, nunca menos de cero: después de una redención o de una reversa el cliente queda en el nivel que
- * corresponde a su nuevo saldo. Una reversa cuenta con la fecha de la compra que revierte (SCRUM-541): sale
+ * periodo, y los ajustes manuales con su signo (SCRUM-429), nunca menos de cero: después de una redención o
+ * de una reversa el cliente queda en el nivel que corresponde a su nuevo saldo. Una reversa cuenta con la fecha de la compra que revierte (SCRUM-541): sale
  * del periodo junto con esa compra, y no le quita puntos a compras posteriores. El nivel es el del
  * umbral de la configuración vigente que contiene esos puntos, o ninguno si no alcanzan el umbral más bajo.
  * <p>
@@ -27,7 +27,7 @@ public class AsignacionNiveles {
             WITH config AS (
                 SELECT version, periodo_meses FROM fidelizacion.configuracion_niveles ORDER BY version DESC LIMIT 1
             ), movimientos AS (
-                SELECT m.cliente_id, m.tipo_movimiento, m.puntos,
+                SELECT m.cliente_id, m.tipo_movimiento, m.puntos, m.variacion_ajuste,
                        COALESCE(o.fecha_transaccion, m.fecha_transaccion) AS fecha
                 FROM fidelizacion.movimiento_puntos m
                 LEFT JOIN fidelizacion.movimiento_puntos o
@@ -37,7 +37,8 @@ public class AsignacionNiveles {
                 SELECT s.cliente_id, s.nivel AS anterior,
                        GREATEST(0, COALESCE(SUM(CASE m.tipo_movimiento WHEN 'ACUMULACION' THEN m.puntos
                                                                        WHEN 'REVERSA' THEN -m.puntos
-                                                                       WHEN 'REDENCION' THEN -m.puntos ELSE 0 END), 0)) AS puntos
+                                                                       WHEN 'REDENCION' THEN -m.puntos
+                                                                       WHEN 'AJUSTE' THEN m.variacion_ajuste ELSE 0 END), 0)) AS puntos
                 FROM fidelizacion.saldo_puntos s
                 CROSS JOIN config c
                 LEFT JOIN movimientos m

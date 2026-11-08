@@ -14,6 +14,8 @@ class AuditoriaAccesoFilterTest {
         assertThat(AuditoriaAccesoFilter.clienteId("/api/perfil/clientes/42")).isEqualTo("42");
         assertThat(AuditoriaAccesoFilter.clienteId("/api/comportamiento/clientes/42/compras")).isEqualTo("42");
         assertThat(AuditoriaAccesoFilter.clienteId("/api/fidelizacion/clientes/C-7/puntos")).isEqualTo("C-7");
+        // SCRUM-425: el ajuste manual del saldo queda como modificación del cliente.
+        assertThat(AuditoriaAccesoFilter.clienteId("/api/fidelizacion/clientes/42/ajustes")).isEqualTo("42");
         assertThat(AuditoriaAccesoFilter.clienteId("/api/interacciones/clientes/42")).isEqualTo("42");
         assertThat(AuditoriaAccesoFilter.clienteId("/api/segmentacion/clientes/42/segmentos")).isEqualTo("42");
         // SCRUM-546: la consulta de Marketplace y Ventas (RIO-CRM-04) lleva el identificador de Ventas.

@@ -184,26 +184,34 @@ public class RegistroPuntos {
 
     /**
      * Fecha de la última compra que le dio puntos al cliente (SCRUM-544): desde ella corre la vigencia de su
-     * saldo. Una compra bajo el monto mínimo, que no acumuló puntos, no la renueva.
+     * saldo. Una compra bajo el monto mínimo, que no acumuló puntos, no la renueva; un ajuste positivo del
+     * Administrador sí (SCRUM-429).
      */
     public Optional<OffsetDateTime> ultimaAcumulacion(long clienteId) {
-        return Optional.ofNullable(jdbc.queryForObject("""
-                SELECT max(fecha_transaccion) FROM fidelizacion.movimiento_puntos
-                WHERE cliente_id = ? AND tipo_movimiento = 'ACUMULACION' AND puntos > 0
-                """, OffsetDateTime.class, clienteId));
+        return Optional.ofNullable(jdbc.queryForObject(
+                "SELECT max(fecha_transaccion) FROM fidelizacion.movimiento_puntos WHERE cliente_id = ? AND ("
+                        + RENUEVA_VIGENCIA + ")", OffsetDateTime.class, clienteId));
     }
+
+    /**
+     * Movimientos que renuevan la vigencia del saldo (SCRUM-418, SCRUM-429): una compra que acumuló puntos o un
+     * ajuste positivo. Sin alias, para usarlo dentro de una consulta sobre {@code movimiento_puntos}.
+     */
+    public static final String RENUEVA_VIGENCIA =
+            "(tipo_movimiento = 'ACUMULACION' AND puntos > 0) OR (tipo_movimiento = 'AJUSTE' AND variacion_ajuste > 0)";
 
     private static final String CONSULTA_MOVIMIENTOS = """
             SELECT id_transaccion, tipo_movimiento, id_cliente_origen, valor_consumido, puntos, bolivianos_por_punto,
                    monto_minimo, version_regla, saldo_resultante, fecha_transaccion, registrado_en,
-                   id_transaccion_revertida, puntos_no_recuperados
+                   id_transaccion_revertida, puntos_no_recuperados, variacion_ajuste
             FROM fidelizacion.movimiento_puntos WHERE cliente_id = ? ORDER BY registrado_en DESC, fecha_transaccion DESC
             """;
 
     private static final RowMapper<DetalleMovimiento> DETALLE = (r, n) -> new DetalleMovimiento(
             r.getString("id_transaccion"), r.getString("tipo_movimiento"),
             r.getString("id_cliente_origen"), r.getBigDecimal("valor_consumido"), r.getLong("puntos"),
-            variacion(r.getString("tipo_movimiento"), r.getLong("puntos"), r.getLong("puntos_no_recuperados")),
+            variacion(r.getString("tipo_movimiento"), r.getLong("puntos"), r.getLong("puntos_no_recuperados"),
+                    r.getLong("variacion_ajuste")),
             r.getBigDecimal("bolivianos_por_punto"), r.getBigDecimal("monto_minimo"),
             r.getObject("version_regla", Long.class), r.getLong("saldo_resultante"),
             r.getObject("fecha_transaccion", OffsetDateTime.class),
@@ -213,14 +221,15 @@ public class RegistroPuntos {
     /**
      * Efecto del movimiento sobre el saldo: suma en una acumulación, resta en una redención (SCRUM-403) y
      * en una reversa resta lo que se pudo descontar (SCRUM-524) y en una caducidad resta lo que venció
-     * (SCRUM-417).
+     * (SCRUM-417). Un ajuste manual (SCRUM-422) suma o resta según su signo.
      */
-    static long variacion(String tipoMovimiento, long puntos, long puntosNoRecuperados) {
+    static long variacion(String tipoMovimiento, long puntos, long puntosNoRecuperados, long variacionAjuste) {
         return switch (TipoMovimiento.valueOf(tipoMovimiento)) {
             case ACUMULACION -> puntos;
             case REDENCION -> -puntos;
             case REVERSA -> -(puntos - puntosNoRecuperados);
             case CADUCIDAD -> -puntos;
+            case AJUSTE -> variacionAjuste;
         };
     }
 

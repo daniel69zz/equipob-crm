@@ -2,7 +2,8 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 import { Subject, catchError, distinctUntilChanged, map, of, startWith, switchMap } from 'rxjs';
 import { NOMBRES_NIVEL } from '../fidelizacion/niveles.service';
 import { PestaniasClienteComponent } from './pestanias-cliente.component';
@@ -17,6 +18,8 @@ const TIPOS: Record<TipoMovimientoPuntos, string> = {
   ACUMULACION: 'Acumulación',
   REDENCION: 'Redención',
   REVERSA: 'Reversa',
+  CADUCIDAD: 'Caducidad',
+  AJUSTE: 'Ajuste manual',
 };
 
 /** Últimos movimientos que se muestran; el resto queda en el historial completo de la API. */
@@ -30,7 +33,7 @@ const MOVIMIENTOS = 10;
 @Component({
   selector: 'app-saldo-puntos',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, PestaniasClienteComponent],
+  imports: [DatePipe, DecimalPipe, RouterLink, PestaniasClienteComponent],
   template: `
     <app-pestanias-cliente [id]="clienteId()" />
     <div class="cabecera-puntos">
@@ -39,7 +42,12 @@ const MOVIMIENTOS = 10;
         <p class="subtitulo">Cliente {{ clienteId() }} · Saldo, nivel y últimos movimientos.</p>
       </div>
       @if (estado().tipo === 'resultado') {
-        <button type="button" class="secundario" (click)="consultar()">Volver a consultar</button>
+        <div class="acciones-puntos">
+          @if (auth.puedeAjustarPuntos()) {
+            <button type="button" [routerLink]="['/clientes', clienteId(), 'ajuste-puntos']">Ajustar saldo</button>
+          }
+          <button type="button" class="secundario" (click)="consultar()">Volver a consultar</button>
+        </div>
       }
     </div>
     @if (estado(); as consulta) {
@@ -68,6 +76,12 @@ const MOVIMIENTOS = 10;
                 <strong>{{ consulta.saldo.saldo | number: '1.0-0' }} pts</strong>
                 @if (consulta.saldo.actualizadoEn) {
                   <small>Actualizado {{ consulta.saldo.actualizadoEn | date: 'dd/MM/yyyy HH:mm' }}</small>
+                }
+                @if (consulta.saldo.puntosCaducados) {
+                  <small class="caducado">{{ consulta.saldo.puntosCaducados | number: '1.0-0' }} pts caducaron el
+                    {{ consulta.saldo.fechaCaducidad | date: 'dd/MM/yyyy' }}</small>
+                } @else if (consulta.saldo.fechaCaducidad && consulta.saldo.saldo) {
+                  <small>Vence el {{ consulta.saldo.fechaCaducidad | date: 'dd/MM/yyyy' }} si no vuelve a acumular</small>
                 }
               </div>
               <div class="tarjeta dato">
@@ -123,6 +137,8 @@ const MOVIMIENTOS = 10;
     }
   `,
   styles: `
+    .acciones-puntos { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .caducado { color: #b42318 !important; }
     .cabecera-puntos { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .estado-puntos { padding: 1.5rem; }
     .estado-puntos h2 { margin-top: 0; }
@@ -145,11 +161,13 @@ const MOVIMIENTOS = 10;
     .numero { text-align: right; white-space: nowrap; }
     .resta { color: #b42318; }
     .tipo { font-size: 0.8rem; font-weight: 600; }
-    .tipo[data-tipo='REDENCION'], .tipo[data-tipo='REVERSA'] { color: #b42318; }
+    .tipo[data-tipo='REDENCION'], .tipo[data-tipo='REVERSA'], .tipo[data-tipo='CADUCIDAD'] { color: #b42318; }
+    .tipo[data-tipo='AJUSTE'] { color: var(--color-primario); }
   `,
 })
 export class SaldoPuntosComponent {
   private readonly servicio = inject(SaldoPuntosService);
+  readonly auth = inject(AuthService);
   private readonly recargas = new Subject<void>();
   readonly clienteId = signal('');
   readonly estado = signal<EstadoConsulta>({ tipo: 'cargando' });

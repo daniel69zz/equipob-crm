@@ -10,14 +10,16 @@ Es la misma regla que ya informa la consulta de Marketplace y Ventas (RIO-CRM-04
 `docs/contratos-eventos/RIO-CRM-04-consulta-puntos.md`):
 
 ```
-fechaCaducidad = fecha de la última ACUMULACION con puntos > 0 + vigenciaMeses
+fechaCaducidad = fecha de la última ACUMULACION con puntos > 0 (o del último AJUSTE positivo) + vigenciaMeses
 vencido        = fechaCaducidad <= momento evaluado
 ```
 
 - **La vigencia es del saldo completo, no de cada compra.** Cada compra que acumula puntos renueva la
   vigencia de todo el saldo. Un cliente que compra al menos una vez por periodo nunca pierde sus puntos.
 - **Una compra bajo el monto mínimo** (que no acumuló puntos) no renueva la vigencia.
-- **Las redenciones y las reversas no renuevan la vigencia.**
+- **Un ajuste manual positivo** del Administrador de CRM también la renueva (SCRUM-51,
+  `docs/fidelizacion/ajuste-manual-puntos.md`): los puntos abonados tienen la vigencia completa.
+- **Las redenciones, las reversas y los ajustes negativos no renuevan la vigencia.**
 - **`vigenciaMeses`** es de 12 meses por defecto (`FIDELIZACION_VIGENCIA_MESES`, entre 1 y 120). Pasará a la
   configuración general del CRM con SCRUM-65.
 - La fecha se calcula en UTC, sumando meses de calendario. Si el día no existe en el mes final, se usa el

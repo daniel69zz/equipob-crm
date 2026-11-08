@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 
-export type TipoMovimientoPuntos = 'ACUMULACION' | 'REDENCION' | 'REVERSA';
+export type TipoMovimientoPuntos = 'ACUMULACION' | 'REDENCION' | 'REVERSA' | 'CADUCIDAD' | 'AJUSTE';
 
 /** Un movimiento reciente de puntos (docs/fidelizacion/consulta-saldo-puntos.md). */
 export interface MovimientoPuntos {
@@ -28,6 +28,10 @@ export interface SaldoPuntosCliente {
   puntosPeriodo: number;
   actualizadoEn: string | null;
   nivelActualizadoEn: string | null;
+  /** SCRUM-50: última compra con puntos (o ajuste positivo) más la vigencia; nula si nunca acumuló. */
+  fechaCaducidad: string | null;
+  /** SCRUM-50: saldo vencido que el proceso diario aún no descontó; no se puede usar. */
+  puntosCaducados: number;
   totalMovimientos: number;
   ultimosMovimientos: MovimientoPuntos[];
 }

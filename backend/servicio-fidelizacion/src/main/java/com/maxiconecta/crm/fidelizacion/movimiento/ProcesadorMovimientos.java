@@ -57,7 +57,8 @@ public class ProcesadorMovimientos {
             case REDENCION -> redimir(clienteId, movimiento, idEventoMovimiento, caducada);
             case REVERSA -> revertir(clienteId, movimiento, idEventoMovimiento);
             // LectorMovimientos ya la rechaza: la caducidad no llega por eventos (SCRUM-417).
-            case CADUCIDAD -> throw new EventoInvalidoException("movimiento.tipoMovimiento CADUCIDAD no lo puede notificar Ventas");
+            case CADUCIDAD, AJUSTE -> throw new EventoInvalidoException("movimiento.tipoMovimiento " + tipo
+                    + " no lo puede notificar Ventas");
         };
         registro.anotarSaldoResultante(movimiento.idTransaccion(), tipo, saldo);
         // SCRUM-49: con el saldo cambia también el nivel, en la misma transacción (criterio 4 de SCRUM-48 y
