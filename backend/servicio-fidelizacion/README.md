@@ -88,3 +88,11 @@ vencido y deja un movimiento `CADUCIDAD` en el historial. Ejecutarlo dos veces n
 puntos. El Administrador de CRM lo puede ejecutar en el momento con `POST /api/fidelizacion/caducidad/ejecutar`,
 y consultar la vigencia con `GET /api/fidelizacion/caducidad/configuracion`. Las consultas de saldo y los
 movimientos aplican la misma regla. Regla y casos en `docs/fidelizacion/caducidad-puntos.md`.
+
+## Ajuste manual de puntos (SCRUM-51)
+
+El Administrador de CRM ajusta el saldo de un cliente con `POST /api/fidelizacion/clientes/{clienteId}/ajustes`,
+indicando un motivo. El ajuste se rechaza si deja el saldo negativo o si el saldo cambió mientras se revisaba.
+Cada ajuste queda como movimiento `AJUSTE` en el historial, en `fidelizacion.ajuste_puntos` (de solo inserción) y
+en la auditoría compartida (`PUNTOS_AJUSTADOS`). El historial se consulta con
+`GET /api/fidelizacion/clientes/{clienteId}/ajustes`. Reglas y modelo en `docs/fidelizacion/ajuste-manual-puntos.md`.

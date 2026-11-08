@@ -76,7 +76,8 @@ Respuesta `200` de un cliente con puntos vigentes (criterio de aceptación 1):
 ### Caducidad
 
 Los puntos de un cliente vencen **`vigenciaMeses` meses (12 por defecto) después de su última acumulación**:
-cada compra que acumula puntos renueva la vigencia de todo el saldo. `fechaCaducidad` es la fecha de la última
+cada compra que acumula puntos renueva la vigencia de todo el saldo, y también un ajuste manual positivo del
+Administrador de CRM (SCRUM-51). `fechaCaducidad` es la fecha de la última
 acumulación más la vigencia. Es la regla que aplica el proceso diario de caducidad (SCRUM-50,
 `docs/fidelizacion/caducidad-puntos.md`). La vigencia se configura con `FIDELIZACION_VIGENCIA_MESES` hasta que
 exista la configuración general (SCRUM-65).
