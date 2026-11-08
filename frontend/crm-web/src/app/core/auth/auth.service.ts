@@ -82,6 +82,20 @@ export class AuthService {
     return !!sesion && sesion.rol === 'ADMINISTRADOR_CRM' && sesion.permisos.includes('FIDELIZACION_CONFIGURAR');
   }
 
+  /** SCRUM-435: registrar exige INTERACCIONES_REGISTRAR y el rol de Administrador de CRM o de Agente de Atención. */
+  puedeRegistrarInteracciones(): boolean {
+    const sesion = this.sesionVigente();
+    return !!sesion && ['ADMINISTRADOR_CRM', 'AGENTE_ATENCION'].includes(sesion.rol)
+      && sesion.permisos.includes('INTERACCIONES_REGISTRAR');
+  }
+
+  /** SCRUM-435: el Administrador corrige cualquier interacción y el agente, solo las que registró. */
+  puedeModificarInteraccion(registradoPor: string): boolean {
+    const sesion = this.sesionVigente();
+    return this.puedeRegistrarInteracciones()
+      && (sesion!.rol === 'ADMINISTRADOR_CRM' || sesion!.usuario === registradoPor);
+  }
+
   token(): string | null {
     return this.sesionVigente()?.token ?? null;
   }

@@ -4,10 +4,13 @@ import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { finalize, map } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
 import { PaginacionComponent } from '../../core/ui/paginacion.component';
 import { PestaniasClienteComponent } from '../clientes/pestanias-cliente.component';
+import { FormularioInteraccionComponent } from './formulario-interaccion.component';
 import {
   FiltroInteracciones,
+  Interaccion,
   InteraccionesService,
   PaginaInteracciones,
   nombreCanal,
@@ -19,12 +22,13 @@ const TAMANIO_PAGINA = 20;
 /**
  * Historial unificado de interacciones de un cliente (SCRUM-52, SCRUM-430): consultas, reclamos y notas, de la más
  * reciente a la más antigua, con quién las registró y cuándo. Lo ven los tres roles con
- * INTERACCIONES_CONSULTAR (docs/interacciones/registro-interacciones.md).
+ * INTERACCIONES_CONSULTAR (docs/interacciones/registro-interacciones.md). El Agente de Atención y el Administrador
+ * registran interacciones nuevas y corrigen las existentes (SCRUM-434): el agente, solo las que registró.
  */
 @Component({
   selector: 'app-interacciones-cliente',
   standalone: true,
-  imports: [DatePipe, PaginacionComponent, PestaniasClienteComponent],
+  imports: [DatePipe, FormularioInteraccionComponent, PaginacionComponent, PestaniasClienteComponent],
   template: `
     <app-pestanias-cliente [id]="clienteId()" />
     <header class="encabezado">
@@ -32,7 +36,17 @@ const TAMANIO_PAGINA = 20;
         <h1>Interacciones</h1>
         <p class="subtitulo">Cliente {{ clienteId() }} · Consultas, reclamos y notas de atención, de la más reciente a la más antigua.</p>
       </div>
+      @if (auth.puedeRegistrarInteracciones() && !registrando() && numeroCliente() !== null) {
+        <button type="button" (click)="abrirRegistro()">Registrar interacción</button>
+      }
     </header>
+
+    @if (aviso()) { <p class="exito" role="status">{{ aviso() }}</p> }
+
+    @if (registrando()) {
+      <app-formulario-interaccion [clienteId]="numeroCliente()!" (guardada)="registrada($event)"
+        (cancelada)="registrando.set(false)" />
+    }
 
     @if (error()) {
       <div class="error" role="alert">
@@ -43,23 +57,34 @@ const TAMANIO_PAGINA = 20;
 
     @if (resultado(); as datos) {
       <ol class="historial" aria-label="Historial de interacciones">
-        @for (interaccion of datos.interacciones; track interaccion.id) {
-          <li class="tarjeta interaccion">
-            <header>
-              <span [class]="'etiqueta tipo-' + interaccion.tipo">{{ nombreTipo(interaccion.tipo) }}</span>
-              @if (interaccion.canal) { <span class="canal">{{ nombreCanal(interaccion.canal) }}</span> }
-              <time [attr.datetime]="interaccion.registradoEn">{{ interaccion.registradoEn | date: 'dd/MM/yyyy HH:mm' }}</time>
-            </header>
-            @if (interaccion.asunto) { <h2>{{ interaccion.asunto }}</h2> }
-            <p class="descripcion">{{ interaccion.descripcion }}</p>
-            <footer>
-              <span>Registrada por {{ interaccion.registradoPor }}</span>
-              @if (interaccion.referenciaCompra) { <span>Compra {{ interaccion.referenciaCompra }}</span> }
-              @if (interaccion.modificadoEn) {
-                <span>Modificada por {{ interaccion.modificadoPor }} el {{ interaccion.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</span>
-              }
-            </footer>
-          </li>
+        @for (interaccion of datos.interacciones; track interaccion.id + '-' + interaccion.version) {
+          @if (editando() === interaccion.id) {
+            <li>
+              <app-formulario-interaccion [clienteId]="interaccion.clienteId" [interaccion]="interaccion"
+                (guardada)="modificada($event)" (cancelada)="editando.set(null)" (recargar)="recargar(interaccion.id)" />
+            </li>
+          } @else {
+            <li class="tarjeta interaccion">
+              <header>
+                <span [class]="'etiqueta tipo-' + interaccion.tipo">{{ nombreTipo(interaccion.tipo) }}</span>
+                @if (interaccion.canal) { <span class="canal">{{ nombreCanal(interaccion.canal) }}</span> }
+                <time [attr.datetime]="interaccion.registradoEn">{{ interaccion.registradoEn | date: 'dd/MM/yyyy HH:mm' }}</time>
+                @if (auth.puedeModificarInteraccion(interaccion.registradoPor)) {
+                  <button type="button" class="secundario editar" (click)="abrirEdicion(interaccion.id)"
+                    [attr.aria-label]="'Editar la interacción n.º ' + interaccion.id">Editar</button>
+                }
+              </header>
+              @if (interaccion.asunto) { <h2>{{ interaccion.asunto }}</h2> }
+              <p class="descripcion">{{ interaccion.descripcion }}</p>
+              <footer>
+                <span>Registrada por {{ interaccion.registradoPor }}</span>
+                @if (interaccion.referenciaCompra) { <span>Compra {{ interaccion.referenciaCompra }}</span> }
+                @if (interaccion.modificadoEn) {
+                  <span>Modificada por {{ interaccion.modificadoPor }} el {{ interaccion.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</span>
+                }
+              </footer>
+            </li>
+          }
         } @empty {
           <li class="tarjeta vacio">Este cliente no tiene interacciones registradas.</li>
         }
@@ -84,16 +109,22 @@ const TAMANIO_PAGINA = 20;
     .tipo-CONSULTA { color: #1d4ed8; background: #e8effd; }
     .tipo-NOTA { color: #5b5f6b; background: #eef1f7; }
     .vacio { color: var(--color-texto-suave); }
+    .editar { padding: .25rem .7rem; font-size: .82rem; }
   `,
 })
 export class InteraccionesClienteComponent {
   private readonly servicio = inject(InteraccionesService);
+  readonly auth = inject(AuthService);
 
   readonly clienteId = signal('');
   readonly resultado = signal<PaginaInteracciones | null>(null);
   readonly pagina = signal(0);
   readonly cargando = signal(false);
   readonly error = signal('');
+  readonly aviso = signal('');
+  readonly registrando = signal(false);
+  /** Interacción que se está editando. */
+  readonly editando = signal<number | null>(null);
   readonly nombreTipo = nombreTipo;
   readonly nombreCanal = nombreCanal;
 
@@ -127,6 +158,48 @@ export class InteraccionesClienteComponent {
       });
   }
 
+  abrirRegistro(): void {
+    this.aviso.set('');
+    this.editando.set(null);
+    this.registrando.set(true);
+  }
+
+  abrirEdicion(id: number): void {
+    this.aviso.set('');
+    this.registrando.set(false);
+    this.editando.set(id);
+  }
+
+  /** La nueva queda primera: se vuelve a la primera página del historial. */
+  registrada(interaccion: Interaccion): void {
+    this.registrando.set(false);
+    this.aviso.set(`Se registró la interacción n.º ${interaccion.id}.`);
+    this.cargar(0);
+  }
+
+  modificada(interaccion: Interaccion): void {
+    this.editando.set(null);
+    this.reemplazar(interaccion);
+    this.aviso.set(`Se guardaron los cambios de la interacción n.º ${interaccion.id}.`);
+  }
+
+  /** Trae la versión vigente después de un 409 y vuelve a abrir el formulario con ella. */
+  recargar(id: number): void {
+    this.servicio.detalle(id).subscribe({
+      next: vigente => this.reemplazar(vigente),
+      error: (e: HttpErrorResponse) => this.error.set(this.mensaje(e, 'No se pudo recargar la interacción.')),
+    });
+  }
+
+  private reemplazar(interaccion: Interaccion): void {
+    const datos = this.resultado();
+    if (!datos) return;
+    this.resultado.set({
+      ...datos,
+      interacciones: datos.interacciones.map(i => (i.id === interaccion.id ? interaccion : i)),
+    });
+  }
+
   protected mensaje(e: HttpErrorResponse, porDefecto: string): string {
     if (e.status === 401) return 'La sesión ha vencido. Inicie sesión nuevamente.';
     if (e.status === 403) return e.error?.mensaje ?? 'No tiene permiso para esta acción.';
@@ -134,7 +207,7 @@ export class InteraccionesClienteComponent {
     return e.error?.mensaje ?? porDefecto;
   }
 
-  protected numeroCliente(): number | null {
+  numeroCliente(): number | null {
     const id = this.clienteId();
     const numero = Number(id);
     return /^\d+$/.test(id) && Number.isSafeInteger(numero) && numero > 0 ? numero : null;

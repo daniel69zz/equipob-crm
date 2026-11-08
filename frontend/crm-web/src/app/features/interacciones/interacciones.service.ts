@@ -79,6 +79,10 @@ export class InteraccionesService {
     return this.http.get<PaginaInteracciones>(`/api/interacciones/clientes/${clienteId}`, { params });
   }
 
+  detalle(id: number) {
+    return this.http.get<Interaccion>(`/api/interacciones/${id}`);
+  }
+
   registrar(clienteId: number, datos: DatosInteraccion) {
     return this.http.post<Interaccion>('/api/interacciones', { clienteId, ...datos });
   }
