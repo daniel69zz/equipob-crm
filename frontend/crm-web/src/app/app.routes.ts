@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { preferenciasGuard } from './core/auth/auth.guards';
+import { preferenciasGuard, saldoPuntosGuard } from './core/auth/auth.guards';
 import { PreferenciasComponent } from './features/clientes/preferencias.component';
 import { administradorFidelizacionGuard, administradorSegmentacionGuard, autenticadoGuard, invitadoGuard, permisoGuard } from './core/auth/auth.guards';
 import { CriteriosComponent } from './features/segmentacion/criterios.component';
@@ -18,6 +18,7 @@ import { FichaIntegralComponent } from './features/clientes/ficha-integral.compo
 import { HistorialCambiosComponent } from './features/clientes/historial-cambios.component';
 import { HistorialSegmentosComponent } from './features/clientes/historial-segmentos.component';
 import { HistorialComprasComponent } from './features/clientes/historial-compras.component';
+import { SaldoPuntosComponent } from './features/clientes/saldo-puntos.component';
 import { SugerenciasComponent } from './features/clientes/sugerencias.component';
 import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
 import { RolesComponent } from './features/admin/roles.component';
@@ -86,6 +87,11 @@ export const routes: Routes = [
         component: EvolucionConsumoComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.EVOLUCION_CONSUMO_CONSULTAR },
+      },
+      {
+        path: 'clientes/:id/puntos',
+        component: SaldoPuntosComponent,
+        canActivate: [saldoPuntosGuard],
       },
       {
         path: 'clientes/:id/sugerencias',

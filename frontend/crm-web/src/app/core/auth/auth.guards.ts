@@ -28,6 +28,13 @@ export const invitadoGuard: CanActivateFn = () => {
   return auth.estaAutenticado() ? inject(Router).createUrlTree(['/']) : true;
 };
 
+/** SCRUM-47: saldo y movimientos de puntos, solo para el Administrador de CRM y el Agente. */
+export const saldoPuntosGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  return auth.puedeConsultarSaldoPuntos() ? true : router.createUrlTree(['/acceso-denegado']);
+};
+
 export const preferenciasGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
