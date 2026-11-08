@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { finalize, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -13,6 +14,7 @@ import {
   Interaccion,
   InteraccionesService,
   PaginaInteracciones,
+  TIPOS_INTERACCION,
   nombreCanal,
   nombreTipo,
 } from './interacciones.service';
@@ -23,12 +25,13 @@ const TAMANIO_PAGINA = 20;
  * Historial unificado de interacciones de un cliente (SCRUM-52, SCRUM-430): consultas, reclamos y notas, de la más
  * reciente a la más antigua, con quién las registró y cuándo. Lo ven los tres roles con
  * INTERACCIONES_CONSULTAR (docs/interacciones/registro-interacciones.md). El Agente de Atención y el Administrador
- * registran interacciones nuevas y corrigen las existentes (SCRUM-434): el agente, solo las que registró.
+ * registran interacciones nuevas y corrigen las existentes (SCRUM-434): el agente, solo las que registró. El
+ * historial se filtra por tipo, por texto en el asunto, la descripción o la compra, y por fechas (SCRUM-431).
  */
 @Component({
   selector: 'app-interacciones-cliente',
   standalone: true,
-  imports: [DatePipe, FormularioInteraccionComponent, PaginacionComponent, PestaniasClienteComponent],
+  imports: [DatePipe, FormsModule, FormularioInteraccionComponent, PaginacionComponent, PestaniasClienteComponent],
   template: `
     <app-pestanias-cliente [id]="clienteId()" />
     <header class="encabezado">
@@ -48,6 +51,36 @@ const TAMANIO_PAGINA = 20;
         (cancelada)="registrando.set(false)" />
     }
 
+    <form class="tarjeta filtros" (ngSubmit)="buscar()" novalidate aria-label="Filtros del historial">
+      <div>
+        <label for="filtro-tipo">Tipo</label>
+        <select id="filtro-tipo" name="tipo" [(ngModel)]="borrador.tipo">
+          <option value="">Todos</option>
+          @for (tipo of tipos; track tipo.valor) { <option [value]="tipo.valor">{{ tipo.nombre }}</option> }
+        </select>
+      </div>
+      <div class="texto">
+        <label for="filtro-texto">Buscar</label>
+        <input id="filtro-texto" name="texto" type="search" maxlength="100" [(ngModel)]="borrador.texto"
+          placeholder="Asunto, descripción o compra" />
+      </div>
+      <div>
+        <label for="filtro-desde">Desde</label>
+        <input id="filtro-desde" name="desde" type="date" [(ngModel)]="borrador.desde"
+          [attr.aria-invalid]="!!errorFiltro()" />
+      </div>
+      <div>
+        <label for="filtro-hasta">Hasta</label>
+        <input id="filtro-hasta" name="hasta" type="date" [(ngModel)]="borrador.hasta"
+          [attr.aria-invalid]="!!errorFiltro()" />
+      </div>
+      <div class="acciones">
+        <button type="submit" [disabled]="cargando()">Buscar</button>
+        <button type="button" class="secundario" [disabled]="cargando() || !hayFiltros()" (click)="limpiar()">Limpiar</button>
+      </div>
+      @if (errorFiltro()) { <p class="error-filtro" role="alert">{{ errorFiltro() }}</p> }
+    </form>
+
     @if (error()) {
       <div class="error" role="alert">
         <p>{{ error() }}</p>
@@ -56,6 +89,9 @@ const TAMANIO_PAGINA = 20;
     }
 
     @if (resultado(); as datos) {
+      @if (filtrado()) {
+        <p class="conteo" role="status">{{ datos.total }} {{ datos.total === 1 ? 'interacción coincide' : 'interacciones coinciden' }} con los filtros.</p>
+      }
       <ol class="historial" aria-label="Historial de interacciones">
         @for (interaccion of datos.interacciones; track interaccion.id + '-' + interaccion.version) {
           @if (editando() === interaccion.id) {
@@ -86,7 +122,9 @@ const TAMANIO_PAGINA = 20;
             </li>
           }
         } @empty {
-          <li class="tarjeta vacio">Este cliente no tiene interacciones registradas.</li>
+          <li class="tarjeta vacio">
+            {{ filtrado() ? 'Ninguna interacción coincide con los filtros.' : 'Este cliente no tiene interacciones registradas.' }}
+          </li>
         }
       </ol>
       <app-paginacion [pagina]="datos.pagina" [tamanio]="datos.tamanio" [total]="datos.total" [cargando]="cargando()"
@@ -97,6 +135,15 @@ const TAMANIO_PAGINA = 20;
   `,
   styles: `
     .encabezado { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+    .filtros {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1rem; align-items: end; margin: 1rem 0;
+    }
+    .filtros .texto { grid-column: span 2; }
+    @media (max-width: 520px) { .filtros .texto { grid-column: auto; } }
+    .filtros .acciones { display: flex; gap: .5rem; }
+    .error-filtro { grid-column: 1 / -1; margin: 0; color: var(--color-error, #b42318); font-size: .85rem; }
+    .conteo { color: var(--color-texto-suave); font-size: .9rem; margin: 0 0 .5rem; }
     .historial { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .75rem; }
     .interaccion { padding: 1rem 1.25rem; }
     .interaccion header { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
@@ -125,16 +172,26 @@ export class InteraccionesClienteComponent {
   readonly registrando = signal(false);
   /** Interacción que se está editando. */
   readonly editando = signal<number | null>(null);
+  readonly errorFiltro = signal('');
+  /** Si la consulta mostrada usa algún filtro. */
+  readonly filtrado = signal(false);
+  readonly tipos = TIPOS_INTERACCION;
+
+  /** Lo que el usuario escribe en los filtros; se aplica al pulsar Buscar. */
+  borrador: FiltroInteracciones = vacio();
   readonly nombreTipo = nombreTipo;
   readonly nombreCanal = nombreCanal;
 
-  /** Filtros aplicados a la consulta. */
-  protected filtro: FiltroInteracciones = {};
+  /** Filtros aplicados a la consulta mostrada. */
+  private filtro: FiltroInteracciones = vacio();
 
   constructor() {
     inject(ActivatedRoute).paramMap.pipe(map(p => p.get('id') ?? ''), takeUntilDestroyed()).subscribe(id => {
       this.clienteId.set(id);
       this.resultado.set(null);
+      this.borrador = vacio();
+      this.filtro = vacio();
+      this.filtrado.set(false);
       this.cargar(0);
     });
   }
@@ -153,9 +210,39 @@ export class InteraccionesClienteComponent {
         next: datos => {
           this.resultado.set(datos);
           this.pagina.set(datos.pagina);
+          this.filtrado.set(tieneFiltros(this.filtro));
         },
-        error: (e: HttpErrorResponse) => this.error.set(this.mensaje(e, 'No se pudo cargar el historial de interacciones.')),
+        error: (e: HttpErrorResponse) => {
+          const campos = (e.error?.campos ?? {}) as Record<string, string>;
+          if (e.status === 400 && Object.keys(campos).length) {
+            this.errorFiltro.set(e.error?.mensaje ?? 'Revise los filtros.');
+            return;
+          }
+          this.error.set(this.mensaje(e, 'No se pudo cargar el historial de interacciones.'));
+        },
       });
+  }
+
+  /** Aplica los filtros desde la primera página; las fechas se validan como en el servicio. */
+  buscar(): void {
+    const { desde, hasta } = this.borrador;
+    if (desde && hasta && desde > hasta) {
+      this.errorFiltro.set('La fecha desde no puede ser posterior a la fecha hasta.');
+      return;
+    }
+    this.errorFiltro.set('');
+    this.filtro = { ...this.borrador, texto: this.borrador.texto?.trim() ?? '' };
+    this.cargar(0);
+  }
+
+  limpiar(): void {
+    this.borrador = vacio();
+    this.errorFiltro.set('');
+    this.buscar();
+  }
+
+  hayFiltros(): boolean {
+    return tieneFiltros(this.borrador) || tieneFiltros(this.filtro);
   }
 
   abrirRegistro(): void {
@@ -212,4 +299,12 @@ export class InteraccionesClienteComponent {
     const numero = Number(id);
     return /^\d+$/.test(id) && Number.isSafeInteger(numero) && numero > 0 ? numero : null;
   }
+}
+
+function vacio(): FiltroInteracciones {
+  return { tipo: '', texto: '', desde: '', hasta: '' };
+}
+
+function tieneFiltros(filtro: FiltroInteracciones): boolean {
+  return Object.values(filtro).some(valor => typeof valor === 'string' && valor.trim() !== '');
 }
