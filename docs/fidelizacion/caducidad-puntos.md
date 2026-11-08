@@ -106,3 +106,39 @@ identidad que reenvía el Gateway.
 Las consultas de puntos, RIO-CRM-04, el proceso de caducidad y la caducidad antes de cada movimiento leen la
 vigencia de un mismo componente (`VigenciaPuntos`). Cuando SCRUM-65 la lleve a los parámetros generales, solo
 cambiará ese componente.
+
+## Proceso automático de caducidad (SCRUM-415, criterio de aceptación 1)
+
+`CaducidadProgramada` corre **cada día a las 02:00 de La Paz**, antes del recálculo de niveles. Para cada
+cliente con saldo mayor que 0 cuya vigencia ya venció:
+
+1. Bloquea su saldo (`SELECT … FOR UPDATE`): mientras se caduca, ningún movimiento de ese cliente lo cambia.
+2. Vuelve a calcular su `fechaCaducidad` con la regla y comprueba que esté vencida.
+3. Registra el movimiento `CADUCIDAD` con todo el saldo (SCRUM-417).
+4. Deja el saldo en 0 (SCRUM-414) y recalcula el nivel con la caducidad como origen.
+
+Cada cliente va en su propia transacción: si uno falla, el resto se caduca igual, y el que falló se vuelve a
+intentar en la ejecución siguiente. Los candidatos se buscan en la base con unos días de margen, porque restar
+meses en PostgreSQL no da lo mismo que sumarlos en Java a fin de mes. La decisión final la toma la regla, con el
+saldo bloqueado.
+
+El Administrador de CRM también puede ejecutarlo en el momento:
+
+```
+POST /api/fidelizacion/caducidad/ejecutar
+```
+
+```json
+{
+  "ejecutadoEn": "2027-10-19T06:00:00Z",
+  "vigenciaMeses": 12,
+  "clientesRevisados": 3,
+  "clientesConPuntosCaducados": 3,
+  "puntosCaducados": 1250,
+  "clientesConError": 0
+}
+```
+
+El Gateway exige `FIDELIZACION_CONFIGURAR`. El servicio exige además el rol de Administrador de CRM y, si no
+lo tiene, responde `403`. Ejecutarlo varias veces no caduca dos veces los mismos puntos: la segunda ejecución
+responde `clientesConPuntosCaducados: 0`.

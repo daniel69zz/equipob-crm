@@ -41,6 +41,26 @@ public class RegistroCaducidad {
     }
 
     /**
+     * SCRUM-415: clientes con saldo cuya última compra con puntos es lo bastante antigua para que el saldo pueda
+     * estar vencido en {@code corte}. Los meses se restan en la base con unos días de margen, porque sumar meses
+     * en Java (la regla) y restarlos en PostgreSQL no coincide a fin de mes; la decisión final la toma
+     * {@link ProcesoCaducidad} con {@link ReglaCaducidad}, con el saldo bloqueado.
+     */
+    public List<Long> candidatos(OffsetDateTime corte, int vigenciaMeses) {
+        return jdbc.queryForList("""
+                SELECT s.cliente_id
+                FROM fidelizacion.saldo_puntos s
+                JOIN LATERAL (
+                    SELECT max(m.fecha_transaccion) AS ultima FROM fidelizacion.movimiento_puntos m
+                    WHERE m.cliente_id = s.cliente_id AND m.tipo_movimiento = 'ACUMULACION' AND m.puntos > 0
+                ) u ON true
+                WHERE s.saldo > 0
+                  AND u.ultima <= ?::timestamptz - make_interval(months => ?) + interval '4 days'
+                ORDER BY s.cliente_id
+                """, Long.class, corte, vigenciaMeses);
+    }
+
+    /**
      * Saldo del cliente, bloqueado hasta el fin de la transacción: mientras se caduca, ningún movimiento del mismo
      * cliente puede cambiarlo, y dos caducidades simultáneas se aplican de a una.
      */
