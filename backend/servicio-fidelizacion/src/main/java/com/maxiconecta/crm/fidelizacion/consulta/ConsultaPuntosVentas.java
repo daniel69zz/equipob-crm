@@ -1,9 +1,7 @@
 package com.maxiconecta.crm.fidelizacion.consulta;
 
-import com.maxiconecta.crm.fidelizacion.caducidad.ReglaCaducidad;
-import com.maxiconecta.crm.fidelizacion.caducidad.VigenciaPuntos;
+import com.maxiconecta.crm.fidelizacion.caducidad.SaldoVigente;
 import com.maxiconecta.crm.fidelizacion.movimiento.ClientesPerfil;
-import com.maxiconecta.crm.fidelizacion.movimiento.RegistroPuntos;
 import com.maxiconecta.crm.fidelizacion.puntos.SaldoPuntos;
 import com.maxiconecta.crm.fidelizacion.puntos.SaldoPuntosRepository;
 import org.springframework.stereotype.Service;
@@ -31,18 +29,16 @@ public class ConsultaPuntosVentas {
 
     private final ClientesPerfil perfiles;
     private final SaldoPuntosRepository saldos;
-    private final RegistroPuntos registro;
     private final TransactionTemplate lectura;
-    private final VigenciaPuntos vigencia;
+    private final SaldoVigente vigente;
 
-    public ConsultaPuntosVentas(ClientesPerfil perfiles, SaldoPuntosRepository saldos, RegistroPuntos registro,
-                                PlatformTransactionManager transacciones, VigenciaPuntos vigencia) {
+    public ConsultaPuntosVentas(ClientesPerfil perfiles, SaldoPuntosRepository saldos, SaldoVigente vigente,
+                                PlatformTransactionManager transacciones) {
         this.perfiles = perfiles;
         this.saldos = saldos;
-        this.registro = registro;
         this.lectura = new TransactionTemplate(transacciones);
         this.lectura.setReadOnly(true);
-        this.vigencia = vigencia;
+        this.vigente = vigente;
     }
 
     /**
@@ -56,23 +52,20 @@ public class ConsultaPuntosVentas {
             return sinCuenta(idClienteVentas, null, ahora);
         }
         long clienteId = cliente.get();
-        return lectura.execute(estado -> {
+        return lectura.execute(transaccion -> {
             Optional<SaldoPuntos> saldo = saldos.findById(clienteId);
             if (saldo.isEmpty()) {
                 return sinCuenta(idClienteVentas, clienteId, ahora);
             }
-            OffsetDateTime caducidad = registro.ultimaAcumulacion(clienteId)
-                    .map(fecha -> ReglaCaducidad.fechaCaducidad(fecha, vigencia.meses()))
-                    .orElse(null);
-            long registrado = saldo.get().getSaldo();
-            boolean vencido = caducidad != null && ReglaCaducidad.vencida(caducidad, ahora) && registrado > 0;
-            return new PuntosParaVentas(idClienteVentas, clienteId, true, vencido ? 0 : registrado,
-                    saldo.get().getNivel(), caducidad, vencido ? registrado : 0, vigencia.meses(), ahora);
+            SaldoVigente.Estado estado = vigente.evaluar(clienteId, saldo.get().getSaldo(), ahora);
+            return new PuntosParaVentas(idClienteVentas, clienteId, true, estado.saldoDisponible(),
+                    saldo.get().getNivel(), estado.fechaCaducidad(), estado.puntosCaducados(), vigente.vigenciaMeses(),
+                    ahora);
         });
     }
 
     private PuntosParaVentas sinCuenta(String idClienteVentas, Long clienteId, OffsetDateTime ahora) {
-        return new PuntosParaVentas(idClienteVentas, clienteId, false, 0, null, null, 0, vigencia.meses(), ahora);
+        return new PuntosParaVentas(idClienteVentas, clienteId, false, 0, null, null, 0, vigente.vigenciaMeses(), ahora);
     }
 
     /** Respuesta de RIO-CRM-04. {@code clienteId} es nulo si el CRM aún no conoce al cliente de Ventas. */

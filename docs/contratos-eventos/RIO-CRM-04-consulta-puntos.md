@@ -77,12 +77,15 @@ Respuesta `200` de un cliente con puntos vigentes (criterio de aceptación 1):
 
 Los puntos de un cliente vencen **`vigenciaMeses` meses (12 por defecto) después de su última acumulación**:
 cada compra que acumula puntos renueva la vigencia de todo el saldo. `fechaCaducidad` es la fecha de la última
-acumulación más la vigencia. Es la regla que aplicará el proceso de caducidad (SCRUM-50); la vigencia se
-configura con `FIDELIZACION_VIGENCIA_MESES` hasta que exista la configuración general (SCRUM-65).
+acumulación más la vigencia. Es la regla que aplica el proceso diario de caducidad (SCRUM-50,
+`docs/fidelizacion/caducidad-puntos.md`). La vigencia se configura con `FIDELIZACION_VIGENCIA_MESES` hasta que
+exista la configuración general (SCRUM-65).
 
 Si `fechaCaducidad` ya pasó y el proceso de caducidad todavía no descontó esos puntos, la consulta los informa
 como `puntosCaducados` y responde `saldoDisponible: 0`, para que Ventas no acepte una redención con puntos
-vencidos.
+vencidos. Una vez que el proceso los descuenta, el saldo queda en 0 y `puntosCaducados` también vuelve a 0. En
+el historial del cliente queda el movimiento `CADUCIDAD`. Si Ventas notifica de todos modos una redención
+fechada después del vencimiento, el CRM la rechaza: queda `FALLIDO` por saldo insuficiente.
 
 ### Cliente sin cuenta de puntos (criterio de aceptación 3)
 

@@ -142,3 +142,27 @@ POST /api/fidelizacion/caducidad/ejecutar
 El Gateway exige `FIDELIZACION_CONFIGURAR`. El servicio exige además el rol de Administrador de CRM y, si no
 lo tiene, responde `403`. Ejecutarlo varias veces no caduca dos veces los mismos puntos: la segunda ejecución
 responde `clientesConPuntosCaducados: 0`.
+
+## Validación en consultas y movimientos (SCRUM-419)
+
+| Consulta | Campos |
+|---|---|
+| `GET /api/fidelizacion/clientes/{clienteId}/saldo` (Agente y Administrador) | `saldo` (disponible), `fechaCaducidad`, `puntosCaducados` |
+| `GET /api/fidelizacion/clientes/{clienteId}/puntos` (ficha integral) | `saldo` (disponible), `fechaCaducidad`, `puntosCaducados` |
+| `GET /api/fidelizacion/ventas/clientes/{id}/puntos` (RIO-CRM-04) | `saldoDisponible`, `fechaCaducidad`, `puntosCaducados` |
+
+Las tres usan `SaldoVigente`, con la misma regla y la misma vigencia. `puntosCaducados` solo es mayor que 0
+mientras el saldo está vencido y el proceso todavía no lo descontó. Después, el saldo es 0 y lo vencido queda en
+el movimiento `CADUCIDAD` del historial.
+
+Antes de aplicar cada movimiento RIO-CRM-03 o RIO-CRM-05, `ProcesadorMovimientos` pide a `ProcesoCaducidad` que
+caduque el saldo si ya estaba vencido en la fecha del movimiento, en la misma transacción. Una redención que
+falla por eso queda `FALLIDO`, y su causa lo explica:
+
+```
+Saldo insuficiente para la redención R-7001: se solicitan 20 puntos y el saldo disponible es 0;
+35 puntos caducaron el 2027-10-18T14:14:50Z, antes de la redención
+```
+
+Como la redención falla, su transacción no guarda nada, y tampoco la caducidad que se aplicó en ella. El proceso
+diario la registra en su próxima ejecución.

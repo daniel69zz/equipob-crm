@@ -43,6 +43,10 @@ Respuesta de un cliente con puntos (criterio de aceptación 1):
 - Los movimientos van del más reciente al más antiguo. `variacionSaldo` es lo que el movimiento sumó o
   restó del saldo; en una reversa, `idTransaccionRevertida` es la compra anulada o devuelta.
 - `totalMovimientos` cuenta todos los movimientos del cliente, para indicar si hay más de los mostrados.
+- **Caducidad (SCRUM-50):** `saldo` es el disponible. `fechaCaducidad` es la última compra con puntos más
+  la vigencia. Si ya pasó y el proceso diario todavía no descontó esos puntos, se informan como
+  `puntosCaducados` y `saldo` es 0. Las caducidades aplicadas aparecen como movimientos `CADUCIDAD`. Detalle en
+  `docs/fidelizacion/caducidad-puntos.md`.
   El historial completo, con la regla aplicada a cada uno, sigue en
   `GET /api/fidelizacion/clientes/{clienteId}/movimientos`.
 
