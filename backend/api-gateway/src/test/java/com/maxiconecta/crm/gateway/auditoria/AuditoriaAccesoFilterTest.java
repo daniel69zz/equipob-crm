@@ -16,6 +16,9 @@ class AuditoriaAccesoFilterTest {
         assertThat(AuditoriaAccesoFilter.clienteId("/api/fidelizacion/clientes/C-7/puntos")).isEqualTo("C-7");
         assertThat(AuditoriaAccesoFilter.clienteId("/api/interacciones/clientes/42")).isEqualTo("42");
         assertThat(AuditoriaAccesoFilter.clienteId("/api/segmentacion/clientes/42/segmentos")).isEqualTo("42");
+        // SCRUM-546: la consulta de Marketplace y Ventas (RIO-CRM-04) lleva el identificador de Ventas.
+        assertThat(AuditoriaAccesoFilter.clienteId("/api/fidelizacion/ventas/clientes/CLI-5521/puntos"))
+                .isEqualTo("CLI-5521");
     }
 
     @Test
