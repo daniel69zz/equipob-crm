@@ -114,4 +114,56 @@ public class LectorMovimientosTest {
                 .isEqualTo(new LectorMovimientos.Cabecera("2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e", "V-100999", "ACUMULACION"));
         assertThat(lector.cabecera("texto")).isEqualTo(new LectorMovimientos.Cabecera(null, null, null));
     }
+
+    // --- SCRUM-524: reversa por RIO-CRM-03 y por RIO-CRM-05 ---
+
+    @Test
+    void leeUnaReversaDelSimuladorConLaCompraQueRevierte() {
+        EventoMovimientoPuntos.Movimiento reversa = lector.leer(ejemplo("movimiento-reversa-parcial.json")).movimiento();
+
+        assertThat(reversa.tipoMovimiento()).isEqualTo("REVERSA");
+        assertThat(reversa.idTransaccion()).isEqualTo("V-100234-D1");
+        assertThat(reversa.idTransaccionOriginal()).isEqualTo("V-100234");
+        assertThat(reversa.valorConsumido()).isEqualByComparingTo(new BigDecimal("50.50"));
+    }
+
+    @Test
+    void unaReversaExigeLaTransaccionOriginalYElMontoRevertido() {
+        String valida = ejemplo("movimiento-reversa-parcial.json");
+
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"idTransaccionOriginal\": \"V-100234\",", "")))
+                .hasMessage("movimiento.idTransaccionOriginal es obligatorio");
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"valorConsumido\": 50.50,", "")))
+                .hasMessageContaining("movimiento.valorConsumido");
+    }
+
+    @Test
+    void leeUnaAnulacionRioCrm05ComoLaMismaReversa() {
+        EventoMovimientoPuntos.Movimiento porAnulacion = lector.leer(ejemplo("anulacion-parcial.json")).movimiento();
+        EventoMovimientoPuntos.Movimiento porMovimiento = lector.leer(ejemplo("movimiento-reversa-parcial.json")).movimiento();
+
+        assertThat(porAnulacion.tipoMovimiento()).isEqualTo("REVERSA");
+        assertThat(porAnulacion.idTransaccion()).isEqualTo(porMovimiento.idTransaccion());
+        assertThat(porAnulacion.idTransaccionOriginal()).isEqualTo(porMovimiento.idTransaccionOriginal());
+        assertThat(porAnulacion.idCliente()).isEqualTo(porMovimiento.idCliente());
+        assertThat(porAnulacion.valorConsumido()).isEqualByComparingTo(porMovimiento.valorConsumido());
+    }
+
+    @Test
+    void unaAnulacionRioCrm05InvalidaIndicaElCampoDeSuContrato() {
+        String valida = ejemplo("anulacion-total.json");
+
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"TOTAL\"", "\"OTRA\"")))
+                .hasMessage("anulacion.tipo debe ser TOTAL o PARCIAL");
+        assertThatThrownBy(() -> lector.leer(valida.replace("300.00", "0")))
+                .hasMessage("anulacion.montoRevertido es obligatorio y mayor que cero");
+        assertThatThrownBy(() -> lector.leer(valida.replace("\"idCompra\": \"V-100234\",", "")))
+                .hasMessage("anulacion.idCompra es obligatorio");
+    }
+
+    @Test
+    void laCabeceraDeUnaAnulacionEsLaDeSuReversa() {
+        assertThat(lector.cabecera(ejemplo("anulacion-total.json")))
+                .isEqualTo(new LectorMovimientos.Cabecera("3a9c7e1f-5d2b-4f8a-b6c4-7e8f9a0b1c2d", "V-100234-A1", "REVERSA"));
+    }
 }

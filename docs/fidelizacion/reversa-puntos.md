@@ -141,3 +141,14 @@ python3 publicar.py eventos/movimiento-reversa-parcial.json      # devolución d
 python3 publicar.py eventos/anulacion-parcial.json               # la misma devolución por RIO-CRM-05: DESCARTADO
 python3 publicar.py eventos/movimiento-reversa-total.json        # anulación del resto: 30 → 0
 ```
+
+`ReversaPuntosIntegracionTest` (PostgreSQL y RabbitMQ reales con Testcontainers) reproduce los cuatro
+criterios con eventos RIO-CRM-03 y RIO-CRM-05: anulación total, devolución parcial, regla de la compra
+original, reentrega, el mismo evento por las dos fuentes, copias y devoluciones simultáneas, compra ya
+anulada, saldo insuficiente por puntos ya redimidos, nivel y su historial, compra fuera del periodo,
+reproceso y filtro de la bitácora. `ReglaReversaTest` cubre la regla y el redondeo.
+
+```bash
+cd backend/servicio-fidelizacion
+mvn test   # requiere Docker
+```
