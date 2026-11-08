@@ -65,6 +65,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/segmentacion/**` | POST, PUT, PATCH, DELETE | `SEGMENTACION_CONFIGURAR` |
 | `/api/fidelizacion/clientes/*/saldo` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `PUNTOS_CONSULTAR` (SCRUM-397, regla anterior a la genérica) |
 | `/api/fidelizacion/ventas/clientes/*/puntos` | GET | Rol `SISTEMA` **y** `PUNTOS_CONSULTAR_VENTAS`: solo el token de servicio de Marketplace y Ventas (RIO-CRM-04, SCRUM-545) |
+| `/api/fidelizacion/clientes/*/ajustes` | POST | Rol `ADMINISTRADOR_CRM` **y** `FIDELIZACION_CONFIGURAR`: ajuste manual del saldo (SCRUM-424, regla anterior a la genérica). El historial (`GET`) sigue la regla genérica de `PUNTOS_CONSULTAR` |
 | `/api/fidelizacion/**` | GET | `PUNTOS_CONSULTAR` (incluye `/api/fidelizacion/caducidad/configuracion`, SCRUM-416) |
 | `/api/fidelizacion/**` | POST, PUT, PATCH, DELETE | `FIDELIZACION_CONFIGURAR` (incluye `POST /api/fidelizacion/caducidad/ejecutar`, que el servicio limita además al rol `ADMINISTRADOR_CRM`, SCRUM-415) |
 | `/api/interacciones/**` | GET | `INTERACCIONES_CONSULTAR` |
