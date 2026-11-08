@@ -130,3 +130,15 @@ Respuesta `201`:
   "nivel": "BRONCE"
 }
 ```
+
+## API (SCRUM-423)
+
+| Método y ruta | Quién | Respuesta |
+|---|---|---|
+| `POST /api/fidelizacion/clientes/{clienteId}/ajustes` | Administrador de CRM | `201` con el ajuste aplicado y el nivel resultante |
+| `GET /api/fidelizacion/clientes/{clienteId}/ajustes` | Con `PUNTOS_CONSULTAR` | `200` con los ajustes, del más reciente al más antiguo; `[]` si no tiene |
+
+El acceso se comprueba antes de validar el cuerpo: un usuario sin permiso recibe `403` aunque su solicitud además
+sea inválida. Después de ajustar, el saldo nuevo y el movimiento `AJUSTE` aparecen en
+`GET /api/fidelizacion/clientes/{clienteId}/saldo`, en `…/puntos` (ficha integral), en `…/movimientos` y en la
+consulta de Marketplace y Ventas (RIO-CRM-04).
