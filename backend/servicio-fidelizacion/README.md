@@ -7,6 +7,7 @@ Administra el programa de puntos.
   (cola `crm.fidelizacion.movimientos`, routing key `puntos.movimiento`) y las anulaciones de compra RIO-CRM-05
   (cola `crm.fidelizacion.anulaciones`, routing key `compra.anulada`). Procesa la acumulación (SCRUM-45), la
   redención (SCRUM-48) y la reversa por compra anulada o devuelta (SCRUM-524).
+- **Caduca** cada día los puntos no redimidos cuya vigencia venció (SCRUM-50).
 - **Responde** la consulta síncrona de saldo, nivel y caducidad de Marketplace y Ventas (RIO-CRM-04, SCRUM-525) a
   través del API Gateway, con token de servicio.
 - **Esquema en la base:** `fidelizacion`
@@ -78,3 +79,12 @@ mvn test   # requiere Docker (PostgreSQL, RabbitMQ y el emulador de Pub/Sub con 
 Devuelve el saldo disponible, el nivel y la fecha de caducidad (la última acumulación más
 `FIDELIZACION_VIGENCIA_MESES`, 12 por defecto); un cliente sin cuenta responde saldo cero. Contrato y errores en
 `docs/contratos-eventos/RIO-CRM-04-consulta-puntos.md`.
+
+## Caducidad de puntos (SCRUM-50)
+
+El saldo completo de un cliente caduca `FIDELIZACION_VIGENCIA_MESES` meses (12 por defecto) después de su última
+compra con puntos. El proceso diario (`FIDELIZACION_CADUCIDAD_CRON`, a las 02:00 de La Paz) descuenta el saldo
+vencido y deja un movimiento `CADUCIDAD` en el historial. Ejecutarlo dos veces no caduca dos veces los mismos
+puntos. El Administrador de CRM lo puede ejecutar en el momento con `POST /api/fidelizacion/caducidad/ejecutar`,
+y consultar la vigencia con `GET /api/fidelizacion/caducidad/configuracion`. Las consultas de saldo y los
+movimientos aplican la misma regla. Regla y casos en `docs/fidelizacion/caducidad-puntos.md`.
