@@ -3,7 +3,8 @@
 Cuando Marketplace y Ventas anula una compra por completo o el cliente devuelve parte de ella, el CRM le
 quita los puntos que esa compra le había dado, para que no conserve puntos de compras revertidas (RF-60,
 EPIC-08). Es una historia de integración asíncrona: Marketplace y Ventas publica en RabbitMQ y no espera
-respuesta del CRM.
+respuesta del CRM. Usa el mismo consumidor, la misma bitácora y el mismo reproceso que la acumulación
+(`docs/fidelizacion/acumulacion-puntos.md`) y la redención (`docs/fidelizacion/redencion-puntos.md`).
 
 ## Regla de reversa (SCRUM-538)
 
@@ -41,3 +42,88 @@ están vigentes.
 
 Para el nivel se restan siempre todos los puntos de la reversa (ver la sección del nivel): la compra
 anulada deja de contar para el nivel, aunque sus puntos ya se hubieran usado.
+
+## Eventos que revierten puntos (SCRUM-540)
+
+La reversa llega por dos eventos, y los dos terminan en el mismo movimiento `REVERSA`:
+
+| Evento | Cola de Fidelización | Transacción de la reversa | Compra que revierte | Monto |
+|---|---|---|---|---|
+| RIO-CRM-03 `REVERSA` (`docs/contratos-eventos/RIO-CRM-03-movimiento-puntos.md`) | `crm.fidelizacion.movimientos` | `movimiento.idTransaccion` | `movimiento.idTransaccionOriginal` | `movimiento.valorConsumido` |
+| RIO-CRM-05 anulación o devolución (`docs/contratos-eventos/RIO-CRM-05-anulacion-compra.md`) | `crm.fidelizacion.anulaciones` | `anulacion.idAnulacion` | `anulacion.idCompra` | `anulacion.montoRevertido` |
+
+La clave del movimiento es `idTransaccion` + `REVERSA`. Si Marketplace y Ventas publica los dos eventos
+de una misma anulación, el segundo queda `DESCARTADO`. Fidelización tiene su propia cola de RIO-CRM-05,
+así que recibe su copia aparte de Comportamiento (historial e indicadores), y la bitácora guarda el
+mensaje original para reprocesarlo.
+
+## Procesamiento
+
+1. El mensaje se anota en la bitácora de movimientos con su contenido original (transacción propia).
+2. En otra transacción: se valida el evento y se vincula el cliente con su perfil del CRM.
+3. Se busca la **acumulación de la compra** (`idTransaccion` de la compra + `ACUMULACION`) y se bloquea
+   hasta el fin de la transacción: las reversas de una misma compra se aplican de a una, así que dos
+   devoluciones simultáneas no pueden revertir entre las dos más de lo que sigue vigente.
+4. Se **reserva** la reversa en el historial, con la referencia a la acumulación (SCRUM-539) y la regla
+   de esa compra. Una reversa reentregada choca con la clave y queda `DESCARTADO` (criterio 3).
+5. Se calculan los puntos con la regla de reversa (SCRUM-538) y se descuentan hasta donde alcance el
+   saldo; se anota el saldo resultante, se reevalúa el nivel y el evento queda `PROCESADO`. Todo se
+   guarda junto o no se guarda nada.
+
+| Situación | Resultado |
+|---|---|
+| Reversa correcta | `PROCESADO`; el movimiento queda con su referencia a la compra (criterio 1) |
+| La reversa ya se aplicó (otra copia, otro `idEvento` o el otro evento) | `DESCARTADO`: `La transacción V-100234-D1 ya revirtió sus puntos (REVERSA)` |
+| La compra no tiene acumulación registrada | `FALLIDO`: `La transacción V-100234 no tiene una acumulación de puntos registrada; la reversa V-100234-D1 queda para reproceso` |
+| El cliente no es el de la compra | `FALLIDO`: `El cliente CLI-9999 no es el de la transacción V-100234` |
+| La reversa supera lo que sigue vigente de la compra (por ejemplo, la compra ya está anulada por completo) | `FALLIDO` con lo que sigue vigente |
+| Falta `movimiento.idTransaccionOriginal`, el monto no es válido o el cliente no tiene perfil | `FALLIDO` con el campo y la regla |
+
+Una reversa `FALLIDO` no cambia el saldo ni deja movimiento, y se puede reprocesar: si llegó antes que
+la acumulación de su compra, se reprocesa después y se aplica.
+
+| Método | Ruta | Permiso (Gateway) | Descripción |
+|---|---|---|---|
+| GET | `/api/fidelizacion/clientes/{clienteId}/movimientos` | `PUNTOS_CONSULTAR` | Historial con las reversas y la compra que revierte cada una |
+| GET | `/api/fidelizacion/eventos?estado=FALLIDO&tipo=REVERSA` | `PUNTOS_CONSULTAR` | Reversas fallidas, con su causa |
+| POST | `/api/fidelizacion/eventos/{id}/reprocesar` | `FIDELIZACION_CONFIGURAR` | Vuelve a procesar un evento `FALLIDO` |
+
+## Historial de movimientos (SCRUM-539)
+
+La reversa queda en `fidelizacion.movimiento_puntos` con la referencia a la acumulación que revierte
+(`id_transaccion_revertida`, con clave foránea), el monto revertido, la regla de la compra, los puntos
+de la reversa y los que no se pudieron descontar:
+
+```json
+{
+  "idTransaccion": "V-100234-D1",
+  "tipoMovimiento": "REVERSA",
+  "idTransaccionRevertida": "V-100234",
+  "idClienteOrigen": "CLI-5521",
+  "valorConsumido": 50.50,
+  "puntos": 5,
+  "puntosNoRecuperados": 0,
+  "variacionSaldo": -5,
+  "bolivianosPorPunto": 10.00,
+  "montoMinimo": 0.00,
+  "versionRegla": 1,
+  "saldoResultante": 30,
+  "fechaTransaccion": "2026-10-20T15:02:30Z",
+  "registradoEn": "2026-10-20T15:05:01Z"
+}
+```
+
+`variacionSaldo` es lo que realmente se descontó: `−(puntos − puntosNoRecuperados)`.
+
+## Prueba con eventos simulados
+
+Con `servicio-fidelizacion` y `servicio-perfil` levantados y el perfil de Ana creado
+(`cliente-ana-alta.json`):
+
+```bash
+cd herramientas/simulador-eventos
+python3 publicar.py eventos/movimiento-acumulacion-ana.json      # saldo 35
+python3 publicar.py eventos/movimiento-reversa-parcial.json      # devolución de Bs 50.50: 35 → 30
+python3 publicar.py eventos/anulacion-parcial.json               # la misma devolución por RIO-CRM-05: DESCARTADO
+python3 publicar.py eventos/movimiento-reversa-total.json        # anulación del resto: 30 → 0
+```

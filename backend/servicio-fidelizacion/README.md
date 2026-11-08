@@ -4,8 +4,9 @@ Administra el programa de puntos.
 
 - **Guarda:** saldo y movimientos de puntos, reglas de acumulación, niveles y vigencia.
 - **Consume de RabbitMQ (o Pub/Sub, perfil `pubsub`):** los movimientos de puntos RIO-CRM-03 de Marketplace y Ventas
-  (cola `crm.fidelizacion.movimientos`, routing key `puntos.movimiento`). Procesa la acumulación (SCRUM-45) y la
-  redención (SCRUM-48); la reversa por anulación es SCRUM-524.
+  (cola `crm.fidelizacion.movimientos`, routing key `puntos.movimiento`) y las anulaciones de compra RIO-CRM-05
+  (cola `crm.fidelizacion.anulaciones`, routing key `compra.anulada`). Procesa la acumulación (SCRUM-45), la
+  redención (SCRUM-48) y la reversa por compra anulada o devuelta (SCRUM-524).
 - **Responde** la consulta síncrona de saldo y nivel de Marketplace y Ventas (RIO-CRM-04) a través del API Gateway.
 - **Esquema en la base:** `fidelizacion`
 

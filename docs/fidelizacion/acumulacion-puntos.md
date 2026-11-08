@@ -58,7 +58,7 @@ copias se procesen a la vez.
 
 ## Eventos inválidos y reproceso (criterio de aceptación 3)
 
-Un evento ilegible, incompleto o inválido, de un tipo aún no soportado (reversa, SCRUM-524), de un
+Un evento ilegible, incompleto o inválido, de un
 cliente que todavía no tiene perfil en el CRM, o que no se pudo procesar porque Perfil no respondió,
 queda `FALLIDO` con la causa y su contenido original, **sin cambiar el saldo**.
 

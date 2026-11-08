@@ -5,12 +5,12 @@ Evento que el módulo **Marketplace y Ventas** del ERP publica cuando una compra
 | | |
 |---|---|
 | **Emisor** | Módulo Marketplace y Ventas del ERP |
-| **Receptor** | `servicio-comportamiento` |
+| **Receptores** | `servicio-comportamiento` (historial e indicadores) y `servicio-fidelizacion` (reversa de puntos, SCRUM-524) |
 | **Transporte** | RabbitMQ, mensaje JSON en UTF-8 |
 | **Exchange** | `ventas.eventos` (tipo `topic`, durable), el mismo de RIO-CRM-02 |
 | **Routing key** | `compra.anulada` |
-| **Cola del CRM** | `crm.comportamiento.anulaciones` (durable) |
-| **Cola de fallidos** | `crm.comportamiento.anulaciones.respaldo` |
+| **Colas del CRM** | `crm.comportamiento.anulaciones` y `crm.fidelizacion.anulaciones` (durables): cada servicio recibe su copia |
+| **Colas de fallidos** | `crm.comportamiento.anulaciones.respaldo` y `crm.fidelizacion.anulaciones.respaldo` |
 
 ## Anulación total y devolución parcial
 
@@ -120,3 +120,10 @@ Más ejemplos en `herramientas/simulador-eventos/eventos/` (archivos `anulacion-
 | Ni siquiera se puede anotar en la bitácora (por ejemplo, la base no responde) | Se reintenta y, agotados los reintentos, el mensaje pasa a `crm.comportamiento.anulaciones.respaldo`. Se reinyecta con `POST /api/comportamiento/eventos/respaldo/reinyectar?cola=anulaciones` |
 
 El historial de compras conserva la compra original con su monto total. El monto vigente de una compra es `montoTotal − montoRevertido`.
+
+## Qué hace Fidelización al recibirlo (SCRUM-524)
+
+`servicio-fidelizacion` lo trata como un movimiento de puntos `REVERSA` (RIO-CRM-03) con `idTransaccion` =
+`idAnulacion`, transacción original = `idCompra` y valor = `montoRevertido`, y le quita al cliente los
+puntos de lo revertido. El resultado queda en su bitácora de movimientos (`/api/fidelizacion/eventos`),
+no en la de Comportamiento. Regla y casos en `docs/fidelizacion/reversa-puntos.md`.
