@@ -1,5 +1,8 @@
 package com.maxiconecta.crm.fidelizacion.consulta;
 
+import com.maxiconecta.crm.fidelizacion.caducidad.SaldoVigente;
+import com.maxiconecta.crm.fidelizacion.caducidad.VigenciaPuntos;
+import com.maxiconecta.crm.fidelizacion.movimiento.RegistroPuntos;
 import com.maxiconecta.crm.fidelizacion.nivel.AsignacionNiveles;
 import com.maxiconecta.crm.fidelizacion.puntos.SaldoPuntos;
 import com.maxiconecta.crm.fidelizacion.puntos.SaldoPuntosRepository;
@@ -28,7 +31,10 @@ class FidelizacionControllerTest {
     @BeforeEach
     void preparar() {
         saldos = mock(SaldoPuntosRepository.class);
-        mvc = MockMvcBuilders.standaloneSetup(new FidelizacionController(saldos, mock(AsignacionNiveles.class))).build();
+        // Sin acumulaciones registradas: el saldo no tiene fecha de caducidad (SCRUM-419).
+        SaldoVigente vigente = new SaldoVigente(mock(RegistroPuntos.class), new VigenciaPuntos(12, "0 0 2 * * *", "America/La_Paz"));
+        mvc = MockMvcBuilders.standaloneSetup(new FidelizacionController(saldos, mock(AsignacionNiveles.class), vigente))
+                .build();
     }
 
     @Test

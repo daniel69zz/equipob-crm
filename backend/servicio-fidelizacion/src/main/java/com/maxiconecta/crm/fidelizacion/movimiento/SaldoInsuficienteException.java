@@ -11,8 +11,13 @@ public class SaldoInsuficienteException extends RuntimeException {
     private final long disponibles;
 
     public SaldoInsuficienteException(String idTransaccion, long solicitados, long disponibles) {
+        this(idTransaccion, solicitados, disponibles, "");
+    }
+
+    /** @param detalle se agrega al final de la causa, por ejemplo los puntos que caducaron (SCRUM-419) */
+    public SaldoInsuficienteException(String idTransaccion, long solicitados, long disponibles, String detalle) {
         super("Saldo insuficiente para la redención " + idTransaccion + ": se solicitan " + solicitados
-                + " puntos y el saldo disponible es " + disponibles);
+                + " puntos y el saldo disponible es " + disponibles + detalle);
         this.solicitados = solicitados;
         this.disponibles = disponibles;
     }

@@ -184,10 +184,15 @@ public class LectorMovimientos {
             throw new EventoInvalidoException("movimiento.tipoMovimiento es obligatorio");
         }
         try {
-            return TipoMovimiento.valueOf(texto);
+            TipoMovimiento tipo = TipoMovimiento.valueOf(texto);
+            if (tipo.deVentas()) {
+                return tipo;
+            }
         } catch (IllegalArgumentException ex) {
-            throw new EventoInvalidoException("movimiento.tipoMovimiento debe ser ACUMULACION, REDENCION o REVERSA");
+            // Se informa abajo con los tipos admitidos.
         }
+        // SCRUM-417: la caducidad solo la registra el CRM; un evento no puede traerla.
+        throw new EventoInvalidoException("movimiento.tipoMovimiento debe ser ACUMULACION, REDENCION o REVERSA");
     }
 
     private static void identificador(String campo, String valor) {

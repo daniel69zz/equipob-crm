@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.consulta;
 
+import com.maxiconecta.crm.fidelizacion.caducidad.SaldoVigente;
 import com.maxiconecta.crm.fidelizacion.nivel.AsignacionNiveles;
 import com.maxiconecta.crm.fidelizacion.puntos.SaldoPuntosRepository;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,15 +21,17 @@ public class FidelizacionController {
 
     private final SaldoPuntosRepository saldos;
     private final AsignacionNiveles niveles;
+    private final SaldoVigente vigente;
 
-    public FidelizacionController(SaldoPuntosRepository saldos, AsignacionNiveles niveles) {
+    public FidelizacionController(SaldoPuntosRepository saldos, AsignacionNiveles niveles, SaldoVigente vigente) {
         this.saldos = saldos;
         this.niveles = niveles;
+        this.vigente = vigente;
     }
 
     @GetMapping("/{clienteId}/puntos")
     public PuntosResponse obtener(@PathVariable Long clienteId) {
-        return PuntosResponse.de(saldos.findById(clienteId));
+        return PuntosResponse.de(saldos.findById(clienteId), vigente);
     }
 
     /** Cambios de nivel del cliente con su origen, por ejemplo la reversa que lo hizo descender (SCRUM-541). */

@@ -91,7 +91,8 @@ class NivelesIntegracionTest {
         ingesta.recibir(acumulacion("V-VIEJA", "CLI-1", "30000.00", OffsetDateTime.now().minusMonths(13)));
         ingesta.recibir(acumulacion("V-NUEVA", "CLI-1", "100.00", OffsetDateTime.now()));
 
-        assertThat(saldo(1)).isEqualTo(3000 + 10);
+        // SCRUM-50: la compra nueva llega con la vigencia de los 3000 puntos ya vencida; caducan antes de acumular.
+        assertThat(saldo(1)).isEqualTo(10);
         assertThat(puntosPeriodo(1)).isEqualTo(10);
         assertThat(nivel(1)).isEqualTo("BRONCE");
     }
