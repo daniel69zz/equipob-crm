@@ -114,9 +114,10 @@ sequenceDiagram
     P->>DB: INSERT movimiento_puntos (puntos según la regla vigente)
     P->>DB: saldo = saldo + puntos
     P->>A: recalcular(clienteId)
-    A->>DB: puntosPeriodo = Σ acumulaciones − reversas de los últimos N meses
+    A->>DB: puntosPeriodo = Σ acumulaciones − reversas − redenciones de los últimos N meses
     A->>DB: nivel = umbral vigente que contiene puntosPeriodo
     A->>DB: UPDATE saldo_puntos (nivel, puntos_periodo, nivel_actualizado_en si cambió)
+    A->>DB: si cambió, INSERT cambio_nivel con su origen (SCRUM-541)
     P->>DB: COMMIT
     W->>DB: GET /api/fidelizacion/clientes/{id}/puntos
     DB-->>W: saldo, nivel actual y puntos del periodo

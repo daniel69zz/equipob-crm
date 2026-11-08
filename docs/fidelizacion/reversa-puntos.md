@@ -5,6 +5,7 @@ quita los puntos que esa compra le había dado, para que no conserve puntos de c
 EPIC-08). Es una historia de integración asíncrona: Marketplace y Ventas publica en RabbitMQ y no espera
 respuesta del CRM. Usa el mismo consumidor, la misma bitácora y el mismo reproceso que la acumulación
 (`docs/fidelizacion/acumulacion-puntos.md`) y la redención (`docs/fidelizacion/redencion-puntos.md`).
+Diagramas en `docs/fidelizacion/reversa-puntos-diagramas.md`.
 
 ## Regla de reversa (SCRUM-538)
 
