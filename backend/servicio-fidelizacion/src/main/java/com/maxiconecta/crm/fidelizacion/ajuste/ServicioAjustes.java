@@ -20,8 +20,8 @@ import java.util.Map;
 /**
  * Ajuste manual del saldo de puntos de un cliente por el Administrador de CRM (SCRUM-422,
  * docs/fidelizacion/ajuste-manual-puntos.md). Todo va en una transacción: la caducidad pendiente, el saldo, el
- * movimiento {@code AJUSTE}, el registro con el motivo y el responsable, y el nivel se guardan juntos o no se
- * guarda nada.
+ * movimiento {@code AJUSTE}, el registro con el motivo y el responsable, el nivel y la auditoría compartida
+ * (SCRUM-425) se guardan juntos o no se guarda nada.
  */
 @Service
 public class ServicioAjustes {
@@ -34,11 +34,14 @@ public class ServicioAjustes {
     private final RegistroAjustes registro;
     private final ProcesoCaducidad caducidad;
     private final AsignacionNiveles niveles;
+    private final AuditoriaAjustes auditoria;
 
-    public ServicioAjustes(RegistroAjustes registro, ProcesoCaducidad caducidad, AsignacionNiveles niveles) {
+    public ServicioAjustes(RegistroAjustes registro, ProcesoCaducidad caducidad, AsignacionNiveles niveles,
+                           AuditoriaAjustes auditoria) {
         this.registro = registro;
         this.caducidad = caducidad;
         this.niveles = niveles;
+        this.auditoria = auditoria;
     }
 
     /**
@@ -81,6 +84,7 @@ public class ServicioAjustes {
         }
         registro.actualizarSaldo(clienteId, resultante);
         Nivel nivel = niveles.recalcular(clienteId, idTransaccion, TipoMovimiento.AJUSTE.name());
+        auditoria.registrar(ajuste);
         log.info("Ajuste {} de {} puntos al cliente {} por {}: saldo {} → {}", ajuste.id(), puntos, clienteId, usuario,
                 anterior, resultante);
         return ajuste.conNivel(nivel == null ? null : nivel.name());
