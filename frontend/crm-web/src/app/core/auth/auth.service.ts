@@ -96,6 +96,11 @@ export class AuthService {
       && (sesion!.rol === 'ADMINISTRADOR_CRM' || sesion!.usuario === registradoPor);
   }
 
+  /** SCRUM-453: solo el Administrador de CRM reabre una interacción cerrada. */
+  puedeReabrirInteracciones(): boolean {
+    return this.puedeRegistrarInteracciones() && this.sesionVigente()!.rol === 'ADMINISTRADOR_CRM';
+  }
+
   token(): string | null {
     return this.sesionVigente()?.token ?? null;
   }

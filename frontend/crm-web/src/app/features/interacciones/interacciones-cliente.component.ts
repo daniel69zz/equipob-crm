@@ -9,13 +9,16 @@ import { AuthService } from '../../core/auth/auth.service';
 import { PaginacionComponent } from '../../core/ui/paginacion.component';
 import { PestaniasClienteComponent } from '../clientes/pestanias-cliente.component';
 import { FormularioInteraccionComponent } from './formulario-interaccion.component';
+import { SeguimientoInteraccionComponent } from './seguimiento-interaccion.component';
 import {
   FiltroInteracciones,
   Interaccion,
   InteraccionesService,
   PaginaInteracciones,
+  ESTADOS_INTERACCION,
   TIPOS_INTERACCION,
   nombreCanal,
+  nombreEstado,
   nombreTipo,
 } from './interacciones.service';
 
@@ -26,12 +29,15 @@ const TAMANIO_PAGINA = 20;
  * reciente a la más antigua, con quién las registró y cuándo. Lo ven los tres roles con
  * INTERACCIONES_CONSULTAR (docs/interacciones/registro-interacciones.md). El Agente de Atención y el Administrador
  * registran interacciones nuevas y corrigen las existentes (SCRUM-434): el agente, solo las que registró. El
- * historial se filtra por tipo, por texto en el asunto, la descripción o la compra, y por fechas (SCRUM-431).
+ * historial se filtra por tipo, por texto en el asunto, la descripción o la compra, y por fechas (SCRUM-431). Cada
+ * interacción muestra su estado de seguimiento, y el Agente y el Administrador lo actualizan y la reclasifican
+ * (SCRUM-55, SCRUM-450); una cerrada no se edita hasta que el Administrador la reabra.
  */
 @Component({
   selector: 'app-interacciones-cliente',
   standalone: true,
-  imports: [DatePipe, FormsModule, FormularioInteraccionComponent, PaginacionComponent, PestaniasClienteComponent],
+  imports: [DatePipe, FormsModule, FormularioInteraccionComponent, PaginacionComponent, PestaniasClienteComponent,
+    SeguimientoInteraccionComponent],
   template: `
     <app-pestanias-cliente [id]="clienteId()" />
     <header class="encabezado">
@@ -57,6 +63,13 @@ const TAMANIO_PAGINA = 20;
         <select id="filtro-tipo" name="tipo" [(ngModel)]="borrador.tipo">
           <option value="">Todos</option>
           @for (tipo of tipos; track tipo.valor) { <option [value]="tipo.valor">{{ tipo.nombre }}</option> }
+        </select>
+      </div>
+      <div>
+        <label for="filtro-estado">Estado</label>
+        <select id="filtro-estado" name="estado" [(ngModel)]="borrador.estado">
+          <option value="">Todos</option>
+          @for (estado of estados; track estado.valor) { <option [value]="estado.valor">{{ estado.nombre }}</option> }
         </select>
       </div>
       <div class="texto">
@@ -103,9 +116,10 @@ const TAMANIO_PAGINA = 20;
             <li class="tarjeta interaccion">
               <header>
                 <span [class]="'etiqueta tipo-' + interaccion.tipo">{{ nombreTipo(interaccion.tipo) }}</span>
+                <span [class]="'etiqueta estado-' + interaccion.estado">{{ nombreEstado(interaccion.estado) }}</span>
                 @if (interaccion.canal) { <span class="canal">{{ nombreCanal(interaccion.canal) }}</span> }
                 <time [attr.datetime]="interaccion.registradoEn">{{ interaccion.registradoEn | date: 'dd/MM/yyyy HH:mm' }}</time>
-                @if (auth.puedeModificarInteraccion(interaccion.registradoPor)) {
+                @if (interaccion.estado !== 'CERRADA' && auth.puedeModificarInteraccion(interaccion.registradoPor)) {
                   <button type="button" class="secundario editar" (click)="abrirEdicion(interaccion.id)"
                     [attr.aria-label]="'Editar la interacción n.º ' + interaccion.id">Editar</button>
                 }
@@ -118,7 +132,15 @@ const TAMANIO_PAGINA = 20;
                 @if (interaccion.modificadoEn) {
                   <span>Modificada por {{ interaccion.modificadoPor }} el {{ interaccion.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}</span>
                 }
+                @if (interaccion.estadoActualizadoEn) {
+                  <span>{{ nombreEstado(interaccion.estado) }} desde el {{ interaccion.estadoActualizadoEn | date: 'dd/MM/yyyy HH:mm' }}
+                    por {{ interaccion.estadoActualizadoPor }}</span>
+                }
               </footer>
+              @if (auth.puedeRegistrarInteracciones()) {
+                <app-seguimiento-interaccion [interaccion]="interaccion" (actualizada)="seguimientoActualizado($event)"
+                  (recargar)="recargar(interaccion.id)" />
+              }
             </li>
           }
         } @empty {
@@ -155,6 +177,9 @@ const TAMANIO_PAGINA = 20;
     .tipo-RECLAMO { color: #b42318; background: #fdecea; }
     .tipo-CONSULTA { color: #1d4ed8; background: #e8effd; }
     .tipo-NOTA { color: #5b5f6b; background: #eef1f7; }
+    .estado-ABIERTA { color: #b54708; background: #fef0c7; }
+    .estado-EN_PROCESO { color: #1d4ed8; background: #e8effd; }
+    .estado-CERRADA { color: #067647; background: #dcfae6; }
     .vacio { color: var(--color-texto-suave); }
     .editar { padding: .25rem .7rem; font-size: .82rem; }
   `,
@@ -180,6 +205,8 @@ export class InteraccionesClienteComponent {
   /** Lo que el usuario escribe en los filtros; se aplica al pulsar Buscar. */
   borrador: FiltroInteracciones = vacio();
   readonly nombreTipo = nombreTipo;
+  readonly nombreEstado = nombreEstado;
+  readonly estados = ESTADOS_INTERACCION;
   readonly nombreCanal = nombreCanal;
 
   /** Filtros aplicados a la consulta mostrada. */
@@ -270,6 +297,12 @@ export class InteraccionesClienteComponent {
     this.aviso.set(`Se guardaron los cambios de la interacción n.º ${interaccion.id}.`);
   }
 
+  seguimientoActualizado(interaccion: Interaccion): void {
+    this.reemplazar(interaccion);
+    this.aviso.set(`La interacción n.º ${interaccion.id} quedó ${nombreEstado(interaccion.estado).toLowerCase()}`
+      + ` como ${nombreTipo(interaccion.tipo).toLowerCase()}.`);
+  }
+
   /** Trae la versión vigente después de un 409 y vuelve a abrir el formulario con ella. */
   recargar(id: number): void {
     const numero = this.numeroCliente();
@@ -304,7 +337,7 @@ export class InteraccionesClienteComponent {
 }
 
 function vacio(): FiltroInteracciones {
-  return { tipo: '', texto: '', desde: '', hasta: '' };
+  return { tipo: '', estado: '', texto: '', desde: '', hasta: '' };
 }
 
 function tieneFiltros(filtro: FiltroInteracciones): boolean {

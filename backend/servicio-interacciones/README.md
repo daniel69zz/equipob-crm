@@ -21,7 +21,8 @@ Todas bajo `/api/interacciones/clientes/{clienteId}/interacciones` (`docs/seguri
 |---|---|---|
 | POST | `…/interacciones` | Agente de Atención o Administrador de CRM (`INTERACCIONES_REGISTRAR`) |
 | PUT | `…/interacciones/{id}` | El agente que la registró o el Administrador de CRM |
-| GET | `…/interacciones?tipo=&texto=&desde=&hasta=&pagina=&tamanio=` | `INTERACCIONES_CONSULTAR` |
+| PATCH | `…/interacciones/{id}` | Estado de seguimiento o tipo: cualquier Agente de Atención o el Administrador (SCRUM-55) |
+| GET | `…/interacciones?tipo=&estado=&texto=&desde=&hasta=&pagina=&tamanio=` | `INTERACCIONES_CONSULTAR` |
 | GET | `…/interacciones/{id}` | `INTERACCIONES_CONSULTAR` |
 | GET | `…/interacciones/{id}/auditoria` | Administrador de CRM con `AUDITORIA_CONSULTAR` |
 

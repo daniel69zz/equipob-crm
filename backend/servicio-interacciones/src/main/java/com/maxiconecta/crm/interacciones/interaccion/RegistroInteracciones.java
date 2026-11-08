@@ -14,12 +14,15 @@ import java.util.Optional;
 public class RegistroInteracciones {
 
     private static final String COLUMNAS = "id, cliente_id, tipo, canal, asunto, descripcion, referencia_compra, "
-            + "registrado_por, registrado_rol, registrado_en, modificado_por, modificado_en, version";
+            + "estado, estado_actualizado_por, estado_actualizado_en, registrado_por, registrado_rol, registrado_en, "
+            + "modificado_por, modificado_en, version";
 
     private static final RowMapper<Interaccion> FILA = (rs, n) -> new Interaccion(rs.getLong("id"),
             rs.getLong("cliente_id"), rs.getString("tipo"), rs.getString("canal"), rs.getString("asunto"),
-            rs.getString("descripcion"), rs.getString("referencia_compra"), rs.getString("registrado_por"),
-            rs.getString("registrado_rol"), rs.getObject("registrado_en", OffsetDateTime.class),
+            rs.getString("descripcion"), rs.getString("referencia_compra"), rs.getString("estado"),
+            rs.getString("estado_actualizado_por"), rs.getObject("estado_actualizado_en", OffsetDateTime.class),
+            rs.getString("registrado_por"), rs.getString("registrado_rol"),
+            rs.getObject("registrado_en", OffsetDateTime.class),
             rs.getString("modificado_por"), rs.getObject("modificado_en", OffsetDateTime.class), rs.getLong("version"));
 
     private final JdbcTemplate jdbc;
@@ -54,12 +57,26 @@ public class RegistroInteracciones {
                 campos.canal(), campos.asunto(), campos.descripcion(), campos.referenciaCompra(), usuario, id);
     }
 
+    /** Estado y tipo nuevos; si el estado cambia, también quién y cuándo (SCRUM-452). */
+    public Interaccion actualizarSeguimiento(long id, String tipo, String estado, boolean cambiaEstado,
+                                             String usuario) {
+        return jdbc.queryForObject("UPDATE interacciones.interaccion SET tipo = ?, estado = ?, "
+                        + "estado_actualizado_por = CASE WHEN ? THEN ? ELSE estado_actualizado_por END, "
+                        + "estado_actualizado_en = CASE WHEN ? THEN now() ELSE estado_actualizado_en END, "
+                        + "version = version + 1 WHERE id = ? RETURNING " + COLUMNAS, FILA, tipo, estado,
+                cambiaEstado, usuario, cambiaEstado, id);
+    }
+
     public PaginaInteracciones historial(long clienteId, FiltroHistorial filtro) {
         StringBuilder donde = new StringBuilder(" FROM interacciones.interaccion WHERE cliente_id = ?");
         List<Object> parametros = new ArrayList<>(List.of(clienteId));
         if (filtro.tipo() != null) {
             donde.append(" AND tipo = ?");
             parametros.add(filtro.tipo());
+        }
+        if (filtro.estado() != null) {
+            donde.append(" AND estado = ?");
+            parametros.add(filtro.estado());
         }
         if (filtro.texto() != null) {
             donde.append(" AND (asunto ILIKE ? ESCAPE '\\' OR descripcion ILIKE ? ESCAPE '\\'"

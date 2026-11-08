@@ -202,6 +202,11 @@ export class FormularioInteraccionComponent implements OnInit {
       this.error.set('Revise los campos marcados.');
       return;
     }
+    if (e.status === 409 && !campos['version']) {
+      // SCRUM-453: la interacción se cerró mientras se editaba.
+      this.error.set(e.error?.mensaje ?? 'La interacción está cerrada: no se puede modificar.');
+      return;
+    }
     if (e.status === 409) {
       this.desactualizada.set(true);
       this.error.set('Otra persona modificó esta interacción mientras la editaba. Recárguela y repita el cambio.');

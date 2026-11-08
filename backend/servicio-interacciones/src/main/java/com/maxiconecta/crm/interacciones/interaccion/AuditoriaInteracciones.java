@@ -28,6 +28,7 @@ public class AuditoriaInteracciones {
 
     static final String REGISTRADA = "INTERACCION_REGISTRADA";
     static final String MODIFICADA = "INTERACCION_MODIFICADA";
+    static final String SEGUIMIENTO = "INTERACCION_SEGUIMIENTO_ACTUALIZADO";
     static final String ENTIDAD_CLIENTE = "CLIENTE";
 
     private final JdbcTemplate jdbc;
@@ -46,35 +47,44 @@ public class AuditoriaInteracciones {
                 iniciales.put(campo, new Cambio(null, valor));
             }
         });
-        registrar(interaccion, "CREADA", interaccion.registradoPor(), interaccion.registradoRol(), iniciales,
+        registrar(interaccion, "CREADA", interaccion.registradoPor(), interaccion.registradoRol(), iniciales, null,
                 REGISTRADA);
     }
 
     public void modificada(Interaccion interaccion, String rol, Map<String, Cambio> cambios) {
-        registrar(interaccion, "MODIFICADA", interaccion.modificadoPor(), rol, cambios, MODIFICADA);
+        registrar(interaccion, "MODIFICADA", interaccion.modificadoPor(), rol, cambios, null, MODIFICADA);
+    }
+
+    /** Un cambio de estado o de tipo (SCRUM-55, criterio de aceptación 1), con su comentario si lo tiene. */
+    public void seguimiento(Interaccion interaccion, String usuario, String rol, Map<String, Cambio> cambios,
+                            String comentario) {
+        registrar(interaccion, "SEGUIMIENTO", usuario, rol, cambios, comentario, SEGUIMIENTO);
     }
 
     /** Los registros de una interacción, del primero al último. */
     public List<RegistroAuditoria> de(long interaccionId) {
-        return jdbc.query("SELECT id, operacion, usuario, rol, ocurrido_en, version, cambios::text "
+        return jdbc.query("SELECT id, operacion, usuario, rol, ocurrido_en, version, cambios::text, comentario "
                         + "FROM interacciones.interaccion_auditoria WHERE interaccion_id = ? ORDER BY id",
                 (rs, n) -> new RegistroAuditoria(rs.getLong("id"), rs.getString("operacion"), rs.getString("usuario"),
                         rs.getString("rol"), rs.getObject("ocurrido_en", OffsetDateTime.class), rs.getLong("version"),
-                        leer(rs.getString("cambios"))),
+                        leer(rs.getString("cambios")), rs.getString("comentario")),
                 interaccionId);
     }
 
     private void registrar(Interaccion interaccion, String operacion, String usuario, String rol,
-                           Map<String, Cambio> cambios, String operacionCompartida) {
+                           Map<String, Cambio> cambios, String comentario, String operacionCompartida) {
         jdbc.update("INSERT INTO interacciones.interaccion_auditoria (interaccion_id, operacion, usuario, rol, version, "
-                        + "cambios) VALUES (?, ?, ?, ?, ?, ?::jsonb)", interaccion.id(), operacion, usuario, rol,
-                interaccion.version(), escribir(cambios));
+                        + "cambios, comentario) VALUES (?, ?, ?, ?, ?, ?::jsonb, ?)", interaccion.id(), operacion,
+                usuario, rol, interaccion.version(), escribir(cambios), comentario);
 
         ObjectNode detalle = json.createObjectNode();
         detalle.put("idInteraccion", interaccion.id());
         detalle.put("tipo", interaccion.tipo());
         detalle.put("version", interaccion.version());
         detalle.put("rol", rol);
+        if (interaccion.estado() != null) {
+            detalle.put("estado", interaccion.estado());
+        }
         ArrayNode campos = detalle.putArray("campos");
         cambios.keySet().forEach(campos::add);
         jdbc.update("INSERT INTO auditoria.evento(usuario, operacion, entidad, entidad_id, detalle) VALUES (?, ?, ?, ?, ?)",
@@ -100,6 +110,6 @@ public class AuditoriaInteracciones {
 
     /** Un registro de la auditoría de una interacción. */
     public record RegistroAuditoria(long id, String operacion, String usuario, String rol, OffsetDateTime ocurridoEn,
-                                    long version, Map<String, Cambio> cambios) {
+                                    long version, Map<String, Cambio> cambios, String comentario) {
     }
 }
