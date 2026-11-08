@@ -423,6 +423,41 @@ class AccesoPorRolTest {
 
     // --- Utilidades ---
 
+    // --- Consulta del saldo de puntos de un cliente (SCRUM-47, SCRUM-397): solo Administrador y Agente ---
+
+    @Test
+    void elAdministradorYElAgentePuedenConsultarElSaldoDePuntosDeUnCliente() throws Exception {
+        String ruta = "/api/fidelizacion/clientes/42/saldo";
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearerAdministrador()))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elGerenteComercialNoConsultaElSaldoDeUnClienteAunqueTengaElPermisoDePuntos() throws Exception {
+        String gerente = bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE);
+
+        mvc.perform(get("/api/fidelizacion/clientes/42/puntos").header("Authorization", gerente))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get("/api/fidelizacion/clientes/42/saldo").header("Authorization", gerente))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unAgenteSinElPermisoDePuntosNoConsultaElSaldo() throws Exception {
+        List<String> sinPuntos = PERMISOS_AGENTE.stream().filter(p -> !p.equals("PUNTOS_CONSULTAR")).toList();
+
+        mvc.perform(get("/api/fidelizacion/clientes/42/saldo")
+                        .header("Authorization", bearer("ana", "AGENTE_ATENCION", sinPuntos)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void sinSesionLaConsultaDelSaldoDevuelve401() throws Exception {
+        mvc.perform(get("/api/fidelizacion/clientes/42/saldo")).andExpect(status().isUnauthorized());
+    }
+
     private static ResultMatcher pasaElControlDeAcceso() {
         return resultado -> assertThat(resultado.getResponse().getStatus()).isNotIn(401, 403);
     }

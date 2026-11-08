@@ -133,6 +133,16 @@ class TrazabilidadAuditoriaTest {
     }
 
     @Test
+    void unGerenteQueIntentaConsultarElSaldoDePuntosQuedaRegistradoComoAccesoDenegado() throws Exception {
+        mvc.perform(get("/api/fidelizacion/clientes/42/saldo")
+                        .header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+
+        verify(auditoriaService).registrar(eq("luis"), eq(AuditoriaService.ACCESO_DENEGADO),
+                eq(AuditoriaService.ENTIDAD_CLIENTE), eq("42"), argThat(detalle -> detalle.contains("HTTP 403")));
+    }
+
+    @Test
     void unaBusquedaSeRegistraSinGuardarLosParametros() throws Exception {
         mvc.perform(get("/api/perfil/clientes").param("documento", "4455667")
                 .header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)));
