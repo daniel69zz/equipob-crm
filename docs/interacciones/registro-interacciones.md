@@ -80,6 +80,8 @@ los tres roles y `INTERACCIONES_REGISTRAR`, el Administrador de CRM y el Agente 
 | Registrar una interacción | ✅ | ✅ | ❌ `403` en el Gateway |
 | Modificar una interacción | ✅ cualquiera | ✅ solo las que registró él | ❌ `403` en el Gateway |
 | Consultar el historial de un cliente y el detalle | ✅ | ✅ | ✅ |
+| Cambiar el estado o el tipo (SCRUM-55) | ✅ | ✅ cualquiera | ❌ `403` en el Gateway |
+| Reabrir una interacción cerrada (SCRUM-55) | ✅ con comentario | ❌ `403` | ❌ `403` en el Gateway |
 | Consultar la auditoría de una interacción | ✅ | ❌ `403` | ❌ `403` |
 
 El control va en dos capas, como en los demás servicios:

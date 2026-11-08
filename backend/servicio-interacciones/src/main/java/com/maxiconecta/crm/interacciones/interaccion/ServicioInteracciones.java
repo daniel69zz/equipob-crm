@@ -31,6 +31,8 @@ public class ServicioInteracciones {
     static final int MAXIMO_DESCRIPCION = 4000;
     static final int TAMANIO_POR_DEFECTO = 20;
     static final int TAMANIO_MAXIMO = 100;
+    /** Largo mínimo del comentario al reabrir una interacción cerrada (SCRUM-453). */
+    static final int MINIMO_COMENTARIO_REAPERTURA = 10;
 
     private final RegistroInteracciones registro;
     private final ClientesPerfil perfiles;
@@ -69,6 +71,7 @@ public class ServicioInteracciones {
                 throw IdentidadGateway.prohibido("Solo puede modificar las interacciones que usted registró");
             }
             verificarVersion(actual, solicitud.version());
+            exigirNoCerrada(actual);
             Map<String, Cambio> cambios = cambios(actual, campos);
             if (cambios.isEmpty()) {
                 throw new ReglaInvalidaException("La interacción no tiene cambios para guardar");
@@ -93,7 +96,20 @@ public class ServicioInteracciones {
         String comentario = vacioANulo(solicitud.comentario());
         return transacciones.execute(transaccion -> {
             Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            boolean reabre = actual.cerrada() && estadoNuevo != null && !estadoNuevo.equals(actual.estado());
+            // Criterio de aceptación 2: reabrir una interacción cerrada exige ser Administrador de CRM.
+            if (reabre && !identidad.esAdministrador()) {
+                throw IdentidadGateway.prohibido("Solo el Administrador de CRM puede reabrir una interacción cerrada");
+            }
             verificarVersion(actual, solicitud.version());
+            if (reabre && (comentario == null || comentario.length() < MINIMO_COMENTARIO_REAPERTURA)) {
+                throw new ReglaInvalidaException("Indique por qué se reabre la interacción",
+                        Map.of("comentario", "es obligatorio al reabrir: de " + MINIMO_COMENTARIO_REAPERTURA
+                                + " a 500 caracteres"));
+            }
+            if (!reabre && tipoNuevo != null && !tipoNuevo.equals(actual.tipo())) {
+                exigirNoCerrada(actual);
+            }
             Map<String, Cambio> cambios = new LinkedHashMap<>();
             if (estadoNuevo != null && !estadoNuevo.equals(actual.estado())) {
                 cambios.put("estado", new Cambio(actual.estado(), estadoNuevo));
@@ -163,6 +179,13 @@ public class ServicioInteracciones {
                 desde == null ? null : desde.atStartOfDay(ZONA).toOffsetDateTime(),
                 hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toOffsetDateTime(), numero, cantidad);
         return registro.historial(clienteId, filtro);
+    }
+
+    /** Una interacción cerrada queda como constancia del caso: para modificarla hay que reabrirla (SCRUM-453). */
+    private static void exigirNoCerrada(Interaccion actual) {
+        if (actual.cerrada()) {
+            throw new ConflictoException("La interacción está cerrada: reábrala para modificarla");
+        }
     }
 
     /** Una edición sobre una versión anterior se rechaza: otra persona cambió la interacción mientras tanto. */
