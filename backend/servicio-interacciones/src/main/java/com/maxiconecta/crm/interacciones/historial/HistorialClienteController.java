@@ -23,7 +23,8 @@ public class HistorialClienteController {
     @GetMapping("/api/interacciones/clientes/{clienteId}/historial")
     public HistorialCliente consultar(@PathVariable long clienteId, @RequestParam(required = false) Integer limite,
                                       HttpServletRequest http) {
-        IdentidadGateway.consulta(http);
+        // SCRUM-438: el acceso se comprueba antes que los parámetros y que el cliente.
+        IdentidadGateway.historialCliente(http);
         return servicio.consultar(clienteId, limite);
     }
 }

@@ -168,6 +168,33 @@ class HistorialClienteIntegracionTest extends IntegracionInteracciones {
         verify(compras).recientes(CLIENTE, List.of(ID_VENTAS), 1);
     }
 
+    // --- Permisos (SCRUM-438, criterio de aceptación 3) ---
+
+    @Test
+    void elAdministradorTambienConsultaElHistorial() throws Exception {
+        conIdentidad(get("/api/interacciones/clientes/" + CLIENTE + "/historial"), "admin", "ADMINISTRADOR_CRM",
+                PERMISOS_ADMIN).andExpect(status().isOk());
+    }
+
+    @Test
+    void unUsuarioSinPermisoNoConsultaElHistorial() throws Exception {
+        String ruta = "/api/interacciones/clientes/" + CLIENTE + "/historial";
+        // El Gerente consulta interacciones y compras por separado, pero no la vista de atención.
+        conIdentidad(get(ruta), "gerente", "GERENTE_COMERCIAL", "INTERACCIONES_CONSULTAR,INDICADORES_CONSULTAR")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo el Agente de Atención o el Administrador de CRM consultan "
+                        + "el historial del cliente con sus compras"));
+        conIdentidad(get(ruta), AGENTE, "AGENTE_ATENCION", "INTERACCIONES_CONSULTAR")
+                .andExpect(status().isForbidden());
+        conIdentidad(get(ruta), AGENTE, "AGENTE_ATENCION", "INDICADORES_CONSULTAR")
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        // Sin permiso no se revela si el cliente existe ni se valida el límite.
+        conIdentidad(get("/api/interacciones/clientes/999/historial?limite=0"), "gerente", "GERENTE_COMERCIAL",
+                "INTERACCIONES_CONSULTAR").andExpect(status().isForbidden());
+        verify(compras, never()).recientes(anyLong(), anyList(), anyInt());
+    }
+
     static Compra compra(String referencia, String fecha) {
         return new Compra(OffsetDateTime.parse(fecha), referencia, new BigDecimal("350.50"), "CONFIRMADA",
                 List.of(new Compra.Item("Electrónica", 1, new BigDecimal("350.50"))));

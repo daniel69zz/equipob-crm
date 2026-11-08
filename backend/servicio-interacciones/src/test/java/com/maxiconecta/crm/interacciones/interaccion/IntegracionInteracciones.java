@@ -70,7 +70,8 @@ abstract class IntegracionInteracciones {
     static final String RUTA_INTERACCION = RUTA + "/{id}";
     static final String AGENTE = "agente.ana";
     static final String OTRO_AGENTE = "agente.luis";
-    static final String PERMISOS_AGENTE = "CLIENTE_CONSULTAR,INTERACCIONES_CONSULTAR,INTERACCIONES_REGISTRAR";
+    static final String PERMISOS_AGENTE = "CLIENTE_CONSULTAR,INDICADORES_CONSULTAR,INTERACCIONES_CONSULTAR,"
+            + "INTERACCIONES_REGISTRAR";
     static final String PERMISOS_ADMIN = PERMISOS_AGENTE + ",AUDITORIA_CONSULTAR";
 
     @DynamicPropertySource

@@ -23,8 +23,11 @@ public final class IdentidadGateway {
     public static final String INTERACCIONES_CONSULTAR = "INTERACCIONES_CONSULTAR";
     public static final String INTERACCIONES_REGISTRAR = "INTERACCIONES_REGISTRAR";
     public static final String AUDITORIA_CONSULTAR = "AUDITORIA_CONSULTAR";
+    public static final String INDICADORES_CONSULTAR = "INDICADORES_CONSULTAR";
 
     private static final Set<String> ROLES_QUE_REGISTRAN = Set.of(ADMINISTRADOR_CRM, AGENTE_ATENCION);
+    /** Roles de atención que consultan el historial del cliente con sus compras (SCRUM-438). */
+    private static final Set<String> ROLES_DE_ATENCION = Set.of(ADMINISTRADOR_CRM, AGENTE_ATENCION);
 
     private IdentidadGateway() {
     }
@@ -46,6 +49,21 @@ public final class IdentidadGateway {
         Identidad identidad = identidad(solicitud);
         if (!ROLES_QUE_REGISTRAN.contains(identidad.rol()) || !tienePermiso(solicitud, INTERACCIONES_REGISTRAR)) {
             throw prohibido("Solo el Agente de Atención o el Administrador de CRM pueden registrar interacciones");
+        }
+        return identidad;
+    }
+
+    /**
+     * El historial del cliente con sus compras (SCRUM-53, criterio de aceptación 3): el Administrador de CRM o el
+     * Agente de Atención, con {@code INTERACCIONES_CONSULTAR} y con {@code INDICADORES_CONSULTAR}, que es el que pide
+     * el historial de compras.
+     */
+    public static Identidad historialCliente(HttpServletRequest solicitud) {
+        Identidad identidad = identidad(solicitud);
+        if (!ROLES_DE_ATENCION.contains(identidad.rol()) || !tienePermiso(solicitud, INTERACCIONES_CONSULTAR)
+                || !tienePermiso(solicitud, INDICADORES_CONSULTAR)) {
+            throw prohibido("Solo el Agente de Atención o el Administrador de CRM consultan el historial del cliente "
+                    + "con sus compras");
         }
         return identidad;
     }

@@ -144,6 +144,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/fidelizacion/**").hasAuthority(PUNTOS_CONSULTAR)
                         .requestMatchers("/api/fidelizacion/**").hasAuthority(FIDELIZACION_CONFIGURAR)
 
+                        // SCRUM-438: el historial del cliente con sus compras, solo el Administrador de CRM y el Agente.
+                        .requestMatchers(HttpMethod.GET, "/api/interacciones/clientes/*/historial")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole("ADMINISTRADOR_CRM", "AGENTE_ATENCION"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(INTERACCIONES_CONSULTAR),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(INDICADORES_CONSULTAR)))
                         .requestMatchers(HttpMethod.GET, "/api/interacciones/**").hasAuthority(INTERACCIONES_CONSULTAR)
                         .requestMatchers("/api/interacciones/**").hasAuthority(INTERACCIONES_REGISTRAR)
 
