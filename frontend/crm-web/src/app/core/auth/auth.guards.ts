@@ -35,6 +35,13 @@ export const saldoPuntosGuard: CanActivateFn = () => {
   return auth.puedeConsultarSaldoPuntos() ? true : router.createUrlTree(['/acceso-denegado']);
 };
 
+/** SCRUM-53: historial del cliente con sus compras, para el Administrador de CRM y el Agente de Atención. */
+export const historialClienteGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  return auth.puedeConsultarHistorialCliente() ? true : router.createUrlTree(['/acceso-denegado']);
+};
+
 export const preferenciasGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
