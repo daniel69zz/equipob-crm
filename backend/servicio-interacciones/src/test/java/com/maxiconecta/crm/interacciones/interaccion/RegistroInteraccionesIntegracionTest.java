@@ -41,51 +41,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * SCRUM-432 · Registro, edición y consulta del historial de interacciones (SCRUM-52,
- * docs/interacciones/registro-interacciones.md) con PostgreSQL real, la auditoría compartida de las migraciones del
- * Gateway, el servicio de Perfil simulado y la identidad que reenvía el Gateway.
+ * docs/interacciones/registro-interacciones.md).
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Testcontainers(disabledWithoutDocker = true)
-class RegistroInteraccionesIntegracionTest {
-
-    static final long CLIENTE = 42;
-    static final String AGENTE = "agente.ana";
-    static final String OTRO_AGENTE = "agente.luis";
-    static final String PERMISOS_AGENTE = "CLIENTE_CONSULTAR,INTERACCIONES_CONSULTAR,INTERACCIONES_REGISTRAR";
-    static final String PERMISOS_ADMIN = PERMISOS_AGENTE + ",AUDITORIA_CONSULTAR";
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @DynamicPropertySource
-    static void base(DynamicPropertyRegistry registro) {
-        // Las migraciones reales del Gateway son dueñas de la auditoría compartida (auditoria.evento).
-        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
-                .schemas("seguridad").locations("filesystem:../api-gateway/src/main/resources/db/migration").load()
-                .migrate();
-        registro.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registro.add("spring.datasource.username", POSTGRES::getUsername);
-        registro.add("spring.datasource.password", POSTGRES::getPassword);
-    }
-
-    @MockBean
-    ClientesPerfil perfiles;
-
-    @Autowired
-    JdbcTemplate jdbc;
-
-    @Autowired
-    MockMvc mvc;
-
-    @Autowired
-    ObjectMapper json;
-
-    @BeforeEach
-    void preparar() {
-        jdbc.execute("TRUNCATE interacciones.interaccion RESTART IDENTITY CASCADE");
-        when(perfiles.existe(anyLong())).thenAnswer(i -> i.getArgument(0, Long.class) == CLIENTE);
-    }
+class RegistroInteraccionesIntegracionTest extends IntegracionInteracciones {
 
     // --- Registro ---
 
@@ -321,59 +279,5 @@ class RegistroInteraccionesIntegracionTest {
                 .andExpect(jsonPath("$.campos.tamanio").exists())
                 .andExpect(jsonPath("$.campos.pagina").exists());
         historial("?desde=10/10/2026").andExpect(status().isBadRequest());
-    }
-
-    // --- Apoyo ---
-
-    long registrarReclamo(String usuario) throws Exception {
-        return respuesta(registrar(usuario, "AGENTE_ATENCION", PERMISOS_AGENTE, cuerpo("tipo", "RECLAMO",
-                "descripcion", "Llegaron 2 de los 3 productos.")).andExpect(status().isCreated())).get("id").asLong();
-    }
-
-    ResultActions historial(String consulta) throws Exception {
-        return conIdentidad(get("/api/interacciones/clientes/" + CLIENTE + consulta), AGENTE, "AGENTE_ATENCION",
-                PERMISOS_AGENTE);
-    }
-
-    ResultActions porTexto(String texto) throws Exception {
-        return conIdentidad(get("/api/interacciones/clientes/{id}", CLIENTE).param("texto", texto), AGENTE,
-                "AGENTE_ATENCION", PERMISOS_AGENTE);
-    }
-
-    ResultActions registrar(String usuario, String rol, String permisos, Map<String, Object> cuerpo) throws Exception {
-        return conIdentidad(post("/api/interacciones"), usuario, rol, permisos, cuerpo);
-    }
-
-    ResultActions modificar(long id, String usuario, String rol, Map<String, Object> cuerpo) throws Exception {
-        return conIdentidad(put("/api/interacciones/{id}", id), usuario, rol,
-                "ADMINISTRADOR_CRM".equals(rol) ? PERMISOS_ADMIN : PERMISOS_AGENTE, cuerpo);
-    }
-
-    ResultActions conIdentidad(MockHttpServletRequestBuilder solicitud, String usuario, String rol, String permisos,
-                               Map<String, Object> cuerpo) throws Exception {
-        return conIdentidad(solicitud.contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(cuerpo)),
-                usuario, rol, permisos);
-    }
-
-    ResultActions conIdentidad(MockHttpServletRequestBuilder solicitud, String usuario, String rol, String permisos)
-            throws Exception {
-        return mvc.perform(solicitud.header("X-Usuario", usuario).header("X-Usuario-Rol", rol)
-                .header("X-Usuario-Permisos", permisos));
-    }
-
-    /** Cuerpo con el cliente 42 por defecto; los pares clave-valor lo completan o lo reemplazan. */
-    static Map<String, Object> cuerpo(Object... pares) {
-        Map<String, Object> cuerpo = new HashMap<>();
-        for (int i = 0; i < pares.length; i += 2) {
-            cuerpo.put((String) pares[i], pares[i + 1]);
-        }
-        if (!cuerpo.containsKey("clienteId") && !cuerpo.containsKey("version")) {
-            cuerpo.put("clienteId", CLIENTE);
-        }
-        return cuerpo;
-    }
-
-    JsonNode respuesta(ResultActions resultado) throws Exception {
-        return json.readTree(resultado.andReturn().getResponse().getContentAsString());
     }
 }

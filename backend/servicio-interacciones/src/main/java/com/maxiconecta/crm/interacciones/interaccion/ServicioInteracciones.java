@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -33,12 +34,14 @@ public class ServicioInteracciones {
 
     private final RegistroInteracciones registro;
     private final ClientesPerfil perfiles;
+    private final AuditoriaInteracciones auditoria;
     private final TransactionTemplate transacciones;
 
     public ServicioInteracciones(RegistroInteracciones registro, ClientesPerfil perfiles,
-                                 TransactionTemplate transacciones) {
+                                 AuditoriaInteracciones auditoria, TransactionTemplate transacciones) {
         this.registro = registro;
         this.perfiles = perfiles;
+        this.auditoria = auditoria;
         this.transacciones = transacciones;
     }
 
@@ -50,8 +53,12 @@ public class ServicioInteracciones {
             throw new ReglaInvalidaException("El cliente " + solicitud.clienteId() + " no existe en el CRM",
                     Map.of("clienteId", "no existe en el CRM"));
         }
-        return transacciones.execute(estado ->
-                registro.registrar(solicitud.clienteId(), campos, identidad.usuario(), identidad.rol()));
+        // La interacción y su auditoría (SCRUM-436) se guardan juntas o no se guarda ninguna.
+        return transacciones.execute(estado -> {
+            Interaccion creada = registro.registrar(solicitud.clienteId(), campos, identidad.usuario(), identidad.rol());
+            auditoria.creada(creada);
+            return creada;
+        });
     }
 
     public Interaccion modificar(long id, SolicitudCambio solicitud, Identidad identidad) {
@@ -67,15 +74,24 @@ public class ServicioInteracciones {
                         + actual.version() + "): vuelva a cargarla y repita el cambio",
                         Map.of("version", "la interacción ya está en la versión " + actual.version()));
             }
-            if (cambios(actual, campos).isEmpty()) {
+            Map<String, Cambio> cambios = cambios(actual, campos);
+            if (cambios.isEmpty()) {
                 throw new ReglaInvalidaException("La interacción no tiene cambios para guardar");
             }
-            return registro.modificar(id, campos, identidad.usuario());
+            Interaccion modificada = registro.modificar(id, campos, identidad.usuario());
+            auditoria.modificada(modificada, identidad.rol(), cambios);
+            return modificada;
         });
     }
 
     public Interaccion detalle(long id) {
         return registro.buscar(id).orElseThrow(() -> noEncontrada(id));
+    }
+
+    /** La auditoría de una interacción, de la creación al último cambio. */
+    public List<AuditoriaInteracciones.RegistroAuditoria> auditoria(long id) {
+        detalle(id);
+        return auditoria.de(id);
     }
 
     public PaginaInteracciones historial(long clienteId, String tipo, String texto, LocalDate desde, LocalDate hasta,

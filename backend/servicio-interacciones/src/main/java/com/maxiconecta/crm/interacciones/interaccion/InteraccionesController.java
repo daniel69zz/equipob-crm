@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * API de interacciones con el cliente (SCRUM-52). El acceso se comprueba antes de validar el cuerpo (SCRUM-435).
@@ -54,6 +55,13 @@ public class InteraccionesController {
     public Interaccion detalle(@PathVariable long id, HttpServletRequest http) {
         IdentidadGateway.consulta(http);
         return servicio.detalle(id);
+    }
+
+    /** Quién creó y quién cambió la interacción, con los valores anteriores y nuevos (SCRUM-436). */
+    @GetMapping("/{id}/auditoria")
+    public List<AuditoriaInteracciones.RegistroAuditoria> auditoria(@PathVariable long id, HttpServletRequest http) {
+        IdentidadGateway.auditoria(http);
+        return servicio.auditoria(id);
     }
 
     /** Historial de un cliente, de la más reciente a la más antigua, con los filtros de SCRUM-431. */

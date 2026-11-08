@@ -19,9 +19,12 @@ El modelo de datos, las reglas y los permisos están en `docs/interacciones/regi
 | PUT | `/api/interacciones/{id}` | El agente que la registró o el Administrador de CRM |
 | GET | `/api/interacciones/{id}` | `INTERACCIONES_CONSULTAR` |
 | GET | `/api/interacciones/clientes/{clienteId}?tipo=&texto=&desde=&hasta=&pagina=&tamanio=` | `INTERACCIONES_CONSULTAR` |
+| GET | `/api/interacciones/{id}/auditoria` | Administrador de CRM con `AUDITORIA_CONSULTAR` |
 
 - Una edición lleva la `version` que el usuario tenía en pantalla. Si otra persona la cambió antes, responde `409`.
 - Una interacción no se borra.
+- La creación y cada cambio quedan en `interacciones.interaccion_auditoria` (solo inserción) y en
+  `auditoria.evento` como `INTERACCION_REGISTRADA` o `INTERACCION_MODIFICADA` (SCRUM-436).
 - Los errores de campo vienen en `campos`.
 
 ## Ejecutar

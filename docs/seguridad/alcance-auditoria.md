@@ -39,6 +39,17 @@ saldo anterior y el resultante, el motivo, la referencia y el rol. Si ese regist
 El detalle completo también queda en `fidelizacion.ajuste_puntos`, de solo inserción
 (`docs/fidelizacion/ajuste-manual-puntos.md`).
 
+Las interacciones con el cliente (SCRUM-52) se registran y se modifican con `POST /api/interacciones` y
+`PUT /api/interacciones/{id}`, que no son rutas de cliente para el Gateway. Por eso `servicio-interacciones`
+registra por su cuenta `INTERACCION_REGISTRADA` e `INTERACCION_MODIFICADA` (SCRUM-436) en la misma transacción
+que el cambio, con entidad `CLIENTE` y el número del cliente. El detalle lleva la interacción, su tipo, su
+versión, el rol y el nombre de los campos que cambiaron, sin el texto de la descripción. Si ese registro falla,
+la interacción no se guarda. Los valores anteriores y nuevos quedan en `interacciones.interaccion_auditoria`, de
+solo inserción, que el Administrador consulta con `GET /api/interacciones/{id}/auditoria`
+(`docs/interacciones/registro-interacciones.md`). La consulta del historial
+`GET /api/interacciones/clientes/{clienteId}` sí es una ruta de cliente: el Gateway registra
+`CLIENTE_CONSULTADO` o `ACCESO_DENEGADO`.
+
 Estas operaciones se suman a las que ya registra la administración de seguridad (SCRUM-508): `ROL_CREADO`, `ROL_ACTUALIZADO`, `ROL_DESACTIVADO`, `USUARIO_CREADO`, `ROL_ASIGNADO` y `USUARIO_DESACTIVADO`.
 
 La ficha integral del cliente (SCRUM-10) se expone en `GET /api/perfil/clientes/{clienteId}/ficha-integral`, que sigue la misma convención de ruta que el perfil básico (`/api/perfil/clientes/{clienteId}`). Por eso queda cubierta automáticamente por este filtro, sin ningún cambio: una consulta exitosa se registra como `CLIENTE_CONSULTADO` y un intento sin el permiso `FICHA_INTEGRAL_CONSULTAR` (SCRUM-153) queda como `ACCESO_DENEGADO`, igual que con el resto de rutas de cliente (SCRUM-156, verificado en `TrazabilidadAuditoriaTest`).

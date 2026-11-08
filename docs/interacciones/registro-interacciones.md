@@ -53,6 +53,23 @@ Además, cada registro y cada cambio quedan en la auditoría compartida `auditor
 `CLIENTE` y el número del cliente. El detalle lleva la interacción, su tipo y los campos cambiados, pero no el
 texto de la descripción. Así el Administrador ve en la pantalla de auditoría quién atendió a cada cliente.
 
+Los dos registros van en la misma transacción que la interacción (SCRUM-436): si uno falla, la interacción no se
+guarda ni cambia. Un cambio rechazado (sin permiso, con una versión anterior o sin cambios) no deja registro.
+`GET /api/interacciones/{id}/auditoria` devuelve los registros de una interacción, de la creación al último
+cambio:
+
+```json
+[
+  {"id": 1, "operacion": "CREADA", "usuario": "agente.ana", "rol": "AGENTE_ATENCION",
+   "ocurridoEn": "2026-11-08T14:02:10Z", "version": 1,
+   "cambios": {"tipo": {"anterior": null, "nuevo": "RECLAMO"},
+               "descripcion": {"anterior": null, "nuevo": "Llegaron 2 de los 3 productos."}}},
+  {"id": 2, "operacion": "MODIFICADA", "usuario": "admin", "rol": "ADMINISTRADOR_CRM",
+   "ocurridoEn": "2026-11-08T15:20:11Z", "version": 2,
+   "cambios": {"canal": {"anterior": null, "nuevo": "TELEFONO"}}}
+]
+```
+
 ## Permisos de acceso (SCRUM-435)
 
 Los permisos ya existen en el Gateway (`docs/seguridad/matriz-permisos.md`): `INTERACCIONES_CONSULTAR` lo tienen
