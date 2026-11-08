@@ -8,6 +8,9 @@ import { FichaIntegral, FichaIntegralService } from './ficha-integral.service';
 import { NivelConsumoComponent } from './nivel-consumo.component';
 import { ClasificacionFrecuenciaComponent } from './clasificacion-frecuencia.component';
 import { PuntosFidelizacionComponent } from './puntos-fidelizacion.component';
+import { HistorialAjustesComponent } from './historial-ajustes.component';
+import { SiTienePermisoDirective } from '../../core/auth/si-tiene-permiso.directive';
+import { Permisos } from '../../core/auth/sesion';
 import { PestaniasClienteComponent } from './pestanias-cliente.component';
 import { RiesgoAbandonoComponent } from './riesgo-abandono.component';
 
@@ -31,7 +34,7 @@ const NOMBRES_DE_TIPO_DIRECCION: Record<string, string> = {
 @Component({
   selector: 'app-ficha-integral',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, NivelConsumoComponent, ClasificacionFrecuenciaComponent, CambiosComportamientoComponent, RiesgoAbandonoComponent, PuntosFidelizacionComponent, PestaniasClienteComponent],
+  imports: [DatePipe, DecimalPipe, RouterLink, NivelConsumoComponent, ClasificacionFrecuenciaComponent, CambiosComportamientoComponent, RiesgoAbandonoComponent, PuntosFidelizacionComponent, HistorialAjustesComponent, SiTienePermisoDirective, PestaniasClienteComponent],
   template: `
     <app-pestanias-cliente [id]="id()" />
     <h1>Ficha integral del cliente</h1>
@@ -97,6 +100,9 @@ const NOMBRES_DE_TIPO_DIRECCION: Record<string, string> = {
 
       <app-puntos-fidelizacion [puntos]="datos.puntos" />
 
+      <!-- SCRUM-427: historial de ajustes manuales del saldo (criterio de aceptación 4 de SCRUM-51). -->
+      <app-historial-ajustes *appSiTienePermiso="permisos.PUNTOS_CONSULTAR" [clienteId]="numeroCliente()" />
+
       <section class="tarjeta historial" aria-label="Historial de compras">
         <h2>Historial de compras</h2>
         @for (compra of datos.historialCompras; track $index) {
@@ -145,10 +151,15 @@ export class FichaIntegralComponent implements OnInit {
 
   /** Identificador del cliente, tomado de la ruta /clientes/:id/ficha-integral. */
   readonly id = input.required<string>();
+  readonly permisos = Permisos;
 
   readonly ficha = signal<FichaIntegral | null>(null);
   readonly cargando = signal(false);
   readonly error = signal<string | null>(null);
+
+  numeroCliente(): number {
+    return Number(this.id());
+  }
 
   ngOnInit(): void {
     this.cargando.set(true);
