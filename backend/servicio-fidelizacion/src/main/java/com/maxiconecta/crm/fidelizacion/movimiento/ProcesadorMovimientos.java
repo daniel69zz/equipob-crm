@@ -1,5 +1,7 @@
 package com.maxiconecta.crm.fidelizacion.movimiento;
 
+import com.maxiconecta.crm.fidelizacion.regla.ReglaAcumulacion;
+import com.maxiconecta.crm.fidelizacion.regla.ReglasAcumulacion;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,15 +16,15 @@ public class ProcesadorMovimientos {
     private final BitacoraMovimientos bitacora;
     private final LectorMovimientos lector;
     private final ClientesPerfil perfiles;
-    private final ReglaCalculoPuntos regla;
+    private final ReglasAcumulacion reglas;
     private final RegistroPuntos registro;
 
     public ProcesadorMovimientos(BitacoraMovimientos bitacora, LectorMovimientos lector, ClientesPerfil perfiles,
-                                 ReglaCalculoPuntos regla, RegistroPuntos registro) {
+                                 ReglasAcumulacion reglas, RegistroPuntos registro) {
         this.bitacora = bitacora;
         this.lector = lector;
         this.perfiles = perfiles;
-        this.regla = regla;
+        this.reglas = reglas;
         this.registro = registro;
     }
 
@@ -37,10 +39,12 @@ public class ProcesadorMovimientos {
         long clienteId = perfiles.buscar(movimiento.idCliente())
                 .orElseThrow(() -> new EventoInvalidoException("El cliente " + movimiento.idCliente()
                         + " no tiene perfil en el CRM; el movimiento queda para reproceso"));
+        // SCRUM-46: la regla vigente al procesar el movimiento; su versión queda en el detalle.
+        ReglaAcumulacion regla = reglas.vigente();
         long puntos = regla.puntos(movimiento.valorConsumido());
 
         registro.reservar(movimiento.idTransaccion(), tipo, clienteId, movimiento.idCliente(),
-                movimiento.valorConsumido(), puntos, regla.bolivianosPorPunto(), movimiento.fecha(), idEventoMovimiento);
+                movimiento.valorConsumido(), puntos, regla, movimiento.fecha(), idEventoMovimiento);
         long saldo = registro.acreditar(clienteId, puntos);
         registro.anotarSaldoResultante(movimiento.idTransaccion(), tipo, saldo);
         bitacora.marcarProcesado(idEventoMovimiento);

@@ -11,7 +11,7 @@ Administra el programa de puntos.
 
 ## Acumulación de puntos (SCRUM-45)
 
-1 punto por cada Bs 10 consumidos (`FIDELIZACION_BOLIVIANOS_POR_PUNTO`), redondeando hacia abajo. Un
+1 punto por cada tramo completo de la tasa de la regla vigente (inicialmente Bs 10), redondeando hacia abajo. Un
 movimiento reentregado no acredita dos veces; uno inválido queda `FALLIDO` con la causa, sin cambiar el
 saldo, y se puede reprocesar. Cada transacción deja su detalle de puntos. Regla, API y pruebas en
 `docs/fidelizacion/acumulacion-puntos.md`; contrato en `docs/contratos-eventos/RIO-CRM-03-movimiento-puntos.md`.
@@ -22,6 +22,18 @@ saldo, y se puede reprocesar. Cada transacción deja su detalle de puntos. Regla
 | GET | `/api/fidelizacion/clientes/{clienteId}/movimientos` | `PUNTOS_CONSULTAR` |
 | GET | `/api/fidelizacion/eventos?estado=FALLIDO` | `PUNTOS_CONSULTAR` |
 | POST | `/api/fidelizacion/eventos/{id}/reprocesar` | `FIDELIZACION_CONFIGURAR` |
+
+## Reglas de acumulación (SCRUM-46)
+
+El Administrador de CRM configura los bolivianos por punto y el monto mínimo de compra. Cada cambio es
+una versión nueva que se aplica a los movimientos siguientes, sin recalcular los puntos ya otorgados, y
+queda en el historial con quién y cuándo la cambió. Detalle en `docs/fidelizacion/reglas-acumulacion.md`.
+
+| Método | Ruta | Permiso (Gateway) |
+|---|---|---|
+| GET | `/api/fidelizacion/reglas/acumulacion` | `PUNTOS_CONSULTAR` |
+| PUT | `/api/fidelizacion/reglas/acumulacion` | `FIDELIZACION_CONFIGURAR` + rol Administrador de CRM |
+| GET | `/api/fidelizacion/reglas/acumulacion/historial` | rol Administrador de CRM + `FIDELIZACION_CONFIGURAR` |
 
 ## Ejecutar
 

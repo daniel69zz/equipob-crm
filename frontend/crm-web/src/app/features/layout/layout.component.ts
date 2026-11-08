@@ -48,6 +48,7 @@ const GRUPOS: Grupo[] = [
     titulo: 'Administración',
     enlaces: [
       { texto: 'Criterios de segmentación', ruta: '/segmentacion/criterios', icono: 'segmentos', permiso: Permisos.SEGMENTACION_CONFIGURAR },
+      { texto: 'Reglas de puntos', ruta: '/fidelizacion/reglas', icono: 'fidelizacion', permiso: Permisos.FIDELIZACION_CONFIGURAR },
       { texto: 'Usuarios', ruta: '/admin/usuarios', icono: 'usuarios', permiso: Permisos.USUARIOS_ADMINISTRAR },
       { texto: 'Roles y permisos', ruta: '/admin/roles', icono: 'roles', permiso: Permisos.USUARIOS_ADMINISTRAR },
       { texto: 'Auditoría', ruta: '/admin/auditoria', icono: 'auditoria', permiso: Permisos.AUDITORIA_CONSULTAR },

@@ -41,3 +41,10 @@ export const administradorSegmentacionGuard: CanActivateFn = () => {
   return auth.estaAutenticado() && auth.sesion()?.rol === 'ADMINISTRADOR_CRM' && auth.tienePermiso('SEGMENTACION_CONFIGURAR')
     ? true : inject(Router).createUrlTree(['/acceso-denegado']);
 };
+
+/** SCRUM-46: la configuración del programa de puntos exige el rol de Administrador de CRM y su permiso. */
+export const administradorFidelizacionGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.estaAutenticado() && auth.sesion()?.rol === 'ADMINISTRADOR_CRM' && auth.tienePermiso('FIDELIZACION_CONFIGURAR')
+    ? true : inject(Router).createUrlTree(['/acceso-denegado']);
+};
