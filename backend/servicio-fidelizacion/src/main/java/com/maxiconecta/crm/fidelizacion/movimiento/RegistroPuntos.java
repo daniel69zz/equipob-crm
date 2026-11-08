@@ -212,13 +212,15 @@ public class RegistroPuntos {
 
     /**
      * Efecto del movimiento sobre el saldo: suma en una acumulación, resta en una redención (SCRUM-403) y
-     * en una reversa resta lo que se pudo descontar (SCRUM-524).
+     * en una reversa resta lo que se pudo descontar (SCRUM-524) y en una caducidad resta lo que venció
+     * (SCRUM-417).
      */
     static long variacion(String tipoMovimiento, long puntos, long puntosNoRecuperados) {
         return switch (TipoMovimiento.valueOf(tipoMovimiento)) {
             case ACUMULACION -> puntos;
             case REDENCION -> -puntos;
             case REVERSA -> -(puntos - puntosNoRecuperados);
+            case CADUCIDAD -> -puntos;
         };
     }
 

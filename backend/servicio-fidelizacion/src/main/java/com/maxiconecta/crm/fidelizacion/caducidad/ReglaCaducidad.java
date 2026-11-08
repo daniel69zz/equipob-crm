@@ -24,6 +24,14 @@ public final class ReglaCaducidad {
         return ultimaAcumulacion.withOffsetSameInstant(ZoneOffset.UTC).plusMonths(vigenciaMeses);
     }
 
+    /**
+     * Identificador del movimiento de caducidad (SCRUM-417): depende solo del cliente y del vencimiento, así
+     * que la clave primaria del historial impide caducar dos veces el mismo saldo (criterio de aceptación 3).
+     */
+    public static String idMovimiento(long clienteId, OffsetDateTime fechaCaducidad) {
+        return "CADUCIDAD-" + clienteId + "-" + SELLO.format(fechaCaducidad.withOffsetSameInstant(ZoneOffset.UTC));
+    }
+
     /** El saldo está vencido desde el mismo instante de su fecha de caducidad. */
     public static boolean vencida(OffsetDateTime fechaCaducidad, OffsetDateTime momento) {
         return !fechaCaducidad.isAfter(momento);
