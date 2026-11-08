@@ -88,6 +88,20 @@ la acumulación de su compra, se reprocesa después y se aplica.
 | GET | `/api/fidelizacion/eventos?estado=FALLIDO&tipo=REVERSA` | `PUNTOS_CONSULTAR` | Reversas fallidas, con su causa |
 | POST | `/api/fidelizacion/eventos/{id}/reprocesar` | `FIDELIZACION_CONFIGURAR` | Vuelve a procesar un evento `FALLIDO` |
 
+## Nivel tras la reversa (SCRUM-541, criterio de aceptación 4)
+
+En la misma transacción de la reversa se recalcula el nivel con `AsignacionNiveles` (SCRUM-49). La
+reversa resta **todos** sus puntos de los puntos del periodo, también los no recuperados: la compra
+anulada deja de contar para el nivel. Cuenta con la fecha de la compra que revierte, así que sale del
+periodo junto con ella. Si el cliente desciende (o cambia) de nivel, el cambio queda en
+`fidelizacion.cambio_nivel` con la reversa como origen:
+
+```
+GET /api/fidelizacion/clientes/{clienteId}/cambios-nivel      (PUNTOS_CONSULTAR)
+```
+
+Una reversa `FALLIDO` o `DESCARTADO` no cambia el nivel.
+
 ## Historial de movimientos (SCRUM-539)
 
 La reversa queda en `fidelizacion.movimiento_puntos` con la referencia a la acumulación que revierte

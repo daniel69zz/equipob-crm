@@ -47,8 +47,9 @@ public class ProcesadorMovimientos {
             case REVERSA -> revertir(clienteId, movimiento, idEventoMovimiento);
         };
         registro.anotarSaldoResultante(movimiento.idTransaccion(), tipo, saldo);
-        // SCRUM-49: con el saldo cambia también el nivel, en la misma transacción (criterio 4 de SCRUM-48).
-        niveles.recalcular(clienteId);
+        // SCRUM-49: con el saldo cambia también el nivel, en la misma transacción (criterio 4 de SCRUM-48 y
+        // de SCRUM-524); si cambia, queda registrado con este movimiento como origen (SCRUM-541).
+        niveles.recalcular(clienteId, movimiento.idTransaccion(), tipo.name());
         bitacora.marcarProcesado(idEventoMovimiento);
         return saldo;
     }

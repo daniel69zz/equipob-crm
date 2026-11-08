@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.consulta;
 
+import com.maxiconecta.crm.fidelizacion.nivel.AsignacionNiveles;
 import com.maxiconecta.crm.fidelizacion.puntos.SaldoPuntos;
 import com.maxiconecta.crm.fidelizacion.puntos.SaldoPuntosRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +28,7 @@ class FidelizacionControllerTest {
     @BeforeEach
     void preparar() {
         saldos = mock(SaldoPuntosRepository.class);
-        mvc = MockMvcBuilders.standaloneSetup(new FidelizacionController(saldos)).build();
+        mvc = MockMvcBuilders.standaloneSetup(new FidelizacionController(saldos, mock(AsignacionNiveles.class))).build();
     }
 
     @Test
