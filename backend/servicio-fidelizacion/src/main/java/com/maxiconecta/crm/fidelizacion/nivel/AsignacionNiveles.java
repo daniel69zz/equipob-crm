@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.nivel;
 
+import com.maxiconecta.crm.fidelizacion.salida.RegistroSalidaSaldo;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -75,12 +76,14 @@ public class AsignacionNiveles {
     /** Solo toca a quien cambió; devuelve una fila por cliente con {@code true} si cambió de nivel. */
     private static final String TODOS = SENTENCIA.formatted("",
             "AND (s.nivel IS DISTINCT FROM k.nivel OR s.puntos_periodo <> k.puntos)")
-            + "SELECT anterior IS DISTINCT FROM nivel FROM actualizado";
+            + "SELECT cliente_id, anterior IS DISTINCT FROM nivel AS cambio FROM actualizado";
 
     private final JdbcTemplate jdbc;
+    private final RegistroSalidaSaldo salida;
 
-    public AsignacionNiveles(JdbcTemplate jdbc) {
+    public AsignacionNiveles(JdbcTemplate jdbc, RegistroSalidaSaldo salida) {
         this.jdbc = jdbc;
+        this.salida = salida;
     }
 
     /** Recalcula el nivel de un cliente con saldo; devuelve su nivel, o nulo si no tiene. */
@@ -95,8 +98,12 @@ public class AsignacionNiveles {
      * @return su nivel, o nulo si no tiene
      */
     public Nivel recalcular(long clienteId, String idTransaccion, String tipoMovimiento) {
-        return jdbc.query(UN_CLIENTE, r -> r.next() && r.getString(1) != null ? Nivel.valueOf(r.getString(1)) : null,
+        Nivel nivel = jdbc.query(UN_CLIENTE, r -> r.next() && r.getString(1) != null ? Nivel.valueOf(r.getString(1)) : null,
                 clienteId, Origen.MOVIMIENTO.name(), idTransaccion, tipoMovimiento);
+        if (idTransaccion != null) {
+            salida.registrar(clienteId, idTransaccion, tipoMovimiento);
+        }
+        return nivel;
     }
 
     /**
@@ -105,8 +112,10 @@ public class AsignacionNiveles {
      * @return cuántos clientes cambiaron de nivel
      */
     public int recalcularTodos() {
-        return (int) jdbc.queryForList(TODOS, Boolean.class, Origen.RECALCULO.name(), null, null).stream()
-                .filter(Boolean.TRUE::equals).count();
+        List<Long> cambiados = jdbc.query(TODOS, (r, n) -> r.getBoolean("cambio") ? r.getLong("cliente_id") : null,
+                Origen.RECALCULO.name(), null, null).stream().filter(java.util.Objects::nonNull).toList();
+        cambiados.forEach(salida::registrarCambioNivel);
+        return cambiados.size();
     }
 
     /** Cambios de nivel de un cliente, del más reciente al más antiguo (SCRUM-541). */
