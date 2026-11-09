@@ -1,0 +1,15 @@
+# SCRUM-621: publica en Pub/Sub conservando RabbitMQ como transporte de entrada.
+# Activar con SPRING_PROFILES_ACTIVE=salida-pubsub (o pubsub,salida-pubsub para ambos sentidos).
+spring:
+  cloud:
+    gcp:
+      core:
+        enabled: true
+      project-id: ${PUBSUB_PROYECTO:crm-maxiconecta}
+      pubsub:
+        enabled: true
+        emulator-host: ${PUBSUB_EMULADOR:}
+
+fidelizacion:
+  salida:
+    enabled: ${FIDELIZACION_SALIDA_ENABLED:true}
