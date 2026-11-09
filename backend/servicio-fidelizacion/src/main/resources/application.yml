@@ -11,6 +11,12 @@ crm:
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
 
 fidelizacion:
+  salida:
+    enabled: ${FIDELIZACION_SALIDA_ENABLED:false}
+    topico: ${FIDELIZACION_SALIDA_TOPICO:ucb-sis323-sub-b}
+    intervalo-ms: ${FIDELIZACION_SALIDA_INTERVALO_MS:5000}
+    lote: ${FIDELIZACION_SALIDA_LOTE:20}
+    espera-segundos: ${FIDELIZACION_SALIDA_ESPERA_SEGUNDOS:10}
   puntos:
     # SCRUM-525: meses de vigencia del saldo desde la última acumulación (RIO-CRM-04 y la caducidad, SCRUM-50).
     vigencia-meses: ${FIDELIZACION_VIGENCIA_MESES:12}
