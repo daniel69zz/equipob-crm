@@ -1,6 +1,6 @@
 # Contratos de eventos
 
-Definición de los mensajes que intercambian el CRM y el módulo **Marketplace y Ventas** del ERP, su única integración. Todos los eventos vienen de ese módulo, por eso no llevan un campo de origen: los clientes, compras y anulaciones se identifican por su identificador en Marketplace y Ventas.
+Definición de los mensajes que intercambian el CRM y el módulo **Marketplace y Ventas** del ERP, su única integración. Los eventos RIO-CRM-01, 02, 03 y 05 vienen de ese módulo; RIO-CRM-06 lo publica el CRM. Los clientes, compras y anulaciones se identifican por su identificador en Marketplace y Ventas.
 
 | Contrato | Tipo | Descripción |
 |---|---|---|
@@ -11,3 +11,6 @@ Definición de los mensajes que intercambian el CRM y el módulo **Marketplace y
 | [RIO-CRM-05](RIO-CRM-05-anulacion-compra.md) | Evento (RabbitMQ) | Anulación o devolución de compra |
 
 Cada contrato se documenta en su propio archivo con sus campos, tipos y un ejemplo en JSON.
+
+Salida del CRM: [RIO-CRM-06 · Saldo y nivel de puntos actualizados](RIO-CRM-06-saldo-puntos-actualizado.md),
+evento Google Cloud Pub/Sub hacia Marketplace y Ventas, con bandeja de salida transaccional (SCRUM-594).
