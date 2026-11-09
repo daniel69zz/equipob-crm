@@ -54,6 +54,25 @@ public class ClientesPerfil {
     public record Perfil(Long id) {
     }
 
+    /** Se consulta solo en el despachador: una caida de Perfil no bloquea un ajuste manual. */
+    public String identificador(long clienteId) {
+        PerfilIdentificadores perfil = http.get().uri("/api/perfil/clientes/{id}", clienteId)
+                .retrieve().body(PerfilIdentificadores.class);
+        List<String> ids = perfil == null || perfil.identificadoresOrigen() == null ? List.of()
+                : perfil.identificadoresOrigen().stream().map(Identificador::idCliente)
+                    .filter(id -> id != null && !id.isBlank()).distinct().toList();
+        if (ids.size() != 1) {
+            throw new IllegalStateException("El cliente " + clienteId + " requiere un identificador unico de Marketplace");
+        }
+        return ids.get(0);
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record PerfilIdentificadores(List<Identificador> identificadoresOrigen) { }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Identificador(String idCliente) { }
+
     /** El servicio de Perfil no respondió: el movimiento queda FALLIDO y se puede reprocesar. */
     public static class PerfilNoDisponibleException extends RuntimeException {
         public PerfilNoDisponibleException(String mensaje) {
