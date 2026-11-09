@@ -96,3 +96,14 @@ indicando un motivo. El ajuste se rechaza si deja el saldo negativo o si el sald
 Cada ajuste queda como movimiento `AJUSTE` en el historial, en `fidelizacion.ajuste_puntos` (de solo inserción) y
 en la auditoría compartida (`PUNTOS_AJUSTADOS`). El historial se consulta con
 `GET /api/fidelizacion/clientes/{clienteId}/ajustes`. Reglas y modelo en `docs/fidelizacion/ajuste-manual-puntos.md`.
+
+## Publicación asíncrona del saldo (SCRUM-594)
+
+Cada movimiento confirmado y cada cambio de nivel por recálculo guarda un evento RIO-CRM-06
+en una bandeja de salida transaccional. El perfil `salida-pubsub` habilita el envío a Google Cloud
+Pub/Sub sin cambiar el transporte de entrada; `pubsub,salida-pubsub` usa Pub/Sub en ambos sentidos.
+Un fallo del broker deja la publicación pendiente y no revierte el movimiento.
+
+Contrato, variables de entorno, credenciales, emulador y validación en el tópico del curso:
+[publicación de saldo](../../docs/fidelizacion/publicacion-saldo-puntos.md).
+Diagramas: [clases y secuencia](../../docs/fidelizacion/diagramas/publicacion-saldo-puntos.md).
