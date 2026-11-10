@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ManejadorDeErrores {
@@ -44,6 +45,16 @@ public class ManejadorDeErrores {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiError> parametroInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest solicitud) {
         return respuesta(HttpStatus.BAD_REQUEST, "Valor no válido para '" + ex.getName() + "': " + ex.getValue(), solicitud);
+    }
+
+    /**
+     * 401 y 403 del control de permisos dentro del servicio (SCRUM-58, {@code reporte.PermisoReportes}),
+     * con el mismo cuerpo que el resto de los errores.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiError> estado(ResponseStatusException ex, HttpServletRequest solicitud) {
+        HttpStatus estado = HttpStatus.valueOf(ex.getStatusCode().value());
+        return respuesta(estado, ex.getReason(), solicitud);
     }
 
     private static ResponseEntity<ApiError> respuesta(HttpStatus estado, String mensaje, HttpServletRequest solicitud) {

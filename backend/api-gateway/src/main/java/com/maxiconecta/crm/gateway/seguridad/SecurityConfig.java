@@ -114,6 +114,11 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(INDICADORES_CONSULTAR),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(SEGMENTOS_CONSULTAR)))
+                        // Reportes de comportamiento de compra (SCRUM-58): permiso de los reportes (SCRUM-462), que
+                        // el Agente no tiene aunque consulte INDICADORES_CONSULTAR; solo lectura.
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/reportes/**")
+                            .hasAuthority(REPORTES_CONSULTAR)
+                        .requestMatchers("/api/comportamiento/reportes/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/**").hasAuthority(INDICADORES_CONSULTAR)
 
                         .requestMatchers("/api/segmentacion/criterios", "/api/segmentacion/criterios/**")

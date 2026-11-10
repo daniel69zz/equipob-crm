@@ -82,4 +82,58 @@ public class AgregadoConsumoPeriodo {
         }
         return new ResumenCompras(compras, monto);
     }
+
+    /**
+     * Compras vigentes de toda la cartera dentro del periodo: las vinculadas a algún perfil
+     * (SCRUM-468). Es el reporte de comportamiento sin segmento, con la misma regla que el de un
+     * segmento ({@link #resumirPerfiles}): las compras pendientes de vinculación no entran.
+     */
+    @Transactional(readOnly = true)
+    public ResumenCompras resumirVinculadas(OffsetDateTime inicio, OffsetDateTime fin) {
+        CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Tuple> consulta = criterios.createTupleQuery();
+        Root<Compra> compra = consulta.from(Compra.class);
+        consulta.multiselect(criterios.count(compra),
+                criterios.sum(ComprasDelCliente.montoVigente(compra, criterios)));
+        consulta.where(criterios.isNotNull(compra.get("idCliente")), ComprasDelCliente.vigente(compra, criterios),
+                criterios.greaterThanOrEqualTo(compra.<OffsetDateTime>get("fecha"), inicio),
+                criterios.lessThan(compra.<OffsetDateTime>get("fecha"), fin));
+        Tuple fila = entityManager.createQuery(consulta).getSingleResult();
+        BigDecimal monto = fila.get(1, BigDecimal.class);
+        return new ResumenCompras(fila.get(0, Long.class), monto == null ? BigDecimal.ZERO : monto);
+    }
+
+    /**
+     * Cuántos de esos perfiles hicieron al menos una compra vigente en el periodo (SCRUM-466). Los
+     * lotes no se solapan, así que sumar los conteos distintos de cada uno da el total exacto.
+     */
+    @Transactional(readOnly = true)
+    public long clientesConCompras(List<Long> idsPerfil, OffsetDateTime inicio, OffsetDateTime fin) {
+        long clientes = 0;
+        for (int desde = 0; desde < idsPerfil.size(); desde += LOTE_DE_CLIENTES) {
+            List<Long> lote = idsPerfil.subList(desde, Math.min(desde + LOTE_DE_CLIENTES, idsPerfil.size()));
+            CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
+            CriteriaQuery<Long> consulta = criterios.createQuery(Long.class);
+            Root<Compra> compra = consulta.from(Compra.class);
+            consulta.select(criterios.countDistinct(compra.get("idCliente")));
+            consulta.where(compra.get("idCliente").in(lote), ComprasDelCliente.vigente(compra, criterios),
+                    criterios.greaterThanOrEqualTo(compra.<OffsetDateTime>get("fecha"), inicio),
+                    criterios.lessThan(compra.<OffsetDateTime>get("fecha"), fin));
+            clientes += entityManager.createQuery(consulta).getSingleResult();
+        }
+        return clientes;
+    }
+
+    /** Lo mismo para toda la cartera: perfiles distintos con alguna compra vigente vinculada en el periodo. */
+    @Transactional(readOnly = true)
+    public long clientesConComprasVinculadas(OffsetDateTime inicio, OffsetDateTime fin) {
+        CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Long> consulta = criterios.createQuery(Long.class);
+        Root<Compra> compra = consulta.from(Compra.class);
+        consulta.select(criterios.countDistinct(compra.get("idCliente")));
+        consulta.where(criterios.isNotNull(compra.get("idCliente")), ComprasDelCliente.vigente(compra, criterios),
+                criterios.greaterThanOrEqualTo(compra.<OffsetDateTime>get("fecha"), inicio),
+                criterios.lessThan(compra.<OffsetDateTime>get("fecha"), fin));
+        return entityManager.createQuery(consulta).getSingleResult();
+    }
 }

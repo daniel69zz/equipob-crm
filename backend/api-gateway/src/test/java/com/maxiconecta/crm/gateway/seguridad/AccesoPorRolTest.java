@@ -418,6 +418,30 @@ class AccesoPorRolTest {
                 .andExpect(status().isForbidden());
     }
 
+    // --- Reporte de comportamiento de compra (SCRUM-58): permiso de los reportes, no el de indicadores ---
+
+    @Test
+    void elGerenteComercialPuedeAbrirElReporteDeComportamiento() throws Exception {
+        mvc.perform(get("/api/comportamiento/reportes/comportamiento").header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "REPORTES_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elAgenteNoAbreElReporteDeComportamientoAunqueConsulteIndicadores() throws Exception {
+        String ruta = "/api/comportamiento/reportes/comportamiento";
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        // Los indicadores de un cliente siguen abiertos para el Agente: la regla nueva no los toca.
+        mvc.perform(get("/api/comportamiento/clientes/42/indicadores").header("Authorization",
+                        bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(post(ruta).header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "REPORTES_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test
