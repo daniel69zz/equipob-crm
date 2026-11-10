@@ -41,6 +41,7 @@ const GRUPOS: Grupo[] = [
       { texto: 'Panel de indicadores', ruta: '/analisis/panel', icono: 'inicio', permiso: Permisos.REPORTES_CONSULTAR },
       { texto: 'Retención por cohortes', ruta: '/analisis/cohortes', icono: 'cohortes', permiso: Permisos.INDICADORES_CONSULTAR },
       { texto: 'Comportamiento de compra', ruta: '/analisis/comportamiento', icono: 'compras', permiso: Permisos.REPORTES_CONSULTAR },
+      { texto: 'Comparativo entre periodos', ruta: '/analisis/comparativo', icono: 'cohortes', permiso: Permisos.REPORTES_CONSULTAR },
     ],
   },
   {

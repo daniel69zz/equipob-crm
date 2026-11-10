@@ -10,6 +10,7 @@ import { Permisos } from './core/auth/sesion';
 import { RetencionCohortesComponent } from './features/analisis/retencion-cohortes.component';
 import { ReporteComportamientoComponent } from './features/analisis/reporte-comportamiento.component';
 import { PanelIndicadoresComponent } from './features/analisis/panel-indicadores.component';
+import { ReporteComparativoComponent } from './features/analisis/reporte-comparativo.component';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
@@ -139,6 +140,13 @@ export const routes: Routes = [
       {
         path: 'analisis/panel',
         component: PanelIndicadoresComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.REPORTES_CONSULTAR },
+      },
+      // SCRUM-62: comparativo entre periodos, con el permiso de los reportes (SCRUM-500).
+      {
+        path: 'analisis/comparativo',
+        component: ReporteComparativoComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.REPORTES_CONSULTAR },
       },
