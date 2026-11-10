@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,6 +25,8 @@ import java.util.List;
  */
 @Service
 public class AgregadoConsumoCategorias {
+
+    static final int LOTE_DE_PERFILES = 1000;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -37,8 +40,44 @@ public class AgregadoConsumoCategorias {
         if (identificadores.isEmpty()) {
             return ConsumoEnRango.VACIO;
         }
-        return new ConsumoEnRango(compras(identificadores, desde, hasta), comprado(identificadores, desde, hasta),
-                devuelto(identificadores, desde, hasta), anuladas(identificadores, desde, hasta));
+        return consumirAlcance((compra, criterios) -> ComprasDelCliente.deIdentificadores(compra, criterios,
+                identificadores), desde, hasta);
+    }
+
+    /**
+     * Lo mismo para un grupo de clientes identificados por su perfil (SCRUM-468, reporte de
+     * comportamiento de compra por segmento): las compras vinculadas ({@code compra.id_cliente}) de
+     * esos perfiles. Se consultan por lotes, como {@code periodo.AgregadoConsumoPeriodo#resumirPerfiles},
+     * para no armar una lista de parámetros sin límite; cada compra es de un solo perfil, así que los
+     * lotes no se solapan.
+     */
+    @Transactional(readOnly = true)
+    public ConsumoEnRango consumirPerfiles(List<Long> idsPerfil, OffsetDateTime desde, OffsetDateTime hasta) {
+        List<CompraEnRango> compras = new ArrayList<>();
+        List<LineaConsumoCategoria> compradas = new ArrayList<>();
+        List<LineaConsumoCategoria> devueltas = new ArrayList<>();
+        long anuladas = 0;
+        for (int inicio = 0; inicio < idsPerfil.size(); inicio += LOTE_DE_PERFILES) {
+            List<Long> lote = idsPerfil.subList(inicio, Math.min(inicio + LOTE_DE_PERFILES, idsPerfil.size()));
+            ConsumoEnRango parcial = consumirAlcance((compra, criterios) -> compra.get("idCliente").in(lote),
+                    desde, hasta);
+            compras.addAll(parcial.compras());
+            compradas.addAll(parcial.compradas());
+            devueltas.addAll(parcial.devueltas());
+            anuladas += parcial.comprasAnuladas();
+        }
+        return new ConsumoEnRango(compras, compradas, devueltas, anuladas);
+    }
+
+    /** Todas las compras vinculadas a algún perfil: el reporte de la cartera completa, sin segmento. */
+    @Transactional(readOnly = true)
+    public ConsumoEnRango consumirVinculadas(OffsetDateTime desde, OffsetDateTime hasta) {
+        return consumirAlcance((compra, criterios) -> criterios.isNotNull(compra.get("idCliente")), desde, hasta);
+    }
+
+    private ConsumoEnRango consumirAlcance(Alcance alcance, OffsetDateTime desde, OffsetDateTime hasta) {
+        return new ConsumoEnRango(compras(alcance, desde, hasta), comprado(alcance, desde, hasta),
+                devuelto(alcance, desde, hasta), anuladas(alcance, desde, hasta));
     }
 
     /** Todo el historial, sin imponer a las preferencias la ventana de los reportes (SCRUM-361). */
@@ -47,12 +86,12 @@ public class AgregadoConsumoCategorias {
         return consumir(identificadores, null, null);
     }
 
-    private List<CompraEnRango> compras(List<Identificador> identificadores, OffsetDateTime desde, OffsetDateTime hasta) {
+    private List<CompraEnRango> compras(Alcance alcance, OffsetDateTime desde, OffsetDateTime hasta) {
         CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> consulta = criterios.createTupleQuery();
         Root<Compra> compra = consulta.from(Compra.class);
         consulta.multiselect(compra.get("id"), compra.get("fecha"), ComprasDelCliente.montoVigente(compra, criterios));
-        consulta.where(enRango(compra, criterios, identificadores, desde, hasta),
+        consulta.where(enRango(compra, criterios, alcance, desde, hasta),
                 ComprasDelCliente.vigente(compra, criterios));
         consulta.orderBy(criterios.asc(compra.get("fecha")), criterios.asc(compra.get("id")));
         return entityManager.createQuery(consulta).getResultList().stream()
@@ -61,22 +100,20 @@ public class AgregadoConsumoCategorias {
                 .toList();
     }
 
-    private List<LineaConsumoCategoria> comprado(List<Identificador> identificadores, OffsetDateTime desde,
-                                                 OffsetDateTime hasta) {
+    private List<LineaConsumoCategoria> comprado(Alcance alcance, OffsetDateTime desde, OffsetDateTime hasta) {
         CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> consulta = criterios.createTupleQuery();
         Root<Compra> compra = consulta.from(Compra.class);
         Join<Compra, CompraItem> item = compra.join("items");
         consulta.multiselect(compra.get("id"), item.get("categoria"),
                 criterios.sum(item.<Integer>get("cantidad")), criterios.sum(item.<BigDecimal>get("monto")));
-        consulta.where(enRango(compra, criterios, identificadores, desde, hasta),
+        consulta.where(enRango(compra, criterios, alcance, desde, hasta),
                 ComprasDelCliente.vigente(compra, criterios));
         consulta.groupBy(compra.get("id"), item.get("categoria"));
         return lineas(consulta);
     }
 
-    private List<LineaConsumoCategoria> devuelto(List<Identificador> identificadores, OffsetDateTime desde,
-                                                 OffsetDateTime hasta) {
+    private List<LineaConsumoCategoria> devuelto(Alcance alcance, OffsetDateTime desde, OffsetDateTime hasta) {
         CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> consulta = criterios.createTupleQuery();
         Root<AnulacionItem> item = consulta.from(AnulacionItem.class);
@@ -84,26 +121,26 @@ public class AgregadoConsumoCategorias {
         Join<Anulacion, Compra> compra = anulacion.join("compra");
         consulta.multiselect(compra.get("id"), item.get("categoria"),
                 criterios.sum(item.<Integer>get("cantidad")), criterios.sum(item.<BigDecimal>get("monto")));
-        consulta.where(enRango(compra, criterios, identificadores, desde, hasta),
+        consulta.where(enRango(compra, criterios, alcance, desde, hasta),
                 ComprasDelCliente.vigente(compra, criterios));
         consulta.groupBy(compra.get("id"), item.get("categoria"));
         return lineas(consulta);
     }
 
     /** Compras del rango que no siguen vigentes: quedan fuera del cálculo, solo se informa cuántas. */
-    private long anuladas(List<Identificador> identificadores, OffsetDateTime desde, OffsetDateTime hasta) {
+    private long anuladas(Alcance alcance, OffsetDateTime desde, OffsetDateTime hasta) {
         CriteriaBuilder criterios = entityManager.getCriteriaBuilder();
         CriteriaQuery<Long> consulta = criterios.createQuery(Long.class);
         Root<Compra> compra = consulta.from(Compra.class);
         consulta.select(criterios.count(compra));
-        consulta.where(enRango(compra, criterios, identificadores, desde, hasta),
+        consulta.where(enRango(compra, criterios, alcance, desde, hasta),
                 criterios.not(ComprasDelCliente.vigente(compra, criterios)));
         return entityManager.createQuery(consulta).getSingleResult();
     }
 
-    private static Predicate enRango(From<?, Compra> compra, CriteriaBuilder criterios,
-                                     List<Identificador> identificadores, OffsetDateTime desde, OffsetDateTime hasta) {
-        Predicate cliente = ComprasDelCliente.deIdentificadores(compra, criterios, identificadores);
+    private static Predicate enRango(From<?, Compra> compra, CriteriaBuilder criterios, Alcance alcance,
+                                     OffsetDateTime desde, OffsetDateTime hasta) {
+        Predicate cliente = alcance.aplicar(compra, criterios);
         if (desde != null) {
             cliente = criterios.and(cliente, criterios.greaterThanOrEqualTo(compra.get("fecha"), desde));
         }
@@ -121,6 +158,12 @@ public class AgregadoConsumoCategorias {
                             unidades == null ? 0 : unidades.longValue(), fila.get(3, BigDecimal.class));
                 })
                 .toList();
+    }
+
+    /** Qué compras entran: las de un cliente, las de un grupo de perfiles o todas las vinculadas. */
+    @FunctionalInterface
+    private interface Alcance {
+        Predicate aplicar(From<?, Compra> compra, CriteriaBuilder criterios);
     }
 
     /** Compra vigente del rango: su fecha decide el periodo y su monto vigente permite verificar el desglose. */

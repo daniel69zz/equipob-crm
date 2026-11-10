@@ -1,0 +1,18 @@
+{
+  "idEvento": "5e000000-0000-4000-8000-000000000102",
+  "tipoEvento": "COMPRA_CONFIRMADA",
+  "fechaEmision": "2026-09-20T10:00:00-04:00",
+  "compra": {
+    "idCompra": "V-R1-2",
+    "idCliente": "CLI-R1",
+    "fecha": "2026-09-20T10:00:00-04:00",
+    "montoTotal": 200.0,
+    "items": [
+      {
+        "categoria": "Hogar",
+        "cantidad": 1,
+        "monto": 200.0
+      }
+    ]
+  }
+}

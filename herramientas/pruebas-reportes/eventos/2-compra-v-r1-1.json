@@ -1,0 +1,23 @@
+{
+  "idEvento": "5e000000-0000-4000-8000-000000000101",
+  "tipoEvento": "COMPRA_CONFIRMADA",
+  "fechaEmision": "2026-09-05T10:00:00-04:00",
+  "compra": {
+    "idCompra": "V-R1-1",
+    "idCliente": "CLI-R1",
+    "fecha": "2026-09-05T10:00:00-04:00",
+    "montoTotal": 400.0,
+    "items": [
+      {
+        "categoria": "Electrónica",
+        "cantidad": 1,
+        "monto": 300.0
+      },
+      {
+        "categoria": "Accesorios",
+        "cantidad": 2,
+        "monto": 100.0
+      }
+    ]
+  }
+}

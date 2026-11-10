@@ -1,0 +1,18 @@
+{
+  "idEvento": "5e000000-0000-4000-8000-000000000003",
+  "tipoEvento": "CLIENTE_REGISTRADO",
+  "fechaEmision": "2026-08-01T09:00:00-04:00",
+  "responsable": "pruebas.reportes",
+  "cliente": {
+    "idCliente": "CLI-R3",
+    "fechaActualizacion": "2026-08-01T09:00:00-04:00",
+    "nombres": "Carla",
+    "apellidos": "Reporte",
+    "tipoDocumento": "CI",
+    "numeroDocumento": "5803",
+    "contacto": {
+      "email": "carla.reporte@correo.com",
+      "telefono": "+591 70005803"
+    }
+  }
+}
