@@ -270,7 +270,11 @@ public class ServicioInteracciones {
                 throw new ReglaInvalidaException("La interacción ya tiene ese responsable",
                         Map.of("responsable", "ya es el responsable de la interacción"));
             }
-            return registro.asignar(id, responsable, identidad.usuario());
+            Interaccion asignada = registro.asignar(id, responsable, identidad.usuario());
+            // SCRUM-458: el cambio de responsable queda en el historial en la misma transacción.
+            auditoria.asignada(asignada, identidad.usuario(), identidad.rol(), actual.responsable(), responsable,
+                    vacioANulo(solicitud.comentario()));
+            return asignada;
         });
     }
 
