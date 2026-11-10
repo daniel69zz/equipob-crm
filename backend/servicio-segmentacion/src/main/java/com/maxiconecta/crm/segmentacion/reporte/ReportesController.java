@@ -18,9 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReportesController {
 
     private final ServicioReporteDistribucion servicio;
+    private final ServicioPanelIndicadores panel;
 
-    public ReportesController(ServicioReporteDistribucion servicio) {
+    public ReportesController(ServicioReporteDistribucion servicio, ServicioPanelIndicadores panel) {
         this.servicio = servicio;
+        this.panel = panel;
     }
 
     @GetMapping("/distribucion")
@@ -28,5 +30,14 @@ public class ReportesController {
                                             @RequestParam(required = false) String nivelConsumo,
                                             @RequestHeader("X-Usuario") String usuario) {
         return servicio.generar(FiltroReporte.de(segmento, nivelConsumo), usuario);
+    }
+
+    /**
+     * Panel con los principales indicadores de clientes (SCRUM-59, SCRUM-471): clientes activos,
+     * distribución por segmento y puntos acumulados. Tiene el mismo permiso que los demás reportes.
+     */
+    @GetMapping("/panel")
+    public PanelIndicadores panel(@RequestHeader("X-Usuario") String usuario) {
+        return panel.consultar(usuario);
     }
 }

@@ -243,6 +243,24 @@ class ReporteComportamientoIntegracionTest {
                 .andExpect(jsonPath("$.valor.total").value(150.00));
     }
 
+    // --- SCRUM-475: clientes activos del panel de indicadores (SCRUM-59) ---
+
+    @Test
+    void cuentaComoActivosALosClientesConUnaCompraVigenteVinculadaEnLosUltimos90Dias() throws Exception {
+        comprar("V-RECIENTE", "CLI-1", haceDias(10), "Hogar", "100.00");
+        comprar("V-RECIENTE-2", "CLI-1", haceDias(3), "Hogar", "50.00");
+        comprar("V-ANTIGUA", "CLI-2", haceDias(200), "Hogar", "100.00");
+        comprar("V-ANULADA", "CLI-3", haceDias(20), "Hogar", "100.00");
+        anularTotal("V-ANULADA", "CLI-3", "100.00", haceDias(19));
+        comprar("V-SIN-VINCULAR", "CLI-SIN", haceDias(5), "Hogar", "100.00");
+
+        // Solo CLI-1: CLI-2 compró hace más de 90 días, la de CLI-3 se anuló y CLI-SIN no tiene perfil.
+        mvc.perform(get("/api/comportamiento/reportes/clientes-activos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.activos").value(1))
+                .andExpect(jsonPath("$.umbralDias").value(90));
+    }
+
     // --- Permiso propio de los reportes ---
 
     @Test
@@ -265,6 +283,11 @@ class ReporteComportamientoIntegracionTest {
         // JSON es UTF-8; sin charset en la respuesta MockMvc decodificaría en ISO-8859-1 ("Electrónica").
         return json.readTree(resultado.andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString(StandardCharsets.UTF_8));
+    }
+
+    private static String haceDias(int dias) {
+        return java.time.OffsetDateTime.now(java.time.ZoneOffset.ofHours(-4)).minusDays(dias)
+                .truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString();
     }
 
     private void comprar(String idCompra, String idCliente, String fecha, String categoria, String monto) {

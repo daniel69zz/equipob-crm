@@ -442,6 +442,28 @@ class AccesoPorRolTest {
         mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
     }
 
+    // --- Panel de indicadores (SCRUM-59): mismo permiso que los reportes; sus consultas internas, denegadas ---
+
+    @Test
+    void elPanelExigeElPermisoDeReportes() throws Exception {
+        String ruta = "/api/segmentacion/reportes/panel";
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "REPORTES_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void lasConsultasInternasDelPanelNoSeExponenNiAlAdministrador() throws Exception {
+        String admin = bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "REPORTES_CONSULTAR"));
+        mvc.perform(get("/api/comportamiento/reportes/clientes-activos").header("Authorization", admin))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/fidelizacion/reportes/puntos").header("Authorization", admin))
+                .andExpect(status().isForbidden());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test

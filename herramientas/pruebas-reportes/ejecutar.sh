@@ -147,5 +147,7 @@ esperar "frontend en :14200" 180 curl -sf http://127.0.0.1:14200/login
 
 echo "== Pruebas de navegador"
 export E2E_URL=http://127.0.0.1:14200 E2E_USUARIO="$ADMIN_USUARIO" E2E_PASSWORD="$ADMIN_PASSWORD"
+# Para las pruebas que publican un evento a mitad de camino (panel de indicadores, criterio 2).
+export E2E_MQ_URL="http://127.0.0.1:$PUERTO_MQ_ADMIN" E2E_MQ_USUARIO="$MQ_USUARIO" E2E_MQ_PASSWORD="$MQ_PASSWORD"
 cd "$FRONTEND"
 if [[ $# -gt 0 ]]; then npx playwright test "$@"; else npx playwright test e2e/scrum5*.spec.ts; fi

@@ -9,6 +9,7 @@ import { ClientesSegmentoComponent } from './features/segmentacion/clientes-segm
 import { Permisos } from './core/auth/sesion';
 import { RetencionCohortesComponent } from './features/analisis/retencion-cohortes.component';
 import { ReporteComportamientoComponent } from './features/analisis/reporte-comportamiento.component';
+import { PanelIndicadoresComponent } from './features/analisis/panel-indicadores.component';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
@@ -133,6 +134,13 @@ export const routes: Routes = [
         component: RetencionCohortesComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.INDICADORES_CONSULTAR },
+      },
+      // SCRUM-59 (SCRUM-477): panel de indicadores, con el permiso de los reportes.
+      {
+        path: 'analisis/panel',
+        component: PanelIndicadoresComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.REPORTES_CONSULTAR },
       },
       // SCRUM-58: reporte de comportamiento de compra, con el permiso de los reportes (SCRUM-462).
       {

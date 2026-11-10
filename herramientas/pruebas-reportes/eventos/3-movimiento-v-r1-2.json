@@ -1,0 +1,12 @@
+{
+  "idEvento": "5e000000-0000-4000-8000-000000000202",
+  "tipoEvento": "MOVIMIENTO_PUNTOS",
+  "fechaEmision": "2026-09-20T10:05:00-04:00",
+  "movimiento": {
+    "idTransaccion": "V-R1-2",
+    "idCliente": "CLI-R1",
+    "tipoMovimiento": "ACUMULACION",
+    "valorConsumido": 200.0,
+    "fecha": "2026-09-20T10:05:00-04:00"
+  }
+}

@@ -46,6 +46,9 @@ class PermisoReportesTest {
     @MockBean
     private ServicioReporteDistribucion servicio;
 
+    @MockBean
+    private ServicioPanelIndicadores panel;
+
     @BeforeEach
     void reporteVacio() {
         when(servicio.generar(any(), anyString())).thenReturn(new ReporteDistribucion(
@@ -95,6 +98,24 @@ class PermisoReportesTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensaje")
                         .value("Nivel de consumo inválido: 'ALTISIMO' (se espera BAJO, MEDIO o ALTO)"));
+    }
+
+    // --- SCRUM-59, criterio 3: el panel de indicadores tiene el mismo permiso que los reportes ---
+
+    @Test
+    void elGerenteComercialPuedeAbrirElPanelYElAgenteNo() throws Exception {
+        when(panel.consultar(anyString())).thenReturn(new PanelIndicadores(OffsetDateTime.parse("2026-11-10T12:00:00Z"),
+                0, true, PanelIndicadores.Activos.noDisponible(), List.of(), PanelIndicadores.Puntos.noDisponible()));
+
+        mvc.perform(como("luis", PERMISOS_GERENTE, get("/api/segmentacion/reportes/panel")))
+                .andExpect(status().isOk());
+        verify(panel).consultar("luis");
+
+        mvc.perform(como("ana", PERMISOS_AGENTE, get("/api/segmentacion/reportes/panel")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Su rol no tiene permiso para consultar los reportes de clientes"));
+        mvc.perform(get("/api/segmentacion/reportes/panel")).andExpect(status().isUnauthorized());
+        verify(panel, org.mockito.Mockito.times(1)).consultar(anyString());
     }
 
     private static MockHttpServletRequestBuilder como(String usuario, String permisos,

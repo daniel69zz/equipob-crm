@@ -14,7 +14,7 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 | `EVENTOS_REPROCESAR` | Ver la bitácora de ingesta y reprocesar eventos fallidos |
 | `SEGMENTOS_CONSULTAR` | Consultar segmentos, clientes por segmento e historial de segmentos del cliente |
 | `SEGMENTACION_CONFIGURAR` | Configurar criterios y reglas de segmentación |
-| `REPORTES_CONSULTAR` | Consultar los reportes de clientes: distribución (SCRUM-57) y comportamiento de compra (SCRUM-58) |
+| `REPORTES_CONSULTAR` | Consultar los reportes de clientes: distribución (SCRUM-57), comportamiento de compra (SCRUM-58) y panel de indicadores (SCRUM-59) |
 | `PUNTOS_CONSULTAR` | Consultar saldo y nivel de puntos |
 | `FIDELIZACION_CONFIGURAR` | Configurar reglas de puntos, niveles y ajustes manuales |
 | `INTERACCIONES_CONSULTAR` | Consultar el historial de interacciones |
@@ -60,17 +60,18 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/comportamiento/clientes/*/preferencias/construir` | POST | Rol `ADMINISTRADOR_CRM` y `CLIENTE_EDITAR` |
 | `/api/comportamiento/clientes/*/preferencias` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `FICHA_INTEGRAL_CONSULTAR` |
 | `/api/comportamiento/comparacion-periodos` | GET | `INDICADORES_CONSULTAR` **y** `SEGMENTOS_CONSULTAR` (regla anterior a la genérica) |
+| `/api/comportamiento/reportes/clientes-activos` | Todos | Denegado: consulta interna de los clientes activos del panel (SCRUM-475), no para usuarios |
 | `/api/comportamiento/reportes/**` | GET | `REPORTES_CONSULTAR`: reporte de frecuencia, valor y categorías de compra (SCRUM-58, regla anterior a la genérica). Los métodos de escritura se deniegan |
 | `/api/comportamiento/**` | GET | `INDICADORES_CONSULTAR` |
 | `/api/segmentacion/criterios` y `/api/segmentacion/criterios/**` | Todos | Rol `ADMINISTRADOR_CRM` **y** `SEGMENTACION_CONFIGURAR` (regla anterior a la genérica) |
 | `/api/segmentacion/clientes/*/historial-segmentos` | GET | `SEGMENTOS_CONSULTAR`; los métodos de escritura y las subrutas se deniegan antes de la regla genérica |
-| `/api/segmentacion/reportes/**` | GET | `REPORTES_CONSULTAR`: reportes de clientes (SCRUM-57, SCRUM-462, regla anterior a la genérica). Los métodos de escritura se deniegan |
+| `/api/segmentacion/reportes/**` | GET | `REPORTES_CONSULTAR`: reportes de clientes y panel de indicadores (SCRUM-57, SCRUM-59, SCRUM-462, regla anterior a la genérica). Los métodos de escritura se deniegan |
 | `/api/segmentacion/**` | GET | `SEGMENTOS_CONSULTAR` |
 | `/api/segmentacion/**` | POST, PUT, PATCH, DELETE | `SEGMENTACION_CONFIGURAR` |
 | `/api/fidelizacion/clientes/*/saldo` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `PUNTOS_CONSULTAR` (SCRUM-397, regla anterior a la genérica) |
 | `/api/fidelizacion/ventas/clientes/*/puntos` | GET | Rol `SISTEMA` **y** `PUNTOS_CONSULTAR_VENTAS`: solo el token de servicio de Marketplace y Ventas (RIO-CRM-04, SCRUM-545) |
 | `/api/fidelizacion/clientes/*/ajustes` | POST | Rol `ADMINISTRADOR_CRM` **y** `FIDELIZACION_CONFIGURAR`: ajuste manual del saldo (SCRUM-424, regla anterior a la genérica). El historial (`GET`) sigue la regla genérica de `PUNTOS_CONSULTAR` |
-| `/api/fidelizacion/reportes/**` | Todos | Denegado: consulta interna que hace servicio-segmentacion para el corte de niveles del reporte (SCRUM-464), no para usuarios |
+| `/api/fidelizacion/reportes/**` | Todos | Denegado: consultas internas de servicio-segmentacion para el corte de niveles del reporte (SCRUM-464) y los puntos del panel (SCRUM-476), no para usuarios |
 | `/api/fidelizacion/**` | GET | `PUNTOS_CONSULTAR` (incluye `/api/fidelizacion/caducidad/configuracion`, SCRUM-416) |
 | `/api/fidelizacion/**` | POST, PUT, PATCH, DELETE | `FIDELIZACION_CONFIGURAR` (incluye `POST /api/fidelizacion/caducidad/ejecutar`, que el servicio limita además al rol `ADMINISTRADOR_CRM`, SCRUM-415) |
 | `/api/interacciones/clientes/*/historial` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, con `INTERACCIONES_CONSULTAR` e `INDICADORES_CONSULTAR`: historial del cliente con sus compras (SCRUM-53) |
