@@ -7,6 +7,8 @@ import com.maxiconecta.crm.interacciones.comun.IdentidadGateway.Identidad;
 import com.maxiconecta.crm.interacciones.comun.ReglaInvalidaException;
 import com.maxiconecta.crm.interacciones.compras.Compra;
 import com.maxiconecta.crm.interacciones.compras.ComprasCliente;
+import com.maxiconecta.crm.interacciones.notificacion.Notificacion;
+import com.maxiconecta.crm.interacciones.notificacion.NotificacionesUsuario;
 import com.maxiconecta.crm.interacciones.perfil.ClientesPerfil;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -44,10 +46,13 @@ public class ServicioInteracciones {
     private final TransactionTemplate transacciones;
     private final ComprasCliente compras;
     private final AgentesAtencion agentes;
+    private final NotificacionesUsuario notificaciones;
 
     public ServicioInteracciones(RegistroInteracciones registro, ClientesPerfil perfiles,
                                  AuditoriaInteracciones auditoria, TransactionTemplate transacciones,
-                                 ComprasCliente compras, AgentesAtencion agentes) {
+                                 ComprasCliente compras, AgentesAtencion agentes,
+                                 NotificacionesUsuario notificaciones) {
+        this.notificaciones = notificaciones;
         this.registro = registro;
         this.perfiles = perfiles;
         this.auditoria = auditoria;
@@ -272,8 +277,13 @@ public class ServicioInteracciones {
             }
             Interaccion asignada = registro.asignar(id, responsable, identidad.usuario());
             // SCRUM-458: el cambio de responsable queda en el historial en la misma transacción.
+            String comentario = vacioANulo(solicitud.comentario());
             auditoria.asignada(asignada, identidad.usuario(), identidad.rol(), actual.responsable(), responsable,
-                    vacioANulo(solicitud.comentario()));
+                    comentario);
+            // SCRUM-459: el agente recibe la notificación junto con la asignación, o ninguna de las dos.
+            notificaciones.crear(responsable, Notificacion.INTERACCION_ASIGNADA, id, clienteId,
+                    "Se le asignó " + articulo(asignada.tipo()) + " n.º " + id + " del cliente " + clienteId,
+                    comentario, identidad.usuario());
             return asignada;
         });
     }
@@ -321,6 +331,16 @@ public class ServicioInteracciones {
         }
         return new RegistroInteracciones.Campos(tipo.strip(), vacioANulo(canal), vacioANulo(asunto), texto,
                 vacioANulo(referenciaCompra));
+    }
+
+    /** "el reclamo", "la consulta" o "la nota", para el mensaje de la notificación. */
+    private static String articulo(String tipo) {
+        return switch (tipo) {
+            case "RECLAMO" -> "el reclamo";
+            case "CONSULTA" -> "la consulta";
+            case "NOTA" -> "la nota";
+            default -> "la interacción";
+        };
     }
 
     private static String vacioANulo(String valor) {
