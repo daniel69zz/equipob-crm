@@ -154,8 +154,12 @@ public class ServicioInteracciones {
         return transacciones.execute(transaccion -> {
             Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
             validarVinculacion(actual, solicitud.version(), compra.referencia());
-            return registro.vincularCompra(id, compra.referencia(), compra.fecha(), compra.montoTotal(),
-                    compra.estado(), identidad.usuario());
+            Interaccion vinculada = registro.vincularCompra(id, compra.referencia(), compra.fecha(),
+                    compra.montoTotal(), compra.estado(), identidad.usuario());
+            // SCRUM-448: en la misma transacción; si la auditoría falla, la compra no queda vinculada.
+            auditoria.compra(vinculada, identidad.usuario(), identidad.rol(),
+                    actual.compra() == null ? null : actual.compra().referencia(), compra.referencia());
+            return vinculada;
         });
     }
 
@@ -168,7 +172,9 @@ public class ServicioInteracciones {
             if (actual.compra() == null) {
                 throw new ReglaInvalidaException("La interacción no tiene una compra vinculada");
             }
-            return registro.desvincularCompra(id);
+            Interaccion desvinculada = registro.desvincularCompra(id);
+            auditoria.compra(desvinculada, identidad.usuario(), identidad.rol(), actual.compra().referencia(), null);
+            return desvinculada;
         });
     }
 
