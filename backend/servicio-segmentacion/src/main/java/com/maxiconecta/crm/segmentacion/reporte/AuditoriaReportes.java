@@ -17,6 +17,8 @@ public class AuditoriaReportes {
     static final String OPERACION = "REPORTE_DISTRIBUCION_GENERADO";
     static final String ENTIDAD = "REPORTE";
     static final String ENTIDAD_ID = "DISTRIBUCION_CLIENTES";
+    static final String OPERACION_PANEL = "PANEL_INDICADORES_CONSULTADO";
+    static final String ENTIDAD_ID_PANEL = "PANEL_INDICADORES";
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
@@ -41,5 +43,17 @@ public class AuditoriaReportes {
                 INSERT INTO auditoria.evento(usuario, operacion, entidad, entidad_id, detalle)
                 VALUES (?, ?, ?, ?, ?)
                 """, usuario, OPERACION, ENTIDAD, ENTIDAD_ID, detalle.toString());
+    }
+
+    /** SCRUM-59: cada consulta del panel de indicadores, con qué servicios respondieron. Sin datos personales. */
+    public void registrarPanel(String usuario, long clientes, boolean activosDisponible, boolean puntosDisponible) {
+        ObjectNode detalle = json.createObjectNode();
+        detalle.put("clientes", clientes);
+        detalle.put("activosDisponible", activosDisponible);
+        detalle.put("puntosDisponible", puntosDisponible);
+        jdbc.update("""
+                INSERT INTO auditoria.evento(usuario, operacion, entidad, entidad_id, detalle)
+                VALUES (?, ?, ?, ?, ?)
+                """, usuario, OPERACION_PANEL, ENTIDAD, ENTIDAD_ID_PANEL, detalle.toString());
     }
 }

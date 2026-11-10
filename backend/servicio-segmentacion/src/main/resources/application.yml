@@ -69,3 +69,7 @@ crm:
   fidelizacion:
     url: ${SERVICIO_FIDELIZACION_URL:http://localhost:8084}
     tiempo-espera: ${FIDELIZACION_TIEMPO_ESPERA:2s}
+  # Clientes activos del panel de indicadores (SCRUM-59, SCRUM-475).
+  comportamiento:
+    url: ${SERVICIO_COMPORTAMIENTO_URL:http://localhost:8082}
+    tiempo-espera: ${COMPORTAMIENTO_TIEMPO_ESPERA:2s}
