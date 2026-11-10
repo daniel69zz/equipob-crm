@@ -13,7 +13,8 @@ import java.util.Locale;
  */
 public enum FormatoExportacion {
 
-    CSV("csv", new MediaType("text", "csv", StandardCharsets.UTF_8));
+    CSV("csv", new MediaType("text", "csv", StandardCharsets.UTF_8)),
+    PDF("pdf", MediaType.APPLICATION_PDF);
 
     private final String extension;
     private final MediaType tipo;
@@ -41,6 +42,6 @@ public enum FormatoExportacion {
             }
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Formato de exportación inválido: '" + valor + "' (se espera csv)");
+                "Formato de exportación inválido: '" + valor + "' (se espera csv o pdf)");
     }
 }

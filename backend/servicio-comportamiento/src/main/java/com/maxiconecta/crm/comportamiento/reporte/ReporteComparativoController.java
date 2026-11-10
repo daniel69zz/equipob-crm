@@ -4,6 +4,7 @@ import com.maxiconecta.crm.comportamiento.comparacion.PeriodosAComparar;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,9 +49,10 @@ public class ReporteComparativoController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hastaA,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desdeB,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hastaB,
-            @RequestParam(required = false) String segmento) {
+            @RequestParam(required = false) String segmento,
+            @RequestHeader(value = "X-Usuario", required = false) String usuario) {
         FormatoExportacion elegido = FormatoExportacion.de(formato);
-        return exportacion.comparativo(PeriodosAComparar.de(desdeA, hastaA, desdeB, hastaB), segmento, elegido)
+        return exportacion.comparativo(PeriodosAComparar.de(desdeA, hastaA, desdeB, hastaB), segmento, elegido, usuario)
                 .respuesta();
     }
 
@@ -61,8 +63,9 @@ public class ReporteComparativoController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hastaA,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desdeB,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hastaB,
-            @RequestParam(required = false) String segmento) {
+            @RequestParam(required = false) String segmento,
+            @RequestHeader(value = "X-Usuario", required = false) String usuario) {
         return exportacion.comparativo(PeriodosAComparar.de(desdeA, hastaA, desdeB, hastaB), segmento,
-                FormatoExportacion.CSV).respuesta();
+                FormatoExportacion.CSV, usuario).respuesta();
     }
 }

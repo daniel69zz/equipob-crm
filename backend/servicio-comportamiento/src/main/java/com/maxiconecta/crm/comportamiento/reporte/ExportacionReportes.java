@@ -9,7 +9,7 @@ import java.text.Normalizer;
 import java.util.Locale;
 
 /**
- * Exporta los reportes de clientes a los formatos estándar (SCRUM-60, docs/compra/exportacion-reportes.md).
+ * Exporta los reportes de clientes a CSV y PDF (SCRUM-60, docs/compra/exportacion-reportes.md).
  * Genera el reporte con la misma consulta que la pantalla y lo escribe tal cual, así que el archivo contiene
  * los mismos datos que se ven (criterio de aceptación 1).
  */
@@ -20,33 +20,42 @@ public class ExportacionReportes {
     private final ConsultaReporteComparativo comparativo;
     private final ExportacionComportamientoCsv comportamientoCsv;
     private final ExportacionComparativoCsv comparativoCsv;
+    private final ExportacionComportamientoPdf comportamientoPdf;
+    private final ExportacionComparativoPdf comparativoPdf;
 
     public ExportacionReportes(ConsultaReporteComportamiento comportamiento, ConsultaReporteComparativo comparativo,
-                               ExportacionComportamientoCsv comportamientoCsv, ExportacionComparativoCsv comparativoCsv) {
+                               ExportacionComportamientoCsv comportamientoCsv, ExportacionComparativoCsv comparativoCsv,
+                               ExportacionComportamientoPdf comportamientoPdf, ExportacionComparativoPdf comparativoPdf) {
         this.comportamiento = comportamiento;
         this.comparativo = comparativo;
         this.comportamientoCsv = comportamientoCsv;
         this.comparativoCsv = comparativoCsv;
+        this.comportamientoPdf = comportamientoPdf;
+        this.comparativoPdf = comparativoPdf;
     }
 
     /** Reporte de comportamiento de compra (SCRUM-58) de un periodo y, opcionalmente, un segmento. */
-    public ArchivoExportado comportamiento(RangoPeriodo rango, String segmento, FormatoExportacion formato) {
+    public ArchivoExportado comportamiento(RangoPeriodo rango, String segmento, FormatoExportacion formato,
+                                           String usuario) {
         ReporteComportamiento reporte = comportamiento.generar(rango, segmento);
         String nombre = "reporte-comportamiento_" + reporte.desde() + "_" + reporte.hasta()
                 + sufijo(reporte.alcance().segmento()) + "." + formato.extension();
         byte[] contenido = switch (formato) {
             case CSV -> comportamientoCsv.exportar(reporte).getBytes(StandardCharsets.UTF_8);
+            case PDF -> comportamientoPdf.exportar(reporte, usuario);
         };
         return new ArchivoExportado(nombre, formato, contenido);
     }
 
     /** Reporte comparativo entre dos periodos (SCRUM-62). */
-    public ArchivoExportado comparativo(PeriodosAComparar periodos, String segmento, FormatoExportacion formato) {
+    public ArchivoExportado comparativo(PeriodosAComparar periodos, String segmento, FormatoExportacion formato,
+                                        String usuario) {
         ReporteComparativo reporte = comparativo.generar(periodos, segmento);
         String nombre = "reporte-comparativo_" + reporte.periodoA().desde() + "_" + reporte.periodoA().hasta() + "_vs_"
                 + reporte.periodoB().desde() + "_" + reporte.periodoB().hasta() + "." + formato.extension();
         byte[] contenido = switch (formato) {
             case CSV -> comparativoCsv.exportar(reporte).getBytes(StandardCharsets.UTF_8);
+            case PDF -> comparativoPdf.exportar(reporte, usuario);
         };
         return new ArchivoExportado(nombre, formato, contenido);
     }
