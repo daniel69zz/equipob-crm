@@ -22,6 +22,7 @@ import { SaldoPuntosComponent } from './features/clientes/saldo-puntos.component
 import { AjustePuntosComponent } from './features/clientes/ajuste-puntos.component';
 import { InteraccionesClienteComponent } from './features/interacciones/interacciones-cliente.component';
 import { HistorialClienteComponent } from './features/interacciones/historial-cliente.component';
+import { NotificacionesComponent } from './features/interacciones/notificaciones.component';
 import { SugerenciasComponent } from './features/clientes/sugerencias.component';
 import { BitacoraIngestaComponent } from './features/ingesta/bitacora-ingesta.component';
 import { RolesComponent } from './features/admin/roles.component';
@@ -106,6 +107,13 @@ export const routes: Routes = [
         component: InteraccionesClienteComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.INTERACCIONES_CONSULTAR },
+      },
+      // SCRUM-459: interacciones asignadas al usuario, Administrador de CRM y Agente.
+      {
+        path: 'notificaciones',
+        component: NotificacionesComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.INTERACCIONES_REGISTRAR },
       },
       {
         path: 'clientes/:id/sugerencias',

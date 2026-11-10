@@ -58,6 +58,24 @@ lo originó. Reglas en `docs/interacciones/vinculacion-compras.md`.
 - Cada cambio queda en la auditoría de la interacción (`COMPRA_VINCULADA` o `COMPRA_DESVINCULADA`) y en
   `auditoria.evento` (`INTERACCION_COMPRA_VINCULADA` o `INTERACCION_COMPRA_DESVINCULADA`).
 
+## Responsable de una interacción (SCRUM-56)
+
+El Administrador de CRM asigna cada interacción a un agente responsable, y el agente recibe una notificación.
+Flujo y reglas en `docs/interacciones/asignacion-interacciones.md`.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| GET | `/api/interacciones/agentes` | Agentes activos para elegir (solo el Administrador) |
+| PUT | `…/interacciones/{id}/responsable` | Asigna o reasigna `{responsable, comentario, version}` (solo el Administrador) |
+| GET | `…/interacciones?responsable=` | Filtra el historial por responsable |
+| GET | `/api/interacciones/notificaciones?soloNoLeidas=` | Notificaciones del usuario de la sesión |
+| POST | `/api/interacciones/notificaciones/{id}/leida` | Marca como leída una notificación propia |
+
+- El responsable debe ser un usuario activo con el rol `AGENTE_ATENCION`. Se lee de `seguridad.usuario`, que
+  administra el API Gateway, sin copiarlo.
+- Cada asignación queda en la auditoría de la interacción (`ASIGNADA`, con el responsable anterior y el nuevo) y en
+  `auditoria.evento` (`INTERACCION_ASIGNADA`). La notificación se guarda en la misma transacción.
+
 ## Ejecutar
 
 ```bash

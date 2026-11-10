@@ -84,6 +84,16 @@ public class InteraccionesController {
         return servicio.desvincularCompra(clienteId, id, version, identidad);
     }
 
+    /** Asigna la interacción a un agente responsable, o la reasigna (SCRUM-56). */
+    @PutMapping("/{id}/responsable")
+    public Interaccion asignar(@PathVariable long clienteId, @PathVariable long id,
+                               @RequestBody(required = false) SolicitudAsignacion solicitud, HttpServletRequest http) {
+        // SCRUM-456: el acceso se comprueba antes que el cuerpo, como en el resto del servicio (SCRUM-435).
+        Identidad identidad = IdentidadGateway.asignacion(http);
+        validaciones.validar(solicitud, "La asignación no es válida");
+        return servicio.asignar(clienteId, id, solicitud, identidad);
+    }
+
     @GetMapping("/{id}")
     public Interaccion detalle(@PathVariable long clienteId, @PathVariable long id, HttpServletRequest http) {
         IdentidadGateway.consulta(http);
@@ -108,8 +118,9 @@ public class InteraccionesController {
                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
                                          @RequestParam(required = false) Integer pagina,
                                          @RequestParam(required = false) Integer tamanio,
+                                         @RequestParam(required = false) String responsable,
                                          HttpServletRequest http) {
         IdentidadGateway.consulta(http);
-        return servicio.historial(clienteId, tipo, estado, texto, desde, hasta, pagina, tamanio);
+        return servicio.historial(clienteId, tipo, estado, texto, desde, hasta, pagina, tamanio, responsable);
     }
 }

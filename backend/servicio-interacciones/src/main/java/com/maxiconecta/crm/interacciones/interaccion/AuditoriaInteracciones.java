@@ -31,6 +31,7 @@ public class AuditoriaInteracciones {
     static final String SEGUIMIENTO = "INTERACCION_SEGUIMIENTO_ACTUALIZADO";
     static final String COMPRA_VINCULADA = "INTERACCION_COMPRA_VINCULADA";
     static final String COMPRA_DESVINCULADA = "INTERACCION_COMPRA_DESVINCULADA";
+    static final String ASIGNADA = "INTERACCION_ASIGNADA";
     static final String ENTIDAD_CLIENTE = "CLIENTE";
 
     private final JdbcTemplate jdbc;
@@ -73,6 +74,21 @@ public class AuditoriaInteracciones {
                 Map.of("compra", new Cambio(anterior, nueva)), null,
                 vinculada ? COMPRA_VINCULADA : COMPRA_DESVINCULADA,
                 Map.of("compra", vinculada ? nueva : anterior));
+    }
+
+    /**
+     * Una asignación o reasignación del responsable (SCRUM-458): quién la hizo, cuándo, el responsable anterior y el
+     * nuevo, y el comentario (criterio de aceptación 2 de SCRUM-56).
+     */
+    public void asignada(Interaccion interaccion, String usuario, String rol, String anterior, String nuevo,
+                         String comentario) {
+        Map<String, String> extra = new LinkedHashMap<>();
+        extra.put("responsable", nuevo);
+        if (anterior != null) {
+            extra.put("responsableAnterior", anterior);
+        }
+        registrar(interaccion, "ASIGNADA", usuario, rol, Map.of("responsable", new Cambio(anterior, nuevo)),
+                comentario, ASIGNADA, extra);
     }
 
     /** Los registros de una interacción, del primero al último. */

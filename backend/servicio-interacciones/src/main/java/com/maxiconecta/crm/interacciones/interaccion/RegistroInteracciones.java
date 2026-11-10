@@ -19,7 +19,8 @@ public class RegistroInteracciones {
     private static final String COLUMNAS = "id, cliente_id, tipo, canal, asunto, descripcion, referencia_compra, "
             + "estado, estado_actualizado_por, estado_actualizado_en, registrado_por, registrado_rol, registrado_en, "
             + "modificado_por, modificado_en, version, compra_referencia, compra_fecha, compra_monto_total, "
-            + "compra_estado, compra_vinculada_por, compra_vinculada_en";
+            + "compra_estado, compra_vinculada_por, compra_vinculada_en, responsable, responsable_asignado_por, "
+            + "responsable_asignado_en";
 
     private static final RowMapper<Interaccion> FILA = (rs, n) -> new Interaccion(rs.getLong("id"),
             rs.getLong("cliente_id"), rs.getString("tipo"), rs.getString("canal"), rs.getString("asunto"),
@@ -28,7 +29,8 @@ public class RegistroInteracciones {
             rs.getString("registrado_por"), rs.getString("registrado_rol"),
             rs.getObject("registrado_en", OffsetDateTime.class),
             rs.getString("modificado_por"), rs.getObject("modificado_en", OffsetDateTime.class), rs.getLong("version"),
-            compra(rs));
+            compra(rs), rs.getString("responsable"), rs.getString("responsable_asignado_por"),
+            rs.getObject("responsable_asignado_en", OffsetDateTime.class));
 
     private final JdbcTemplate jdbc;
 
@@ -88,9 +90,20 @@ public class RegistroInteracciones {
                 + "compra_vinculada_en = NULL, version = version + 1 WHERE id = ? RETURNING " + COLUMNAS, FILA, id);
     }
 
+    /** El agente responsable nuevo, con quién lo asignó y cuándo (SCRUM-457). */
+    public Interaccion asignar(long id, String responsable, String usuario) {
+        return jdbc.queryForObject("UPDATE interacciones.interaccion SET responsable = ?, "
+                        + "responsable_asignado_por = ?, responsable_asignado_en = now(), version = version + 1 "
+                        + "WHERE id = ? RETURNING " + COLUMNAS, FILA, responsable, usuario, id);
+    }
+
     public PaginaInteracciones historial(long clienteId, FiltroHistorial filtro) {
         StringBuilder donde = new StringBuilder(" FROM interacciones.interaccion WHERE cliente_id = ?");
         List<Object> parametros = new ArrayList<>(List.of(clienteId));
+        if (filtro.responsable() != null) {
+            donde.append(" AND responsable = ?");
+            parametros.add(filtro.responsable());
+        }
         if (filtro.tipo() != null) {
             donde.append(" AND tipo = ?");
             parametros.add(filtro.tipo());

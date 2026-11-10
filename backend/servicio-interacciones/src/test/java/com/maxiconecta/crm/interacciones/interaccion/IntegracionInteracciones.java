@@ -148,6 +148,20 @@ abstract class IntegracionInteracciones {
                 "ADMINISTRADOR_CRM".equals(rol) ? PERMISOS_ADMIN : PERMISOS_AGENTE, cuerpo);
     }
 
+    /** Asigna la interacción a un responsable (SCRUM-56). */
+    ResultActions asignar(long id, String usuario, String rol, Map<String, Object> cuerpo) throws Exception {
+        return conIdentidad(put(RUTA_INTERACCION + "/responsable", CLIENTE, id), usuario, rol,
+                "ADMINISTRADOR_CRM".equals(rol) ? PERMISOS_ADMIN : PERMISOS_AGENTE, cuerpo);
+    }
+
+    /** Un usuario interno del Gateway con ese rol (SCRUM-56); si ya existe, lo deja con ese rol y estado. */
+    void usuarioInterno(String usuario, String nombre, String rol, boolean activo) {
+        jdbc.update("INSERT INTO seguridad.usuario (nombre_usuario, nombre_completo, password_hash, rol_id, activo) "
+                + "SELECT ?, ?, 'x', id, ? FROM seguridad.rol WHERE codigo = ? ON CONFLICT (nombre_usuario) DO UPDATE "
+                + "SET nombre_completo = EXCLUDED.nombre_completo, rol_id = EXCLUDED.rol_id, activo = EXCLUDED.activo",
+                usuario, nombre, activo, rol);
+    }
+
     /** Vincula una compra a la interacción (SCRUM-54). */
     ResultActions vincular(long id, String usuario, String rol, Map<String, Object> cuerpo) throws Exception {
         return conIdentidad(put(RUTA_INTERACCION + "/compra", CLIENTE, id), usuario, rol,

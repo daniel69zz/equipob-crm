@@ -1,11 +1,14 @@
 package com.maxiconecta.crm.interacciones.interaccion;
 
+import com.maxiconecta.crm.interacciones.agente.AgentesAtencion;
 import com.maxiconecta.crm.interacciones.comun.ConflictoException;
 import com.maxiconecta.crm.interacciones.comun.IdentidadGateway;
 import com.maxiconecta.crm.interacciones.comun.IdentidadGateway.Identidad;
 import com.maxiconecta.crm.interacciones.comun.ReglaInvalidaException;
 import com.maxiconecta.crm.interacciones.compras.Compra;
 import com.maxiconecta.crm.interacciones.compras.ComprasCliente;
+import com.maxiconecta.crm.interacciones.notificacion.Notificacion;
+import com.maxiconecta.crm.interacciones.notificacion.NotificacionesUsuario;
 import com.maxiconecta.crm.interacciones.perfil.ClientesPerfil;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -42,15 +45,20 @@ public class ServicioInteracciones {
     private final AuditoriaInteracciones auditoria;
     private final TransactionTemplate transacciones;
     private final ComprasCliente compras;
+    private final AgentesAtencion agentes;
+    private final NotificacionesUsuario notificaciones;
 
     public ServicioInteracciones(RegistroInteracciones registro, ClientesPerfil perfiles,
                                  AuditoriaInteracciones auditoria, TransactionTemplate transacciones,
-                                 ComprasCliente compras) {
+                                 ComprasCliente compras, AgentesAtencion agentes,
+                                 NotificacionesUsuario notificaciones) {
+        this.notificaciones = notificaciones;
         this.registro = registro;
         this.perfiles = perfiles;
         this.auditoria = auditoria;
         this.transacciones = transacciones;
         this.compras = compras;
+        this.agentes = agentes;
     }
 
     public Interaccion registrar(long clienteId, SolicitudInteraccion solicitud, Identidad identidad) {
@@ -202,8 +210,12 @@ public class ServicioInteracciones {
     }
 
     public PaginaInteracciones historial(long clienteId, String tipo, String estado, String texto, LocalDate desde,
-                                         LocalDate hasta, Integer pagina, Integer tamanio) {
+                                         LocalDate hasta, Integer pagina, Integer tamanio, String responsable) {
         Map<String, String> errores = new TreeMap<>();
+        String responsableFiltro = vacioANulo(responsable);
+        if (responsableFiltro != null && responsableFiltro.length() > 100) {
+            errores.put("responsable", "admite hasta 100 caracteres");
+        }
         String tipoFiltro = vacioANulo(tipo);
         if (tipoFiltro != null) {
             tipoFiltro = tipoFiltro.toUpperCase(Locale.ROOT);
@@ -240,8 +252,40 @@ public class ServicioInteracciones {
         // Las fechas son días completos en la hora de Bolivia: hasta incluye todo ese día.
         FiltroHistorial filtro = new FiltroHistorial(tipoFiltro, estadoFiltro, textoFiltro,
                 desde == null ? null : desde.atStartOfDay(ZONA).toOffsetDateTime(),
-                hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toOffsetDateTime(), numero, cantidad);
+                hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toOffsetDateTime(), numero, cantidad,
+                responsableFiltro);
         return registro.historial(clienteId, filtro);
+    }
+
+    /**
+     * Asigna la interacción a un agente responsable, o la reasigna (SCRUM-457,
+     * docs/interacciones/asignacion-interacciones.md). El responsable debe ser un Agente de Atención activo.
+     */
+    public Interaccion asignar(long clienteId, long id, SolicitudAsignacion solicitud, Identidad identidad) {
+        String responsable = solicitud.responsable().strip();
+        if (agentes.activo(responsable).isEmpty()) {
+            throw new ReglaInvalidaException("El usuario " + responsable + " no es un Agente de Atención activo",
+                    Map.of("responsable", "no es un Agente de Atención activo"));
+        }
+        return transacciones.execute(transaccion -> {
+            Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            verificarVersion(actual, solicitud.version());
+            exigirNoCerrada(actual);
+            if (responsable.equals(actual.responsable())) {
+                throw new ReglaInvalidaException("La interacción ya tiene ese responsable",
+                        Map.of("responsable", "ya es el responsable de la interacción"));
+            }
+            Interaccion asignada = registro.asignar(id, responsable, identidad.usuario());
+            // SCRUM-458: el cambio de responsable queda en el historial en la misma transacción.
+            String comentario = vacioANulo(solicitud.comentario());
+            auditoria.asignada(asignada, identidad.usuario(), identidad.rol(), actual.responsable(), responsable,
+                    comentario);
+            // SCRUM-459: el agente recibe la notificación junto con la asignación, o ninguna de las dos.
+            notificaciones.crear(responsable, Notificacion.INTERACCION_ASIGNADA, id, clienteId,
+                    "Se le asignó " + articulo(asignada.tipo()) + " n.º " + id + " del cliente " + clienteId,
+                    comentario, identidad.usuario());
+            return asignada;
+        });
     }
 
     /** Una interacción cerrada queda como constancia del caso: para modificarla hay que reabrirla (SCRUM-453). */
@@ -287,6 +331,16 @@ public class ServicioInteracciones {
         }
         return new RegistroInteracciones.Campos(tipo.strip(), vacioANulo(canal), vacioANulo(asunto), texto,
                 vacioANulo(referenciaCompra));
+    }
+
+    /** "el reclamo", "la consulta" o "la nota", para el mensaje de la notificación. */
+    private static String articulo(String tipo) {
+        return switch (tipo) {
+            case "RECLAMO" -> "el reclamo";
+            case "CONSULTA" -> "la consulta";
+            case "NOTA" -> "la nota";
+            default -> "la interacción";
+        };
     }
 
     private static String vacioANulo(String valor) {

@@ -8,6 +8,7 @@ import { finalize, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { PaginacionComponent } from '../../core/ui/paginacion.component';
 import { PestaniasClienteComponent } from '../clientes/pestanias-cliente.component';
+import { AsignacionInteraccionComponent } from './asignacion-interaccion.component';
 import { CompraInteraccionComponent } from './compra-interaccion.component';
 import { FormularioInteraccionComponent } from './formulario-interaccion.component';
 import { SeguimientoInteraccionComponent } from './seguimiento-interaccion.component';
@@ -34,13 +35,14 @@ const TAMANIO_PAGINA = 20;
  * interacción muestra su estado de seguimiento, y el Agente y el Administrador lo actualizan y la reclasifican
  * (SCRUM-55, SCRUM-450); una cerrada no se edita hasta que el Administrador la reabra. Cada interacción muestra la
  * compra del cliente vinculada, y el Agente y el Administrador la vinculan, la cambian o la quitan (SCRUM-54,
- * SCRUM-444).
+ * SCRUM-444). Cada interacción muestra su responsable; el Administrador la asigna o la reasigna, y el agente filtra
+ * las que tiene asignadas (SCRUM-56, SCRUM-455).
  */
 @Component({
   selector: 'app-interacciones-cliente',
   standalone: true,
-  imports: [CompraInteraccionComponent, DatePipe, FormsModule, FormularioInteraccionComponent, PaginacionComponent,
-    PestaniasClienteComponent, SeguimientoInteraccionComponent],
+  imports: [AsignacionInteraccionComponent, CompraInteraccionComponent, DatePipe, FormsModule,
+    FormularioInteraccionComponent, PaginacionComponent, PestaniasClienteComponent, SeguimientoInteraccionComponent],
   template: `
     <app-pestanias-cliente [id]="clienteId()" />
     <header class="encabezado">
@@ -90,6 +92,11 @@ const TAMANIO_PAGINA = 20;
         <input id="filtro-hasta" name="hasta" type="date" [(ngModel)]="borrador.hasta"
           [attr.aria-invalid]="!!errorFiltro()" />
       </div>
+      @if (auth.recibeNotificaciones()) {
+        <label class="mias">
+          <input type="checkbox" name="soloMias" [(ngModel)]="soloMias" /> Solo las asignadas a mí
+        </label>
+      }
       <div class="acciones">
         <button type="submit" [disabled]="cargando()">Buscar</button>
         <button type="button" class="secundario" [disabled]="cargando() || !hayFiltros()" (click)="limpiar()">Limpiar</button>
@@ -142,6 +149,8 @@ const TAMANIO_PAGINA = 20;
               </footer>
               <app-compra-interaccion [interaccion]="interaccion" (actualizada)="compraActualizada($event)"
                 (recargar)="recargar(interaccion.id)" />
+              <app-asignacion-interaccion [interaccion]="interaccion" (actualizada)="asignada($event)"
+                (recargar)="recargar(interaccion.id)" />
               @if (auth.puedeRegistrarInteracciones()) {
                 <app-seguimiento-interaccion [interaccion]="interaccion" (actualizada)="seguimientoActualizado($event)"
                   (recargar)="recargar(interaccion.id)" />
@@ -169,6 +178,7 @@ const TAMANIO_PAGINA = 20;
     .filtros .texto { grid-column: span 2; }
     @media (max-width: 520px) { .filtros .texto { grid-column: auto; } }
     .filtros .acciones { display: flex; gap: .5rem; }
+    .filtros .mias { display: flex; gap: .4rem; align-items: center; font-size: .9rem; font-weight: 400; }
     .error-filtro { grid-column: 1 / -1; margin: 0; color: var(--color-error, #b42318); font-size: .85rem; }
     .conteo { color: var(--color-texto-suave); font-size: .9rem; margin: 0 0 .5rem; }
     .historial { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .75rem; }
@@ -209,6 +219,8 @@ export class InteraccionesClienteComponent {
 
   /** Lo que el usuario escribe en los filtros; se aplica al pulsar Buscar. */
   borrador: FiltroInteracciones = vacio();
+  /** SCRUM-56: solo las interacciones de las que el usuario es responsable. */
+  soloMias = false;
   readonly nombreTipo = nombreTipo;
   readonly nombreEstado = nombreEstado;
   readonly estados = ESTADOS_INTERACCION;
@@ -222,6 +234,7 @@ export class InteraccionesClienteComponent {
       this.clienteId.set(id);
       this.resultado.set(null);
       this.borrador = vacio();
+      this.soloMias = false;
       this.filtro = vacio();
       this.filtrado.set(false);
       this.cargar(0);
@@ -263,18 +276,26 @@ export class InteraccionesClienteComponent {
       return;
     }
     this.errorFiltro.set('');
-    this.filtro = { ...this.borrador, texto: this.borrador.texto?.trim() ?? '' };
+    this.filtro = { ...this.borrador, texto: this.borrador.texto?.trim() ?? '',
+      responsable: this.soloMias ? this.auth.sesion()?.usuario ?? '' : '' };
     this.cargar(0);
   }
 
   limpiar(): void {
     this.borrador = vacio();
+    this.soloMias = false;
     this.errorFiltro.set('');
     this.buscar();
   }
 
   hayFiltros(): boolean {
-    return tieneFiltros(this.borrador) || tieneFiltros(this.filtro);
+    return this.soloMias || tieneFiltros(this.borrador) || tieneFiltros(this.filtro);
+  }
+
+  /** SCRUM-455: la interacción con su responsable nuevo. */
+  asignada(interaccion: Interaccion): void {
+    this.reemplazar(interaccion);
+    this.aviso.set(`La interacción n.º ${interaccion.id} quedó asignada a ${interaccion.responsable}.`);
   }
 
   abrirRegistro(): void {
@@ -350,7 +371,7 @@ export class InteraccionesClienteComponent {
 }
 
 function vacio(): FiltroInteracciones {
-  return { tipo: '', estado: '', texto: '', desde: '', hasta: '' };
+  return { tipo: '', estado: '', texto: '', desde: '', hasta: '', responsable: '' };
 }
 
 function tieneFiltros(filtro: FiltroInteracciones): boolean {

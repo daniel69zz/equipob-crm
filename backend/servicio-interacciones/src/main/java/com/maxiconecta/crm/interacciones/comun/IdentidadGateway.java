@@ -80,6 +80,19 @@ public final class IdentidadGateway {
         return identidad;
     }
 
+    /**
+     * Asignar o reasignar el responsable de una interacción, y listar los agentes para elegirlo (SCRUM-456): solo el
+     * Administrador de CRM con {@code INTERACCIONES_REGISTRAR}. El Agente de Atención ve el responsable, pero no lo
+     * cambia (criterio de aceptación 3 de SCRUM-56).
+     */
+    public static Identidad asignacion(HttpServletRequest solicitud) {
+        Identidad identidad = identidad(solicitud);
+        if (!identidad.esAdministrador() || !tienePermiso(solicitud, INTERACCIONES_REGISTRAR)) {
+            throw prohibido("Solo el Administrador de CRM puede asignar interacciones");
+        }
+        return identidad;
+    }
+
     /** La auditoría de una interacción, como la pantalla de auditoría: Administrador con {@code AUDITORIA_CONSULTAR}. */
     public static Identidad auditoria(HttpServletRequest solicitud) {
         Identidad identidad = identidad(solicitud);

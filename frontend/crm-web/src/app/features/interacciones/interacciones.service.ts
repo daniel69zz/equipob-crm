@@ -58,6 +58,34 @@ export interface Interaccion {
   version: number;
   /** Compra del historial del cliente vinculada (SCRUM-54), o null. */
   compra: CompraVinculada | null;
+  /** Agente responsable, con quién lo asignó y cuándo (SCRUM-56); nulos si no tiene. */
+  responsable: string | null;
+  responsableAsignadoPor: string | null;
+  responsableAsignadoEn: string | null;
+}
+
+/** Agente que se puede elegir como responsable (GET /api/interacciones/agentes). */
+export interface AgenteAtencion {
+  usuario: string;
+  nombreCompleto: string;
+}
+
+/** Aviso al usuario de la sesión (SCRUM-459). */
+export interface Notificacion {
+  id: number;
+  tipo: 'INTERACCION_ASIGNADA' | string;
+  interaccionId: number;
+  clienteId: number;
+  mensaje: string;
+  comentario: string | null;
+  creadaPor: string;
+  creadaEn: string;
+  leidaEn: string | null;
+}
+
+export interface BandejaNotificaciones {
+  notificaciones: Notificacion[];
+  noLeidas: number;
 }
 
 /** Compra vinculada a una interacción, tal como estaba al vincularla (docs/interacciones/vinculacion-compras.md). */
@@ -107,6 +135,8 @@ export interface FiltroInteracciones {
   texto?: string;
   desde?: string;
   hasta?: string;
+  /** Usuario del agente responsable (SCRUM-56). */
+  responsable?: string;
 }
 
 /** Compra del cliente en la línea de tiempo (servicio-comportamiento, SCRUM-441). */
@@ -193,6 +223,27 @@ export class InteraccionesService {
   /** Vincula la compra o reemplaza la vinculada (SCRUM-54). */
   vincularCompra(clienteId: number, id: number, referencia: string, version: number) {
     return this.http.put<Interaccion>(`${this.ruta(clienteId)}/${id}/compra`, { referencia, version });
+  }
+
+  /** Agentes activos para elegir el responsable; solo el Administrador (SCRUM-457). */
+  agentes() {
+    return this.http.get<AgenteAtencion[]>('/api/interacciones/agentes');
+  }
+
+  /** Asigna o reasigna el responsable (SCRUM-56). */
+  asignar(clienteId: number, id: number, responsable: string, comentario: string | null, version: number) {
+    return this.http.put<Interaccion>(`${this.ruta(clienteId)}/${id}/responsable`, { responsable, comentario, version });
+  }
+
+  /** Notificaciones del usuario de la sesión (SCRUM-459). */
+  notificaciones(soloNoLeidas = false) {
+    return this.http.get<BandejaNotificaciones>('/api/interacciones/notificaciones', {
+      params: new HttpParams().set('soloNoLeidas', soloNoLeidas),
+    });
+  }
+
+  marcarLeida(id: number) {
+    return this.http.post<Notificacion>(`/api/interacciones/notificaciones/${id}/leida`, null);
   }
 
   desvincularCompra(clienteId: number, id: number, version: number) {
