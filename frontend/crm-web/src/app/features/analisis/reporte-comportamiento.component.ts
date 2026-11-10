@@ -117,6 +117,7 @@ const DIAS_MAXIMOS = 5 * 366;
     h2 { font-size: 1rem; margin: 0 0 0.5rem; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--color-borde); text-align: left; }
+    tbody tr:last-child th { border-bottom: none; }
     .numero { text-align: right; white-space: nowrap; }
     .sin-categoria { font-style: italic; color: var(--color-texto-suave); }
     .barra { display: inline-block; height: 0.5rem; max-width: 4rem; margin-right: 0.4rem; border-radius: 2px;
