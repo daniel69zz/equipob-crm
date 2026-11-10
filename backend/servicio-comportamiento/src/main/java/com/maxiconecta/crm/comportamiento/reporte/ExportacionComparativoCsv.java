@@ -3,24 +3,22 @@ package com.maxiconecta.crm.comportamiento.reporte;
 import com.maxiconecta.crm.comportamiento.reporte.ReporteComparativo.Indicador;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.maxiconecta.crm.comportamiento.reporte.EscrituraCsv.numero;
 
 /**
  * Exporta el reporte comparativo a CSV (SCRUM-499, docs/compra/reporte-comparativo.md). Se escribe a partir
  * del mismo {@link ReporteComparativo} que devuelve el JSON, sin volver a calcular nada, así que conserva los
  * mismos valores (criterio de aceptación 3).
  *
- * <p>Formato RFC 4180: separador coma, punto decimal, sin separador de miles, campos con coma, comillas o
- * saltos de línea entre comillas dobles, y fin de línea CRLF. Empieza con la marca de orden de bytes UTF-8
- * para que Excel muestre bien las tildes.
+ * <p>El formato es el estándar de los reportes ({@link EscrituraCsv}, SCRUM-479).
  */
 @Component
 public class ExportacionComparativoCsv {
 
-    static final String BOM = "﻿";
-    private static final String FIN = "\r\n";
+    static final String BOM = EscrituraCsv.BOM;
 
     public String exportar(ReporteComparativo reporte) {
         List<List<String>> filas = new ArrayList<>();
@@ -38,22 +36,6 @@ public class ExportacionComparativoCsv {
                     numero(i.variacionAbsoluta()), numero(i.variacionPorcentual()),
                     i.tendencia() == null ? "" : i.tendencia().name()));
         }
-        StringBuilder csv = new StringBuilder(BOM);
-        for (List<String> fila : filas) {
-            csv.append(String.join(",", fila.stream().map(ExportacionComparativoCsv::campo).toList())).append(FIN);
-        }
-        return csv.toString();
-    }
-
-    /** Un número tal cual lo devuelve el JSON, sin notación científica; vacío si es nulo. */
-    private static String numero(BigDecimal valor) {
-        return valor == null ? "" : valor.toPlainString();
-    }
-
-    private static String campo(String texto) {
-        if (texto.contains(",") || texto.contains("\"") || texto.contains("\n") || texto.contains("\r")) {
-            return "\"" + texto.replace("\"", "\"\"") + "\"";
-        }
-        return texto;
+        return EscrituraCsv.escribir(filas);
     }
 }

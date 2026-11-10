@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ClientesSegmentoService, SegmentoDisponible } from '../segmentacion/clientes-segmento.service';
+import { ExportarReporteComponent, FormatoExportacion, descargarArchivo, motivoFalloExportacion } from './exportar-reporte.component';
 import { ReporteComportamiento, ReporteComportamientoService } from './reporte-comportamiento.service';
 
 /** Mismo tope que el servidor (RangoPeriodo.DIAS_MAXIMOS): cinco años. */
@@ -11,12 +12,13 @@ const DIAS_MAXIMOS = 5 * 366;
 /**
  * Reporte de comportamiento de compra de la cartera o de un segmento en un periodo (SCRUM-58, RF-50):
  * frecuencia, valor y categorías. El periodo se valida aquí antes de pedir el reporte, así que uno
- * invertido o incompleto se avisa sin consultar al servidor (criterio de aceptación 2).
+ * invertido o incompleto se avisa sin consultar al servidor (criterio de aceptación 2). Quien tiene REPORTES_EXPORTAR
+ * lo descarga en CSV o PDF con los mismos datos de la pantalla (SCRUM-60).
  */
 @Component({
   selector: 'app-reporte-comportamiento',
   standalone: true,
-  imports: [DecimalPipe, FormsModule],
+  imports: [DecimalPipe, FormsModule, ExportarReporteComponent],
   template: `
     <h1>Comportamiento de compra</h1>
     <p class="subtitulo">
@@ -42,7 +44,10 @@ const DIAS_MAXIMOS = 5 * 366;
           }
         </select>
       </label>
-      <button type="submit" [disabled]="cargando()">Generar</button>
+      <div class="botones">
+        <button type="submit" [disabled]="cargando()">Generar</button>
+        <app-exportar-reporte [deshabilitado]="cargando()" [exportando]="exportando()" (exportar)="exportar($event)" />
+      </div>
     </form>
 
     @if (aviso()) {
@@ -109,6 +114,7 @@ const DIAS_MAXIMOS = 5 * 366;
   styles: `
     .filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; margin-bottom: 1rem; padding: 1rem 1.25rem; }
     .filtros label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--color-texto-suave); }
+    .botones { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; }
     .alcance { color: var(--color-texto-suave); margin: 0 0 0.75rem; }
     .indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; margin-bottom: 1rem; }
     .indicadores p { margin: 0.25rem 0; }
@@ -132,6 +138,7 @@ export class ReporteComportamientoComponent implements OnInit {
   readonly reporte = signal<ReporteComportamiento | null>(null);
   readonly segmentos = signal<SegmentoDisponible[]>([]);
   readonly cargando = signal(false);
+  readonly exportando = signal(false);
   readonly aviso = signal<string | null>(null);
 
   desde = primerDiaDelMes();
@@ -163,6 +170,27 @@ export class ReporteComportamientoComponent implements OnInit {
         this.cargando.set(false);
         this.reporte.set(null);
         this.aviso.set(e.error?.mensaje ?? 'No se pudo generar el reporte de comportamiento de compra.');
+      },
+    });
+  }
+
+  /** SCRUM-60: el archivo exportado tiene el mismo periodo y segmento que el formulario. */
+  exportar(formato: FormatoExportacion): void {
+    const problema = validarPeriodo(this.desde, this.hasta);
+    if (problema) {
+      this.aviso.set(problema);
+      return;
+    }
+    this.aviso.set(null);
+    this.exportando.set(true);
+    this.servicio.exportar(this.desde, this.hasta, this.segmento, formato).subscribe({
+      next: (respuesta) => {
+        this.exportando.set(false);
+        descargarArchivo(respuesta, `reporte-comportamiento.${formato}`);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.exportando.set(false);
+        this.aviso.set(motivoFalloExportacion(e, 'reporte de comportamiento de compra'));
       },
     });
   }

@@ -20,6 +20,11 @@ public final class Permisos {
      * analisis comercial, mas restrictivo que SEGMENTOS_CONSULTAR: no lo tiene el Agente de Atencion.
      */
     public static final String REPORTES_CONSULTAR = "REPORTES_CONSULTAR";
+    /**
+     * SCRUM-482: exportar los reportes de clientes a CSV y PDF (SCRUM-60). Se exige junto con
+     * REPORTES_CONSULTAR, para poder quitar la exportacion a un rol sin quitarle la consulta.
+     */
+    public static final String REPORTES_EXPORTAR = "REPORTES_EXPORTAR";
     public static final String PUNTOS_CONSULTAR = "PUNTOS_CONSULTAR";
     /**
      * SCRUM-545: permiso de un cliente de servicio (RIO-CRM-04), no de un rol interno. Se asigna en la

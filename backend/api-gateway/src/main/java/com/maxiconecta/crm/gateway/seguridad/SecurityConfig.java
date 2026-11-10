@@ -36,6 +36,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_REGISTRAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR_VENTAS;
 import static com.maxiconecta.crm.gateway.rol.Permisos.REPORTES_CONSULTAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.REPORTES_EXPORTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SUGERENCIAS_CONSULTAR;
@@ -118,6 +119,12 @@ public class SecurityConfig {
                         // el Agente no tiene aunque consulte INDICADORES_CONSULTAR; solo lectura.
                         // SCRUM-475: clientes activos del panel (SCRUM-59), consulta interna de servicio-segmentacion.
                         .requestMatchers("/api/comportamiento/reportes/clientes-activos").denyAll()
+                        // SCRUM-482: exportar un reporte a CSV o PDF (SCRUM-60) exige ademas REPORTES_EXPORTAR.
+                        .requestMatchers(HttpMethod.GET, "/api/comportamiento/reportes/*/exportar",
+                                "/api/comportamiento/reportes/comparativo/csv")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_CONSULTAR),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_EXPORTAR)))
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/reportes/**")
                             .hasAuthority(REPORTES_CONSULTAR)
                         .requestMatchers("/api/comportamiento/reportes/**").denyAll()

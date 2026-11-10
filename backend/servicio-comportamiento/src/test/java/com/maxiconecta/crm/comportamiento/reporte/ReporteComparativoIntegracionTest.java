@@ -9,6 +9,7 @@ import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.ingesta.EstadoEvento;
 import com.maxiconecta.crm.comportamiento.ingesta.EventoRecibidoRepository;
 import com.maxiconecta.crm.comportamiento.ingesta.IngestaCompras;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -56,11 +59,19 @@ class ReporteComparativoIntegracionTest {
 
     private static final String RUTA = "/api/comportamiento/reportes/comparativo";
     private static final String PERMISOS_GERENTE = "CLIENTE_CONSULTAR,INDICADORES_CONSULTAR,SEGMENTOS_CONSULTAR,"
-            + "REPORTES_CONSULTAR";
+            + "REPORTES_CONSULTAR,REPORTES_EXPORTAR";
 
     @Container
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    /** La exportación se audita (SCRUM-484); las migraciones reales del Gateway son dueñas de la auditoría. */
+    @DynamicPropertySource
+    static void auditoria(DynamicPropertyRegistry registro) {
+        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .schemas("seguridad").locations("filesystem:../api-gateway/src/main/resources/db/migration").load()
+                .migrate();
+    }
 
     @MockBean
     private ClientePerfiles perfiles;
@@ -207,6 +218,10 @@ class ReporteComparativoIntegracionTest {
         String csv = exportado.getResponse().getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(csv).startsWith(ExportacionComparativoCsv.BOM);
+        // SCRUM-484: la exportación queda en la auditoría con quién, qué y en qué formato.
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM auditoria.evento WHERE usuario = 'luis' "
+                + "AND operacion = 'REPORTE_EXPORTADO' AND entidad_id = 'COMPARATIVO_PERIODOS' "
+                + "AND detalle LIKE '%\"formato\":\"CSV\"%'", Long.class)).isPositive();
         assertThat(csv).contains("Alcance,Segmento Alto valor\r\n");
         List<String[]> filas = Arrays.stream(csv.split("\r\n")).map(linea -> linea.split(",", -1)).toList();
         int cabecera = 0;
@@ -237,6 +252,11 @@ class ReporteComparativoIntegracionTest {
                     .andExpect(status().isForbidden());
             mvc.perform(agostoContraSeptiembre(get(ruta))).andExpect(status().isUnauthorized());
         }
+        // SCRUM-482: el CSV es una exportación (SCRUM-60) y exige además REPORTES_EXPORTAR.
+        mvc.perform(agostoContraSeptiembre(get(RUTA + "/csv")).header("X-Usuario", "luis")
+                        .header("X-Usuario-Permisos", "INDICADORES_CONSULTAR,REPORTES_CONSULTAR"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Su rol no tiene permiso para exportar los reportes de clientes"));
     }
 
     /** Un número del JSON tal como llegó, con su escala: vacío si es nulo. */
