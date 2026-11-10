@@ -56,7 +56,7 @@ class ReporteComparativoIntegracionTest {
 
     private static final String RUTA = "/api/comportamiento/reportes/comparativo";
     private static final String PERMISOS_GERENTE = "CLIENTE_CONSULTAR,INDICADORES_CONSULTAR,SEGMENTOS_CONSULTAR,"
-            + "REPORTES_CONSULTAR";
+            + "REPORTES_CONSULTAR,REPORTES_EXPORTAR";
 
     @Container
     @ServiceConnection
@@ -237,6 +237,11 @@ class ReporteComparativoIntegracionTest {
                     .andExpect(status().isForbidden());
             mvc.perform(agostoContraSeptiembre(get(ruta))).andExpect(status().isUnauthorized());
         }
+        // SCRUM-482: el CSV es una exportación (SCRUM-60) y exige además REPORTES_EXPORTAR.
+        mvc.perform(agostoContraSeptiembre(get(RUTA + "/csv")).header("X-Usuario", "luis")
+                        .header("X-Usuario-Permisos", "INDICADORES_CONSULTAR,REPORTES_CONSULTAR"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Su rol no tiene permiso para exportar los reportes de clientes"));
     }
 
     /** Un número del JSON tal como llegó, con su escala: vacío si es nulo. */

@@ -16,20 +16,36 @@ import java.util.Arrays;
  * además del control del API Gateway, igual que los reportes de servicio-segmentacion (SCRUM-462).
  * Sin la identidad que añade el Gateway responde 401, y sin {@code REPORTES_CONSULTAR} 403: el Agente
  * de Atención consulta los indicadores de un cliente, pero no los reportes de la cartera.
+ *
+ * <p>Exportar un reporte a CSV o PDF (SCRUM-60) exige además {@code REPORTES_EXPORTAR} (SCRUM-482): un rol que
+ * consulta los reportes pero no puede exportarlos recibe 403 (criterio de aceptación 2).
  */
 @Configuration
 public class PermisoReportes implements WebMvcConfigurer {
 
     static final String PERMISO = "REPORTES_CONSULTAR";
+    static final String PERMISO_EXPORTAR = "REPORTES_EXPORTAR";
 
     @Override
     public void addInterceptors(InterceptorRegistry registro) {
         // SCRUM-500: también el comparativo (SCRUM-62) y su exportación. No las consultas internas del panel.
-        registro.addInterceptor(new Control()).addPathPatterns("/api/comportamiento/reportes/comportamiento",
-                "/api/comportamiento/reportes/comparativo", "/api/comportamiento/reportes/comparativo/**");
+        registro.addInterceptor(new Control(PERMISO, "Su rol no tiene permiso para consultar los reportes de clientes"))
+                .addPathPatterns("/api/comportamiento/reportes/comportamiento", "/api/comportamiento/reportes/comportamiento/**",
+                        "/api/comportamiento/reportes/comparativo", "/api/comportamiento/reportes/comparativo/**");
+        // SCRUM-482: la exportación a CSV y PDF (SCRUM-60), incluida la ruta del CSV de SCRUM-499.
+        registro.addInterceptor(new Control(PERMISO_EXPORTAR, "Su rol no tiene permiso para exportar los reportes de clientes"))
+                .addPathPatterns("/api/comportamiento/reportes/*/exportar", "/api/comportamiento/reportes/comparativo/csv");
     }
 
     static final class Control implements HandlerInterceptor {
+
+        private final String permiso;
+        private final String motivo;
+
+        Control(String permiso, String motivo) {
+            this.permiso = permiso;
+            this.motivo = motivo;
+        }
 
         @Override
         public boolean preHandle(HttpServletRequest solicitud, HttpServletResponse respuesta, Object controlador) {
@@ -38,9 +54,8 @@ public class PermisoReportes implements WebMvcConfigurer {
             if (usuario == null || usuario.isBlank()) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Se requiere la identidad del Gateway");
             }
-            if (permisos == null || Arrays.stream(permisos.split(",")).map(String::strip).noneMatch(PERMISO::equals)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Su rol no tiene permiso para consultar los reportes de clientes");
+            if (permisos == null || Arrays.stream(permisos.split(",")).map(String::strip).noneMatch(permiso::equals)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, motivo);
             }
             return true;
         }

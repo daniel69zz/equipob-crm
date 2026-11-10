@@ -471,15 +471,63 @@ class AccesoPorRolTest {
         for (String ruta : List.of("/api/comportamiento/reportes/comparativo",
                 "/api/comportamiento/reportes/comparativo/csv")) {
             mvc.perform(get(ruta).header("Authorization",
-                            bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "REPORTES_CONSULTAR"))))
+                            bearer("luis", "GERENTE_COMERCIAL", conReportes(PERMISOS_GERENTE))))
                     .andExpect(pasaElControlDeAcceso());
             mvc.perform(get(ruta).header("Authorization",
-                            bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "REPORTES_CONSULTAR"))))
+                            bearer("admin", "ADMINISTRADOR_CRM", conReportes(PERMISOS_ADMINISTRADOR))))
                     .andExpect(pasaElControlDeAcceso());
             mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
                     .andExpect(status().isForbidden());
             mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
         }
+    }
+
+    // --- Exportación de los reportes a CSV y PDF (SCRUM-60, SCRUM-482): exige REPORTES_EXPORTAR ---
+
+    private static final List<String> RUTAS_EXPORTACION = List.of(
+            "/api/comportamiento/reportes/comportamiento/exportar",
+            "/api/comportamiento/reportes/comparativo/exportar",
+            "/api/comportamiento/reportes/comparativo/csv");
+
+    @Test
+    void elGerenteYElAdministradorExportanLosReportes() throws Exception {
+        for (String ruta : RUTAS_EXPORTACION) {
+            mvc.perform(get(ruta).param("formato", "pdf").header("Authorization",
+                            bearer("luis", "GERENTE_COMERCIAL", conReportes(PERMISOS_GERENTE))))
+                    .andExpect(pasaElControlDeAcceso());
+            mvc.perform(get(ruta).param("formato", "csv").header("Authorization",
+                            bearer("admin", "ADMINISTRADOR_CRM", conReportes(PERMISOS_ADMINISTRADOR))))
+                    .andExpect(pasaElControlDeAcceso());
+        }
+    }
+
+    @Test
+    void unRolQueConsultaLosReportesPeroNoTienePermisoDeExportacionRecibe403() throws Exception {
+        String soloConsulta = bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "REPORTES_CONSULTAR"));
+        for (String ruta : RUTAS_EXPORTACION) {
+            mvc.perform(get(ruta).header("Authorization", soloConsulta)).andExpect(status().isForbidden());
+            // El permiso de exportar no sirve sin el de consultar: no se exporta lo que no se puede ver.
+            mvc.perform(get(ruta).header("Authorization",
+                            bearer("ana", "AGENTE_ATENCION", agregar(PERMISOS_AGENTE, "REPORTES_EXPORTAR"))))
+                    .andExpect(status().isForbidden());
+            mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                    .andExpect(status().isForbidden());
+            mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        }
+        // La consulta del reporte en pantalla sigue abierta con solo REPORTES_CONSULTAR.
+        mvc.perform(get("/api/comportamiento/reportes/comparativo").header("Authorization", soloConsulta))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void laExportacionEsSoloDeLectura() throws Exception {
+        mvc.perform(post("/api/comportamiento/reportes/comportamiento/exportar").header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", conReportes(PERMISOS_ADMINISTRADOR))))
+                .andExpect(status().isForbidden());
+    }
+
+    private static List<String> conReportes(List<String> permisos) {
+        return agregar(agregar(permisos, "REPORTES_CONSULTAR"), "REPORTES_EXPORTAR");
     }
 
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
