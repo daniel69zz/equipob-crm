@@ -35,6 +35,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_REGISTRAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR_VENTAS;
+import static com.maxiconecta.crm.gateway.rol.Permisos.REPORTES_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SUGERENCIAS_CONSULTAR;
@@ -123,6 +124,11 @@ public class SecurityConfig {
                             .hasAuthority(SEGMENTOS_CONSULTAR)
                         .requestMatchers("/api/segmentacion/clientes/*/historial-segmentos",
                                 "/api/segmentacion/clientes/*/historial-segmentos/**").denyAll()
+                        // Reportes de distribucion de clientes (SCRUM-57, SCRUM-462): permiso propio de los
+                        // perfiles de analisis comercial, asi que su regla va antes de la generica.
+                        .requestMatchers(HttpMethod.GET, "/api/segmentacion/reportes/**")
+                            .hasAuthority(REPORTES_CONSULTAR)
+                        .requestMatchers("/api/segmentacion/reportes/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/segmentacion/**").hasAuthority(SEGMENTOS_CONSULTAR)
                         .requestMatchers("/api/segmentacion/**").hasAuthority(SEGMENTACION_CONFIGURAR)
 
@@ -141,6 +147,10 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(FIDELIZACION_CONFIGURAR)))
+                        // SCRUM-464: la distribucion de niveles es una consulta interna que hace
+                        // servicio-segmentacion para el reporte; no se expone a los usuarios por el Gateway,
+                        // porque el Agente de Atencion tiene PUNTOS_CONSULTAR y el reporte no es para el.
+                        .requestMatchers("/api/fidelizacion/reportes/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/fidelizacion/**").hasAuthority(PUNTOS_CONSULTAR)
                         .requestMatchers("/api/fidelizacion/**").hasAuthority(FIDELIZACION_CONFIGURAR)
 
