@@ -14,7 +14,7 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 | `EVENTOS_REPROCESAR` | Ver la bitácora de ingesta y reprocesar eventos fallidos |
 | `SEGMENTOS_CONSULTAR` | Consultar segmentos, clientes por segmento e historial de segmentos del cliente |
 | `SEGMENTACION_CONFIGURAR` | Configurar criterios y reglas de segmentación |
-| `REPORTES_CONSULTAR` | Consultar los reportes de clientes: distribución (SCRUM-57), comportamiento de compra (SCRUM-58) y panel de indicadores (SCRUM-59) |
+| `REPORTES_CONSULTAR` | Consultar los reportes de clientes: distribución (SCRUM-57), comportamiento de compra (SCRUM-58), panel de indicadores (SCRUM-59) y comparativo entre periodos con su exportación a CSV (SCRUM-62) |
 | `PUNTOS_CONSULTAR` | Consultar saldo y nivel de puntos |
 | `FIDELIZACION_CONFIGURAR` | Configurar reglas de puntos, niveles y ajustes manuales |
 | `INTERACCIONES_CONSULTAR` | Consultar el historial de interacciones |
@@ -61,7 +61,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/comportamiento/clientes/*/preferencias` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `FICHA_INTEGRAL_CONSULTAR` |
 | `/api/comportamiento/comparacion-periodos` | GET | `INDICADORES_CONSULTAR` **y** `SEGMENTOS_CONSULTAR` (regla anterior a la genérica) |
 | `/api/comportamiento/reportes/clientes-activos` | Todos | Denegado: consulta interna de los clientes activos del panel (SCRUM-475), no para usuarios |
-| `/api/comportamiento/reportes/**` | GET | `REPORTES_CONSULTAR`: reporte de frecuencia, valor y categorías de compra (SCRUM-58, regla anterior a la genérica). Los métodos de escritura se deniegan |
+| `/api/comportamiento/reportes/**` | GET | `REPORTES_CONSULTAR`: reporte de frecuencia, valor y categorías de compra (SCRUM-58) y comparativo entre periodos con su CSV (SCRUM-62); regla anterior a la genérica. Los métodos de escritura se deniegan |
 | `/api/comportamiento/**` | GET | `INDICADORES_CONSULTAR` |
 | `/api/segmentacion/criterios` y `/api/segmentacion/criterios/**` | Todos | Rol `ADMINISTRADOR_CRM` **y** `SEGMENTACION_CONFIGURAR` (regla anterior a la genérica) |
 | `/api/segmentacion/clientes/*/historial-segmentos` | GET | `SEGMENTOS_CONSULTAR`; los métodos de escritura y las subrutas se deniegan antes de la regla genérica |
