@@ -4,6 +4,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +18,8 @@ public class RegistroInteracciones {
 
     private static final String COLUMNAS = "id, cliente_id, tipo, canal, asunto, descripcion, referencia_compra, "
             + "estado, estado_actualizado_por, estado_actualizado_en, registrado_por, registrado_rol, registrado_en, "
-            + "modificado_por, modificado_en, version";
+            + "modificado_por, modificado_en, version, compra_referencia, compra_fecha, compra_monto_total, "
+            + "compra_estado, compra_vinculada_por, compra_vinculada_en";
 
     private static final RowMapper<Interaccion> FILA = (rs, n) -> new Interaccion(rs.getLong("id"),
             rs.getLong("cliente_id"), rs.getString("tipo"), rs.getString("canal"), rs.getString("asunto"),
@@ -23,7 +27,8 @@ public class RegistroInteracciones {
             rs.getString("estado_actualizado_por"), rs.getObject("estado_actualizado_en", OffsetDateTime.class),
             rs.getString("registrado_por"), rs.getString("registrado_rol"),
             rs.getObject("registrado_en", OffsetDateTime.class),
-            rs.getString("modificado_por"), rs.getObject("modificado_en", OffsetDateTime.class), rs.getLong("version"));
+            rs.getString("modificado_por"), rs.getObject("modificado_en", OffsetDateTime.class), rs.getLong("version"),
+            compra(rs));
 
     private final JdbcTemplate jdbc;
 
@@ -67,6 +72,22 @@ public class RegistroInteracciones {
                 cambiaEstado, usuario, cambiaEstado, id);
     }
 
+    /** Vincula la compra, o reemplaza la que tenía, con quién y cuándo (SCRUM-445). */
+    public Interaccion vincularCompra(long id, String referencia, OffsetDateTime fecha, BigDecimal montoTotal,
+                                      String estado, String usuario) {
+        return jdbc.queryForObject("UPDATE interacciones.interaccion SET compra_referencia = ?, compra_fecha = ?, "
+                        + "compra_monto_total = ?, compra_estado = ?, compra_vinculada_por = ?, "
+                        + "compra_vinculada_en = now(), version = version + 1 WHERE id = ? RETURNING " + COLUMNAS,
+                FILA, referencia, fecha, montoTotal, estado, usuario, id);
+    }
+
+    /** Quita la compra vinculada. */
+    public Interaccion desvincularCompra(long id) {
+        return jdbc.queryForObject("UPDATE interacciones.interaccion SET compra_referencia = NULL, compra_fecha = NULL, "
+                + "compra_monto_total = NULL, compra_estado = NULL, compra_vinculada_por = NULL, "
+                + "compra_vinculada_en = NULL, version = version + 1 WHERE id = ? RETURNING " + COLUMNAS, FILA, id);
+    }
+
     public PaginaInteracciones historial(long clienteId, FiltroHistorial filtro) {
         StringBuilder donde = new StringBuilder(" FROM interacciones.interaccion WHERE cliente_id = ?");
         List<Object> parametros = new ArrayList<>(List.of(clienteId));
@@ -99,6 +120,14 @@ public class RegistroInteracciones {
         List<Interaccion> interacciones = jdbc.query("SELECT " + COLUMNAS + donde
                 + " ORDER BY registrado_en DESC, id DESC LIMIT ? OFFSET ?", FILA, conPagina.toArray());
         return new PaginaInteracciones(interacciones, total == null ? 0 : total, filtro.pagina(), filtro.tamanio());
+    }
+
+    private static CompraVinculada compra(ResultSet rs) throws SQLException {
+        String referencia = rs.getString("compra_referencia");
+        return referencia == null ? null : new CompraVinculada(referencia,
+                rs.getObject("compra_fecha", OffsetDateTime.class), rs.getBigDecimal("compra_monto_total"),
+                rs.getString("compra_estado"), rs.getString("compra_vinculada_por"),
+                rs.getObject("compra_vinculada_en", OffsetDateTime.class));
     }
 
     /** Campos editables ya normalizados: sin espacios en los extremos y los opcionales vacíos como nulos. */
