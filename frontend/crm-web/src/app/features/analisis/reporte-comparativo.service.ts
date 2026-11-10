@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { FormatoExportacion } from './exportar-reporte.component';
 
 export type Tendencia = 'CRECE' | 'DECAE' | 'ESTABLE' | 'NUEVO';
 
@@ -34,8 +35,8 @@ export interface PeriodosComparados {
 }
 
 /**
- * Reporte comparativo de indicadores de clientes entre dos periodos y su exportación a CSV (SCRUM-62,
- * GET /api/comportamiento/reportes/comparativo[/csv], docs/compra/reporte-comparativo.md).
+ * Reporte comparativo de indicadores de clientes entre dos periodos (SCRUM-62, GET /api/comportamiento/reportes/comparativo,
+ * docs/compra/reporte-comparativo.md) y su exportación a CSV o PDF (SCRUM-60, docs/compra/exportacion-reportes.md).
  */
 @Injectable({ providedIn: 'root' })
 export class ReporteComparativoService {
@@ -45,10 +46,10 @@ export class ReporteComparativoService {
     return this.http.get<ReporteComparativo>('/api/comportamiento/reportes/comparativo', { params: parametros(periodos) });
   }
 
-  /** El CSV lo genera el servidor a partir del mismo reporte, para que conserve los mismos valores. */
-  exportarCsv(periodos: PeriodosComparados): Observable<HttpResponse<Blob>> {
-    return this.http.get('/api/comportamiento/reportes/comparativo/csv',
-      { params: parametros(periodos), responseType: 'blob', observe: 'response' });
+  /** El archivo lo genera el servidor a partir del mismo reporte, para que conserve los mismos valores. */
+  exportar(periodos: PeriodosComparados, formato: FormatoExportacion): Observable<HttpResponse<Blob>> {
+    return this.http.get('/api/comportamiento/reportes/comparativo/exportar',
+      { params: parametros(periodos).set('formato', formato), responseType: 'blob', observe: 'response' });
   }
 }
 

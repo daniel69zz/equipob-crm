@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ClientesSegmentoService, SegmentoDisponible } from '../segmentacion/clientes-segmento.service';
+import { ExportarReporteComponent, FormatoExportacion, descargarArchivo, motivoFalloExportacion } from './exportar-reporte.component';
 import { validarPeriodo } from './reporte-comportamiento.component';
 import { IndicadorComparado, PeriodosComparados, ReporteComparativo, ReporteComparativoService, Tendencia } from './reporte-comparativo.service';
 
@@ -14,13 +15,13 @@ const TENDENCIAS: Record<Tendencia, string> = { CRECE: '▲ Crece', DECAE: '▼ 
 /**
  * Comparación de los indicadores de clientes entre dos periodos (SCRUM-62, RF-54): los de cada periodo y su
  * variación (criterio 1). Los periodos se validan aquí antes de consultar, así que unos superpuestos se avisan
- * sin llamar al servidor (criterio 2). «Exportar CSV» descarga el archivo que genera el servidor con el mismo
- * reporte (criterio 3).
+ * sin llamar al servidor (criterio 2). «Exportar» descarga en CSV o PDF el archivo que genera el servidor con el
+ * mismo reporte (criterio 3 y SCRUM-60), solo para quien tiene REPORTES_EXPORTAR.
  */
 @Component({
   selector: 'app-reporte-comparativo',
   standalone: true,
-  imports: [DecimalPipe, FormsModule],
+  imports: [DecimalPipe, FormsModule, ExportarReporteComponent],
   template: `
     <h1>Comparativo entre periodos</h1>
     <p class="subtitulo">
@@ -50,9 +51,7 @@ const TENDENCIAS: Record<Tendencia, string> = { CRECE: '▲ Crece', DECAE: '▼ 
       </label>
       <div class="botones">
         <button type="submit" [disabled]="cargando()">Comparar</button>
-        <button type="button" class="secundario" (click)="exportar()" [disabled]="cargando() || exportando()">
-          Exportar CSV
-        </button>
+        <app-exportar-reporte [deshabilitado]="cargando()" [exportando]="exportando()" (exportar)="exportar($event)" />
       </div>
     </form>
 
@@ -113,7 +112,7 @@ const TENDENCIAS: Record<Tendencia, string> = { CRECE: '▲ Crece', DECAE: '▼ 
     fieldset { display: flex; gap: 0.75rem; border: 1px solid var(--color-borde); border-radius: 6px; padding: 0.5rem 0.75rem 0.75rem; margin: 0; }
     legend { font-size: 0.8rem; color: var(--color-texto-suave); padding: 0 0.25rem; }
     .filtros label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--color-texto-suave); }
-    .botones { display: flex; gap: 0.5rem; }
+    .botones { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem; }
     .alcance { color: var(--color-texto-suave); margin: 0 0 0.75rem; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--color-borde); text-align: left; }
@@ -170,20 +169,20 @@ export class ReporteComparativoComponent implements OnInit {
     });
   }
 
-  exportar(): void {
+  exportar(formato: FormatoExportacion): void {
     const periodos = this.validar();
     if (!periodos) {
       return;
     }
     this.exportando.set(true);
-    this.servicio.exportarCsv(periodos).subscribe({
+    this.servicio.exportar(periodos, formato).subscribe({
       next: (respuesta) => {
         this.exportando.set(false);
-        descargar(respuesta.body!, nombreArchivo(respuesta.headers.get('Content-Disposition')));
+        descargarArchivo(respuesta, `reporte-comparativo.${formato}`);
       },
-      error: () => {
+      error: (e: HttpErrorResponse) => {
         this.exportando.set(false);
-        this.aviso.set('No se pudo exportar el reporte comparativo.');
+        this.aviso.set(motivoFalloExportacion(e, 'reporte comparativo'));
       },
     });
   }
@@ -225,20 +224,6 @@ export function validarPeriodos(desdeA: string, hastaA: string, desdeB: string, 
     return `Los periodos se superponen (${desdeA} a ${hastaA} y ${desdeB} a ${hastaB}). Elija periodos que no compartan días.`;
   }
   return null;
-}
-
-function descargar(contenido: Blob, nombre: string): void {
-  const url = URL.createObjectURL(contenido);
-  const enlace = document.createElement('a');
-  enlace.href = url;
-  enlace.download = nombre;
-  enlace.click();
-  URL.revokeObjectURL(url);
-}
-
-/** El nombre que propone el servidor en Content-Disposition, o uno genérico. */
-function nombreArchivo(cabecera: string | null): string {
-  return /filename="?([^";]+)"?/.exec(cabecera ?? '')?.[1] ?? 'reporte-comparativo.csv';
 }
 
 function hoy(): string {
