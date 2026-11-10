@@ -19,6 +19,7 @@ const TRAZOS: Record<string, string> = {
   cohortes: 'M4 4h16v16H4zM4 9.3h16M4 14.6h16M9.3 4v16M14.6 4v16',
   salir: 'M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10',
   menu: 'M4 6h16M4 12h16M4 18h16',
+  notificaciones: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0',
   flecha: 'M5 12h14M13 6l6 6-6 6',
 };
 

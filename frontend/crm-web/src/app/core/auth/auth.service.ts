@@ -106,6 +106,16 @@ export class AuthService {
     return this.puedeRegistrarInteracciones() && this.sesionVigente()!.permisos.includes('INDICADORES_CONSULTAR');
   }
 
+  /** SCRUM-456: solo el Administrador de CRM asigna o reasigna el responsable de una interacción. */
+  puedeAsignarInteracciones(): boolean {
+    return this.puedeRegistrarInteracciones() && this.sesionVigente()!.rol === 'ADMINISTRADOR_CRM';
+  }
+
+  /** SCRUM-459: el Agente de Atención y el Administrador reciben notificaciones de interacciones asignadas. */
+  recibeNotificaciones(): boolean {
+    return this.puedeRegistrarInteracciones();
+  }
+
   /** SCRUM-438: el historial del cliente con sus compras, con la misma combinación de rol y permisos que el Gateway. */
   puedeConsultarHistorialCliente(): boolean {
     const sesion = this.sesionVigente();

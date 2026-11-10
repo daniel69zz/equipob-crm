@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { NombresDeRol, Permisos } from '../../core/auth/sesion';
 import { IconoComponent } from '../../core/ui/icono.component';
+import { NotificacionesPendientes } from '../interacciones/notificaciones-pendientes.service';
 
 interface Enlace {
   texto: string;
@@ -111,6 +112,13 @@ const GRUPOS: Grupo[] = [
           <span class="integracion" title="El CRM se integra con el módulo Marketplace y Ventas del ERP">
             <span class="punto"></span> Integración: Marketplace y Ventas
           </span>
+          @if (auth.recibeNotificaciones()) {
+            <a class="campana" routerLink="/notificaciones"
+              [attr.aria-label]="pendientes.noLeidas() ? 'Notificaciones: ' + pendientes.noLeidas() + ' sin leer' : 'Notificaciones'">
+              <app-icono nombre="notificaciones" />
+              @if (pendientes.noLeidas()) { <span class="contador">{{ pendientes.noLeidas() }}</span> }
+            </a>
+          }
         </header>
         <main>
           <router-outlet />
@@ -177,6 +185,16 @@ const GRUPOS: Grupo[] = [
       backdrop-filter: blur(8px); border-bottom: 1px solid var(--color-borde);
     }
     .abrir-menu, .marca-movil { display: none; }
+    .campana {
+      position: relative; display: inline-grid; place-items: center; width: 36px; height: 36px; margin-left: 0.5rem;
+      border-radius: 10px; color: var(--color-texto-suave);
+    }
+    .campana:hover { background: var(--color-superficie); color: var(--color-texto); text-decoration: none; }
+    .contador {
+      position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+      background: var(--color-error, #b42318); color: #fff; font-size: 0.7rem; font-weight: 700; line-height: 18px;
+      text-align: center;
+    }
     .integracion {
       margin-left: auto; display: inline-flex; align-items: center; gap: 0.45rem;
       font-size: 0.8rem; font-weight: 600; color: var(--color-texto-suave);
@@ -201,12 +219,14 @@ const GRUPOS: Grupo[] = [
       .abrir-menu:hover:not(:disabled) { background: var(--color-superficie); color: var(--color-texto); border-color: var(--color-borde-fuerte); }
       .marca-movil { display: inline; font-weight: 700; }
       .integracion { display: none; }
+      .campana { margin-left: auto; }
       main { padding: 1.25rem 1rem 2.5rem; }
     }
   `,
 })
 export class LayoutComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly pendientes = inject(NotificacionesPendientes);
   private readonly router = inject(Router);
 
   readonly menuAbierto = signal(false);
@@ -236,13 +256,21 @@ export class LayoutComponent implements OnInit {
   });
 
   constructor() {
-    // En pantallas chicas, el menú se cierra al navegar.
+    // En pantallas chicas, el menú se cierra al navegar. SCRUM-459: el aviso de notificaciones se actualiza.
     this.router.events
       .pipe(filter((evento) => evento instanceof NavigationEnd), takeUntilDestroyed())
-      .subscribe(() => this.menuAbierto.set(false));
+      .subscribe(() => {
+        this.menuAbierto.set(false);
+        this.actualizarNotificaciones();
+      });
   }
 
   ngOnInit(): void {
     this.auth.refrescarSesion();
+    this.actualizarNotificaciones();
+  }
+
+  private actualizarNotificaciones(): void {
+    if (this.auth.recibeNotificaciones()) this.pendientes.actualizar();
   }
 }
