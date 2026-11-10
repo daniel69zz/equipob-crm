@@ -4,6 +4,8 @@ import com.maxiconecta.crm.interacciones.comun.ConflictoException;
 import com.maxiconecta.crm.interacciones.comun.IdentidadGateway;
 import com.maxiconecta.crm.interacciones.comun.IdentidadGateway.Identidad;
 import com.maxiconecta.crm.interacciones.comun.ReglaInvalidaException;
+import com.maxiconecta.crm.interacciones.compras.Compra;
+import com.maxiconecta.crm.interacciones.compras.ComprasCliente;
 import com.maxiconecta.crm.interacciones.perfil.ClientesPerfil;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 
 /**
@@ -38,13 +41,16 @@ public class ServicioInteracciones {
     private final ClientesPerfil perfiles;
     private final AuditoriaInteracciones auditoria;
     private final TransactionTemplate transacciones;
+    private final ComprasCliente compras;
 
     public ServicioInteracciones(RegistroInteracciones registro, ClientesPerfil perfiles,
-                                 AuditoriaInteracciones auditoria, TransactionTemplate transacciones) {
+                                 AuditoriaInteracciones auditoria, TransactionTemplate transacciones,
+                                 ComprasCliente compras) {
         this.registro = registro;
         this.perfiles = perfiles;
         this.auditoria = auditoria;
         this.transacciones = transacciones;
+        this.compras = compras;
     }
 
     public Interaccion registrar(long clienteId, SolicitudInteraccion solicitud, Identidad identidad) {
@@ -126,6 +132,63 @@ public class ServicioInteracciones {
             auditoria.seguimiento(actualizada, identidad.usuario(), identidad.rol(), cambios, comentario);
             return actualizada;
         });
+    }
+
+    /**
+     * Vincula una compra del historial del cliente a la interacción, o reemplaza la que tenía (SCRUM-54,
+     * docs/interacciones/vinculacion-compras.md). La compra se busca entre las del cliente: una de otro cliente se
+     * rechaza (criterio de aceptación 2).
+     */
+    public Interaccion vincularCompra(long clienteId, long id, SolicitudVinculacion solicitud, Identidad identidad) {
+        String referencia = solicitud.referencia().strip();
+        // SCRUM-447: lo que no depende de la compra se rechaza antes de consultar Comportamiento, y se vuelve a
+        // comprobar con la interacción bloqueada.
+        validarVinculacion(detalle(clienteId, id), solicitud.version(), referencia);
+        // Fuera de la transacción: Perfil y Comportamiento no retienen una conexión de la base.
+        List<String> identificadores = perfiles.identificadores(clienteId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe el cliente " + clienteId + " en el CRM"));
+        Compra compra = (identificadores.isEmpty() ? Optional.<Compra>empty()
+                : compras.buscar(clienteId, identificadores, referencia)).orElseThrow(() ->
+                new ReglaInvalidaException("La compra " + referencia + " no es una compra del cliente " + clienteId,
+                        Map.of("referencia", "no es una compra del cliente")));
+        return transacciones.execute(transaccion -> {
+            Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            validarVinculacion(actual, solicitud.version(), compra.referencia());
+            Interaccion vinculada = registro.vincularCompra(id, compra.referencia(), compra.fecha(),
+                    compra.montoTotal(), compra.estado(), identidad.usuario());
+            // SCRUM-448: en la misma transacción; si la auditoría falla, la compra no queda vinculada.
+            auditoria.compra(vinculada, identidad.usuario(), identidad.rol(),
+                    actual.compra() == null ? null : actual.compra().referencia(), compra.referencia());
+            return vinculada;
+        });
+    }
+
+    /** Quita la compra vinculada a la interacción (SCRUM-54), con las mismas reglas de estado y versión. */
+    public Interaccion desvincularCompra(long clienteId, long id, long version, Identidad identidad) {
+        return transacciones.execute(transaccion -> {
+            Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            verificarVersion(actual, version);
+            exigirNoCerrada(actual);
+            if (actual.compra() == null) {
+                throw new ReglaInvalidaException("La interacción no tiene una compra vinculada");
+            }
+            Interaccion desvinculada = registro.desvincularCompra(id);
+            auditoria.compra(desvinculada, identidad.usuario(), identidad.rol(), actual.compra().referencia(), null);
+            return desvinculada;
+        });
+    }
+
+    /**
+     * Consistencia de la vinculación (SCRUM-447): la versión que el usuario tenía en pantalla, una interacción no
+     * cerrada y una compra distinta de la ya vinculada.
+     */
+    private static void validarVinculacion(Interaccion actual, long version, String referencia) {
+        verificarVersion(actual, version);
+        exigirNoCerrada(actual);
+        if (actual.compra() != null && actual.compra().referencia().equals(referencia)) {
+            throw new ReglaInvalidaException("La interacción ya está vinculada a esa compra",
+                    Map.of("referencia", "ya es la compra vinculada"));
+        }
     }
 
     public Interaccion detalle(long clienteId, long id) {

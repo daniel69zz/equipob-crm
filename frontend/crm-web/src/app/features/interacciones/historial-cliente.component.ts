@@ -79,7 +79,9 @@ const NOMBRES_ESTADO_COMPRA: Record<string, string> = {
                 <p class="descripcion">{{ i.descripcion }}</p>
                 <footer>
                   <span>Registrada por {{ i.registradoPor }}</span>
-                  @if (i.referenciaCompra) { <span>Compra {{ i.referenciaCompra }}</span> }
+                  @if (i.compra) {
+                    <span>Vinculada a la compra {{ i.compra.referencia }} por {{ i.compra.vinculadaPor }}</span>
+                  } @else if (i.referenciaCompra) { <span>Compra {{ i.referenciaCompra }}</span> }
                 </footer>
               </article>
             }

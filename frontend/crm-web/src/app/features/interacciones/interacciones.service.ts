@@ -56,6 +56,25 @@ export interface Interaccion {
   modificadoEn: string | null;
   /** Sube con cada cambio; la edición la envía para detectar cambios simultáneos (409). */
   version: number;
+  /** Compra del historial del cliente vinculada (SCRUM-54), o null. */
+  compra: CompraVinculada | null;
+}
+
+/** Compra vinculada a una interacción, tal como estaba al vincularla (docs/interacciones/vinculacion-compras.md). */
+export interface CompraVinculada {
+  referencia: string;
+  fecha: string | null;
+  montoTotal: number | null;
+  estado: string | null;
+  vinculadaPor: string;
+  vinculadaEn: string;
+}
+
+/** GET /api/interacciones/clientes/{clienteId}/compras (SCRUM-446). */
+export interface ComprasElegibles {
+  compras: CompraHistorial[];
+  disponible: boolean;
+  avisos: string[];
 }
 
 export interface PaginaInteracciones {
@@ -162,6 +181,24 @@ export class InteraccionesService {
 
   seguimiento(clienteId: number, id: number, cambio: CambioSeguimiento, version: number) {
     return this.http.patch<Interaccion>(`${this.ruta(clienteId)}/${id}`, { ...cambio, version });
+  }
+
+  /** Compras del cliente para vincular a una interacción, filtradas por referencia (SCRUM-446). */
+  comprasElegibles(clienteId: number, texto: string, limite: number) {
+    let params = new HttpParams().set('limite', limite);
+    if (texto.trim()) params = params.set('texto', texto.trim());
+    return this.http.get<ComprasElegibles>(`/api/interacciones/clientes/${clienteId}/compras`, { params });
+  }
+
+  /** Vincula la compra o reemplaza la vinculada (SCRUM-54). */
+  vincularCompra(clienteId: number, id: number, referencia: string, version: number) {
+    return this.http.put<Interaccion>(`${this.ruta(clienteId)}/${id}/compra`, { referencia, version });
+  }
+
+  desvincularCompra(clienteId: number, id: number, version: number) {
+    return this.http.delete<Interaccion>(`${this.ruta(clienteId)}/${id}/compra`, {
+      params: new HttpParams().set('version', version),
+    });
   }
 }
 

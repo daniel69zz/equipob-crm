@@ -41,6 +41,23 @@ Todas bajo `/api/interacciones/clientes/{clienteId}/interacciones` (`docs/seguri
 en una sola línea de tiempo, de la más reciente a la más antigua. El diseño está en
 `docs/interacciones/historial-cliente.md`.
 
+## Compra vinculada a una interacción (SCRUM-54)
+
+El agente vincula una interacción con una compra del historial del cliente, por ejemplo el reclamo con la compra que
+lo originó. Reglas en `docs/interacciones/vinculacion-compras.md`.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| GET | `/api/interacciones/clientes/{clienteId}/compras?texto=&limite=` | Compras del cliente para elegir (mismos permisos que el historial) |
+| PUT | `…/interacciones/{id}/compra` | Vincula la compra `{referencia, version}` o reemplaza la vinculada |
+| DELETE | `…/interacciones/{id}/compra?version=` | Quita la compra vinculada |
+
+- Vincular exige el rol de Agente o Administrador con `INTERACCIONES_REGISTRAR` e `INDICADORES_CONSULTAR`.
+- La compra debe ser del cliente: se comprueba en servicio-comportamiento. Si no responde, `503`.
+- Una interacción cerrada no se vincula (`409`).
+- Cada cambio queda en la auditoría de la interacción (`COMPRA_VINCULADA` o `COMPRA_DESVINCULADA`) y en
+  `auditoria.evento` (`INTERACCION_COMPRA_VINCULADA` o `INTERACCION_COMPRA_DESVINCULADA`).
+
 ## Ejecutar
 
 ```bash

@@ -29,6 +29,8 @@ public class AuditoriaInteracciones {
     static final String REGISTRADA = "INTERACCION_REGISTRADA";
     static final String MODIFICADA = "INTERACCION_MODIFICADA";
     static final String SEGUIMIENTO = "INTERACCION_SEGUIMIENTO_ACTUALIZADO";
+    static final String COMPRA_VINCULADA = "INTERACCION_COMPRA_VINCULADA";
+    static final String COMPRA_DESVINCULADA = "INTERACCION_COMPRA_DESVINCULADA";
     static final String ENTIDAD_CLIENTE = "CLIENTE";
 
     private final JdbcTemplate jdbc;
@@ -61,6 +63,18 @@ public class AuditoriaInteracciones {
         registrar(interaccion, "SEGUIMIENTO", usuario, rol, cambios, comentario, SEGUIMIENTO);
     }
 
+    /**
+     * Una compra vinculada, reemplazada o quitada (SCRUM-448): quién lo hizo, cuándo, y la referencia anterior y la
+     * nueva (criterio de aceptación 3 de SCRUM-54).
+     */
+    public void compra(Interaccion interaccion, String usuario, String rol, String anterior, String nueva) {
+        boolean vinculada = nueva != null;
+        registrar(interaccion, vinculada ? "COMPRA_VINCULADA" : "COMPRA_DESVINCULADA", usuario, rol,
+                Map.of("compra", new Cambio(anterior, nueva)), null,
+                vinculada ? COMPRA_VINCULADA : COMPRA_DESVINCULADA,
+                Map.of("compra", vinculada ? nueva : anterior));
+    }
+
     /** Los registros de una interacción, del primero al último. */
     public List<RegistroAuditoria> de(long interaccionId) {
         return jdbc.query("SELECT id, operacion, usuario, rol, ocurrido_en, version, cambios::text, comentario "
@@ -73,6 +87,13 @@ public class AuditoriaInteracciones {
 
     private void registrar(Interaccion interaccion, String operacion, String usuario, String rol,
                            Map<String, Cambio> cambios, String comentario, String operacionCompartida) {
+        registrar(interaccion, operacion, usuario, rol, cambios, comentario, operacionCompartida, Map.of());
+    }
+
+    /** {@code extra} son datos que no son personales y se agregan al detalle de la auditoría compartida. */
+    private void registrar(Interaccion interaccion, String operacion, String usuario, String rol,
+                           Map<String, Cambio> cambios, String comentario, String operacionCompartida,
+                           Map<String, String> extra) {
         jdbc.update("INSERT INTO interacciones.interaccion_auditoria (interaccion_id, operacion, usuario, rol, version, "
                         + "cambios, comentario) VALUES (?, ?, ?, ?, ?, ?::jsonb, ?)", interaccion.id(), operacion,
                 usuario, rol, interaccion.version(), escribir(cambios), comentario);
@@ -85,6 +106,7 @@ public class AuditoriaInteracciones {
         if (interaccion.estado() != null) {
             detalle.put("estado", interaccion.estado());
         }
+        extra.forEach(detalle::put);
         ArrayNode campos = detalle.putArray("campos");
         cambios.keySet().forEach(campos::add);
         jdbc.update("INSERT INTO auditoria.evento(usuario, operacion, entidad, entidad_id, detalle) VALUES (?, ?, ?, ?, ?)",

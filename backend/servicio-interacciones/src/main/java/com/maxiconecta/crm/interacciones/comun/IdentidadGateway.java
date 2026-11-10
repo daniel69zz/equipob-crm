@@ -68,6 +68,18 @@ public final class IdentidadGateway {
         return identidad;
     }
 
+    /**
+     * Vincular o desvincular una compra (SCRUM-447): el Agente de Atención o el Administrador de CRM, con
+     * {@code INTERACCIONES_REGISTRAR} y con {@code INDICADORES_CONSULTAR}, que da acceso al historial de compras.
+     */
+    public static Identidad vinculacionCompra(HttpServletRequest solicitud) {
+        Identidad identidad = registro(solicitud);
+        if (!tienePermiso(solicitud, INDICADORES_CONSULTAR)) {
+            throw prohibido("No tiene permiso para consultar las compras del cliente y vincularlas a una interacción");
+        }
+        return identidad;
+    }
+
     /** La auditoría de una interacción, como la pantalla de auditoría: Administrador con {@code AUDITORIA_CONSULTAR}. */
     public static Identidad auditoria(HttpServletRequest solicitud) {
         Identidad identidad = identidad(solicitud);
