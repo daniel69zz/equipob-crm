@@ -1,3 +1,4 @@
+import { ReportesProgramadosComponent } from './features/analisis/reportes-programados.component';
 import { Routes } from '@angular/router';
 import { historialClienteGuard, preferenciasGuard, saldoPuntosGuard } from './core/auth/auth.guards';
 import { PreferenciasComponent } from './features/clientes/preferencias.component';
@@ -151,6 +152,12 @@ export const routes: Routes = [
         data: { permiso: Permisos.REPORTES_CONSULTAR },
       },
       // SCRUM-58: reporte de comportamiento de compra, con el permiso de los reportes (SCRUM-462).
+      {
+        path: 'analisis/programaciones',
+        component: ReportesProgramadosComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.REPORTES_PROGRAMAR },
+      },
       {
         path: 'analisis/comportamiento',
         component: ReporteComportamientoComponent,

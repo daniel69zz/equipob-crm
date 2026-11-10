@@ -530,6 +530,26 @@ class AccesoPorRolTest {
         return agregar(agregar(permisos, "REPORTES_CONSULTAR"), "REPORTES_EXPORTAR");
     }
 
+    @Test
+    void programacionesExigenLosTresPermisosEnTodaOperacion() throws Exception {
+        String ruta = "/api/comportamiento/reportes/programaciones";
+        for (String rol : List.of("ADMINISTRADOR_CRM", "GERENTE_COMERCIAL")) {
+            String token = bearer("ana", rol, List.of("REPORTES_CONSULTAR", "REPORTES_EXPORTAR", "REPORTES_PROGRAMAR"));
+            mvc.perform(get(ruta).header("Authorization", token)).andExpect(pasaElControlDeAcceso());
+            mvc.perform(post(ruta).header("Authorization", token)).andExpect(pasaElControlDeAcceso());
+        }
+        for (String falta : List.of("REPORTES_CONSULTAR", "REPORTES_EXPORTAR", "REPORTES_PROGRAMAR")) {
+            var permisos = Stream.of("REPORTES_CONSULTAR", "REPORTES_EXPORTAR", "REPORTES_PROGRAMAR").filter(p -> !p.equals(falta)).toList();
+            String token = bearer("ana", "GERENTE_COMERCIAL", permisos);
+            mvc.perform(get(ruta).header("Authorization", token)).andExpect(status().isForbidden());
+            mvc.perform(post(ruta).header("Authorization", token)).andExpect(status().isForbidden());
+            mvc.perform(get(ruta + "/ejecuciones/00000000-0000-0000-0000-000000000001/archivo")
+                    .header("Authorization", token)).andExpect(status().isForbidden());
+        }
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test

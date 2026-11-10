@@ -28,6 +28,10 @@ public class PermisoReportes implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registro) {
+        for (String permiso : new String[]{PERMISO, PERMISO_EXPORTAR, "REPORTES_PROGRAMAR"}) {
+            registro.addInterceptor(new Control(permiso, "Su rol no tiene permiso para programar reportes"))
+                    .addPathPatterns("/api/comportamiento/reportes/programaciones", "/api/comportamiento/reportes/programaciones/**");
+        }
         // SCRUM-500: también el comparativo (SCRUM-62) y su exportación. No las consultas internas del panel.
         registro.addInterceptor(new Control(PERMISO, "Su rol no tiene permiso para consultar los reportes de clientes"))
                 .addPathPatterns("/api/comportamiento/reportes/comportamiento", "/api/comportamiento/reportes/comportamiento/**",
