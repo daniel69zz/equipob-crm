@@ -2,7 +2,7 @@
 # Pruebas de navegador de los reportes de clientes (EPIC-10) contra un entorno aislado y desechable.
 #
 # Uso:  herramientas/pruebas-reportes/ejecutar.sh [e2e/scrumNN.spec.ts ...]
-#       (sin argumentos ejecuta todas las e2e/scrum5*.spec.ts)
+#       (sin argumentos ejecuta las de los reportes: e2e/scrum5*.spec.ts y e2e/scrum6*.spec.ts)
 #
 # Levanta PostgreSQL y RabbitMQ en contenedores temporales, los cinco servicios que usan los reportes y
 # el frontend, y siembra los datos SOLO por eventos, como en producción: altas de clientes, compras y
@@ -133,8 +133,10 @@ publicar "$AQUI"/eventos/2-compra-*.json
 for extra in "$AQUI"/eventos/3-*.json; do
     if [[ -e "$extra" ]]; then publicar "$extra"; fi
 done
-esperar "4 compras procesadas" 90 bash -c "curl -sf '$GW/api/comportamiento/reportes/comportamiento?desde=2026-09-01&hasta=2026-09-30' \
-    -H 'Authorization: Bearer $TOKEN' | python3 -c 'import json,sys; sys.exit(json.load(sys.stdin)[\"frecuencia\"][\"compras\"] != 4)'"
+# Todas las compras sembradas, sean del mes que sean: así ninguna llega a mitad de una prueba.
+COMPRAS="$(ls "$AQUI"/eventos/2-compra-*.json | wc -l | tr -d ' ')"
+esperar "$COMPRAS compras procesadas" 90 bash -c "curl -sf '$GW/api/comportamiento/reportes/comportamiento?desde=2026-01-01&hasta=2026-12-31' \
+    -H 'Authorization: Bearer $TOKEN' | python3 -c 'import json,sys; sys.exit(json.load(sys.stdin)[\"frecuencia\"][\"compras\"] != $COMPRAS)'"
 esperar "segmento Alto valor con 2 clientes" 90 bash -c "curl -sf '$GW/api/segmentacion/segmentos' \
     -H 'Authorization: Bearer $TOKEN' | python3 -c 'import json,sys; sys.exit(not any(s[\"segmento\"] == \"Alto valor\" and s[\"clientes\"] == 2 for s in json.load(sys.stdin)))'"
 
@@ -150,4 +152,4 @@ export E2E_URL=http://127.0.0.1:14200 E2E_USUARIO="$ADMIN_USUARIO" E2E_PASSWORD=
 # Para las pruebas que publican un evento a mitad de camino (panel de indicadores, criterio 2).
 export E2E_MQ_URL="http://127.0.0.1:$PUERTO_MQ_ADMIN" E2E_MQ_USUARIO="$MQ_USUARIO" E2E_MQ_PASSWORD="$MQ_PASSWORD"
 cd "$FRONTEND"
-if [[ $# -gt 0 ]]; then npx playwright test "$@"; else npx playwright test e2e/scrum5*.spec.ts; fi
+if [[ $# -gt 0 ]]; then npx playwright test "$@"; else npx playwright test e2e/scrum5*.spec.ts e2e/scrum6*.spec.ts; fi
