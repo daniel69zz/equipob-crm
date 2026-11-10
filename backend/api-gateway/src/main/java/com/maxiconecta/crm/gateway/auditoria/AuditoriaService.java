@@ -35,7 +35,9 @@ public class AuditoriaService {
             ROL_CREADO, ROL_ACTUALIZADO, ROL_DESACTIVADO, USUARIO_CREADO, ROL_ASIGNADO, USUARIO_DESACTIVADO,
             "CRITERIO_CREADO", "CRITERIO_ACTUALIZADO", "CRITERIO_DESACTIVADO", "CRITERIO_ACTIVADO",
             // Lo registra servicio-segmentacion con el grupo consultado y los clientes mostrados (SCRUM-568).
-            "CLIENTES_SEGMENTO_CONSULTADOS");
+            "CLIENTES_SEGMENTO_CONSULTADOS",
+            // Lo registra servicio-comportamiento con el reporte, el formato y los filtros (SCRUM-60, SCRUM-484).
+            "REPORTE_EXPORTADO");
 
     public static final int TAMANIO_MAXIMO_PAGINA = 100;
 

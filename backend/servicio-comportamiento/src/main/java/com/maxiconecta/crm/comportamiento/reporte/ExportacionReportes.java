@@ -11,7 +11,8 @@ import java.util.Locale;
 /**
  * Exporta los reportes de clientes a CSV y PDF (SCRUM-60, docs/compra/exportacion-reportes.md).
  * Genera el reporte con la misma consulta que la pantalla y lo escribe tal cual, así que el archivo contiene
- * los mismos datos que se ven (criterio de aceptación 1).
+ * los mismos datos que se ven (criterio de aceptación 1). Cada exportación queda en la auditoría antes de entregar
+ * el archivo ({@link AuditoriaExportaciones}, criterio de aceptación 3).
  */
 @Service
 public class ExportacionReportes {
@@ -22,16 +23,19 @@ public class ExportacionReportes {
     private final ExportacionComparativoCsv comparativoCsv;
     private final ExportacionComportamientoPdf comportamientoPdf;
     private final ExportacionComparativoPdf comparativoPdf;
+    private final AuditoriaExportaciones auditoria;
 
     public ExportacionReportes(ConsultaReporteComportamiento comportamiento, ConsultaReporteComparativo comparativo,
                                ExportacionComportamientoCsv comportamientoCsv, ExportacionComparativoCsv comparativoCsv,
-                               ExportacionComportamientoPdf comportamientoPdf, ExportacionComparativoPdf comparativoPdf) {
+                               ExportacionComportamientoPdf comportamientoPdf, ExportacionComparativoPdf comparativoPdf,
+                               AuditoriaExportaciones auditoria) {
         this.comportamiento = comportamiento;
         this.comparativo = comparativo;
         this.comportamientoCsv = comportamientoCsv;
         this.comparativoCsv = comparativoCsv;
         this.comportamientoPdf = comportamientoPdf;
         this.comparativoPdf = comparativoPdf;
+        this.auditoria = auditoria;
     }
 
     /** Reporte de comportamiento de compra (SCRUM-58) de un periodo y, opcionalmente, un segmento. */
@@ -44,7 +48,9 @@ public class ExportacionReportes {
             case CSV -> comportamientoCsv.exportar(reporte).getBytes(StandardCharsets.UTF_8);
             case PDF -> comportamientoPdf.exportar(reporte, usuario);
         };
-        return new ArchivoExportado(nombre, formato, contenido);
+        ArchivoExportado archivo = new ArchivoExportado(nombre, formato, contenido);
+        auditoria.comportamiento(usuario, reporte, archivo);
+        return archivo;
     }
 
     /** Reporte comparativo entre dos periodos (SCRUM-62). */
@@ -57,7 +63,9 @@ public class ExportacionReportes {
             case CSV -> comparativoCsv.exportar(reporte).getBytes(StandardCharsets.UTF_8);
             case PDF -> comparativoPdf.exportar(reporte, usuario);
         };
-        return new ArchivoExportado(nombre, formato, contenido);
+        ArchivoExportado archivo = new ArchivoExportado(nombre, formato, contenido);
+        auditoria.comparativo(usuario, reporte, archivo);
+        return archivo;
     }
 
     /** {@code _alto-valor} para el segmento «Alto valor»: sin tildes, espacios ni caracteres fuera de [a-z0-9-]. */
