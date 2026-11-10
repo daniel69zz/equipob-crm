@@ -22,7 +22,8 @@ public class AgentesController {
 
     @GetMapping("/api/interacciones/agentes")
     public List<AgentesAtencion.Agente> activos(HttpServletRequest http) {
-        IdentidadGateway.registro(http);
+        // SCRUM-456: la lista es para asignar, así que la ve solo el Administrador de CRM.
+        IdentidadGateway.asignacion(http);
         return agentes.activos();
     }
 }

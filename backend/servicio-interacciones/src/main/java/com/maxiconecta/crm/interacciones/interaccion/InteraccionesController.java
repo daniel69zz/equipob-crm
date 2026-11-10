@@ -88,7 +88,8 @@ public class InteraccionesController {
     @PutMapping("/{id}/responsable")
     public Interaccion asignar(@PathVariable long clienteId, @PathVariable long id,
                                @RequestBody(required = false) SolicitudAsignacion solicitud, HttpServletRequest http) {
-        Identidad identidad = IdentidadGateway.registro(http);
+        // SCRUM-456: el acceso se comprueba antes que el cuerpo, como en el resto del servicio (SCRUM-435).
+        Identidad identidad = IdentidadGateway.asignacion(http);
         validaciones.validar(solicitud, "La asignación no es válida");
         return servicio.asignar(clienteId, id, solicitud, identidad);
     }
