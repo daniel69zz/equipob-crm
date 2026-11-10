@@ -24,7 +24,9 @@ public class PermisoReportes implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registro) {
-        registro.addInterceptor(new Control()).addPathPatterns("/api/comportamiento/reportes/comportamiento");
+        // SCRUM-500: también el comparativo (SCRUM-62) y su exportación. No las consultas internas del panel.
+        registro.addInterceptor(new Control()).addPathPatterns("/api/comportamiento/reportes/comportamiento",
+                "/api/comportamiento/reportes/comparativo", "/api/comportamiento/reportes/comparativo/**");
     }
 
     static final class Control implements HandlerInterceptor {

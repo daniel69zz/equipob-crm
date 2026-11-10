@@ -464,6 +464,24 @@ class AccesoPorRolTest {
                 .andExpect(status().isForbidden());
     }
 
+    // --- Reporte comparativo entre periodos y su exportación (SCRUM-62, SCRUM-500) ---
+
+    @Test
+    void elComparativoYSuCsvSonDelGerenteYElAdministradorYNoDelAgente() throws Exception {
+        for (String ruta : List.of("/api/comportamiento/reportes/comparativo",
+                "/api/comportamiento/reportes/comparativo/csv")) {
+            mvc.perform(get(ruta).header("Authorization",
+                            bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "REPORTES_CONSULTAR"))))
+                    .andExpect(pasaElControlDeAcceso());
+            mvc.perform(get(ruta).header("Authorization",
+                            bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "REPORTES_CONSULTAR"))))
+                    .andExpect(pasaElControlDeAcceso());
+            mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                    .andExpect(status().isForbidden());
+            mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        }
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test
