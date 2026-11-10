@@ -71,7 +71,7 @@ public class InteraccionesController {
     public Interaccion vincularCompra(@PathVariable long clienteId, @PathVariable long id,
                                       @RequestBody(required = false) SolicitudVinculacion solicitud,
                                       HttpServletRequest http) {
-        Identidad identidad = IdentidadGateway.registro(http);
+        Identidad identidad = IdentidadGateway.vinculacionCompra(http);
         validaciones.validar(solicitud, "La vinculación de la compra no es válida");
         return servicio.vincularCompra(clienteId, id, solicitud, identidad);
     }
@@ -80,7 +80,7 @@ public class InteraccionesController {
     @DeleteMapping("/{id}/compra")
     public Interaccion desvincularCompra(@PathVariable long clienteId, @PathVariable long id,
                                          @RequestParam long version, HttpServletRequest http) {
-        Identidad identidad = IdentidadGateway.registro(http);
+        Identidad identidad = IdentidadGateway.vinculacionCompra(http);
         return servicio.desvincularCompra(clienteId, id, version, identidad);
     }
 

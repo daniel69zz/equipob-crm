@@ -141,7 +141,9 @@ public class ServicioInteracciones {
      */
     public Interaccion vincularCompra(long clienteId, long id, SolicitudVinculacion solicitud, Identidad identidad) {
         String referencia = solicitud.referencia().strip();
-        detalle(clienteId, id);
+        // SCRUM-447: lo que no depende de la compra se rechaza antes de consultar Comportamiento, y se vuelve a
+        // comprobar con la interacción bloqueada.
+        validarVinculacion(detalle(clienteId, id), solicitud.version(), referencia);
         // Fuera de la transacción: Perfil y Comportamiento no retienen una conexión de la base.
         List<String> identificadores = perfiles.identificadores(clienteId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe el cliente " + clienteId + " en el CRM"));
@@ -150,21 +152,37 @@ public class ServicioInteracciones {
                 new ReglaInvalidaException("La compra " + referencia + " no es una compra del cliente " + clienteId,
                         Map.of("referencia", "no es una compra del cliente")));
         return transacciones.execute(transaccion -> {
-            registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            validarVinculacion(actual, solicitud.version(), compra.referencia());
             return registro.vincularCompra(id, compra.referencia(), compra.fecha(), compra.montoTotal(),
                     compra.estado(), identidad.usuario());
         });
     }
 
-    /** Quita la compra vinculada a la interacción (SCRUM-54). */
+    /** Quita la compra vinculada a la interacción (SCRUM-54), con las mismas reglas de estado y versión. */
     public Interaccion desvincularCompra(long clienteId, long id, long version, Identidad identidad) {
         return transacciones.execute(transaccion -> {
             Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            verificarVersion(actual, version);
+            exigirNoCerrada(actual);
             if (actual.compra() == null) {
                 throw new ReglaInvalidaException("La interacción no tiene una compra vinculada");
             }
             return registro.desvincularCompra(id);
         });
+    }
+
+    /**
+     * Consistencia de la vinculación (SCRUM-447): la versión que el usuario tenía en pantalla, una interacción no
+     * cerrada y una compra distinta de la ya vinculada.
+     */
+    private static void validarVinculacion(Interaccion actual, long version, String referencia) {
+        verificarVersion(actual, version);
+        exigirNoCerrada(actual);
+        if (actual.compra() != null && actual.compra().referencia().equals(referencia)) {
+            throw new ReglaInvalidaException("La interacción ya está vinculada a esa compra",
+                    Map.of("referencia", "ya es la compra vinculada"));
+        }
     }
 
     public Interaccion detalle(long clienteId, long id) {
