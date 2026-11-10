@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.interacciones.interaccion;
 
+import com.maxiconecta.crm.interacciones.agente.AgentesAtencion;
 import com.maxiconecta.crm.interacciones.comun.ConflictoException;
 import com.maxiconecta.crm.interacciones.comun.IdentidadGateway;
 import com.maxiconecta.crm.interacciones.comun.IdentidadGateway.Identidad;
@@ -42,15 +43,17 @@ public class ServicioInteracciones {
     private final AuditoriaInteracciones auditoria;
     private final TransactionTemplate transacciones;
     private final ComprasCliente compras;
+    private final AgentesAtencion agentes;
 
     public ServicioInteracciones(RegistroInteracciones registro, ClientesPerfil perfiles,
                                  AuditoriaInteracciones auditoria, TransactionTemplate transacciones,
-                                 ComprasCliente compras) {
+                                 ComprasCliente compras, AgentesAtencion agentes) {
         this.registro = registro;
         this.perfiles = perfiles;
         this.auditoria = auditoria;
         this.transacciones = transacciones;
         this.compras = compras;
+        this.agentes = agentes;
     }
 
     public Interaccion registrar(long clienteId, SolicitudInteraccion solicitud, Identidad identidad) {
@@ -202,8 +205,12 @@ public class ServicioInteracciones {
     }
 
     public PaginaInteracciones historial(long clienteId, String tipo, String estado, String texto, LocalDate desde,
-                                         LocalDate hasta, Integer pagina, Integer tamanio) {
+                                         LocalDate hasta, Integer pagina, Integer tamanio, String responsable) {
         Map<String, String> errores = new TreeMap<>();
+        String responsableFiltro = vacioANulo(responsable);
+        if (responsableFiltro != null && responsableFiltro.length() > 100) {
+            errores.put("responsable", "admite hasta 100 caracteres");
+        }
         String tipoFiltro = vacioANulo(tipo);
         if (tipoFiltro != null) {
             tipoFiltro = tipoFiltro.toUpperCase(Locale.ROOT);
@@ -240,8 +247,31 @@ public class ServicioInteracciones {
         // Las fechas son días completos en la hora de Bolivia: hasta incluye todo ese día.
         FiltroHistorial filtro = new FiltroHistorial(tipoFiltro, estadoFiltro, textoFiltro,
                 desde == null ? null : desde.atStartOfDay(ZONA).toOffsetDateTime(),
-                hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toOffsetDateTime(), numero, cantidad);
+                hasta == null ? null : hasta.plusDays(1).atStartOfDay(ZONA).toOffsetDateTime(), numero, cantidad,
+                responsableFiltro);
         return registro.historial(clienteId, filtro);
+    }
+
+    /**
+     * Asigna la interacción a un agente responsable, o la reasigna (SCRUM-457,
+     * docs/interacciones/asignacion-interacciones.md). El responsable debe ser un Agente de Atención activo.
+     */
+    public Interaccion asignar(long clienteId, long id, SolicitudAsignacion solicitud, Identidad identidad) {
+        String responsable = solicitud.responsable().strip();
+        if (agentes.activo(responsable).isEmpty()) {
+            throw new ReglaInvalidaException("El usuario " + responsable + " no es un Agente de Atención activo",
+                    Map.of("responsable", "no es un Agente de Atención activo"));
+        }
+        return transacciones.execute(transaccion -> {
+            Interaccion actual = registro.bloquear(clienteId, id).orElseThrow(() -> noEncontrada(clienteId, id));
+            verificarVersion(actual, solicitud.version());
+            exigirNoCerrada(actual);
+            if (responsable.equals(actual.responsable())) {
+                throw new ReglaInvalidaException("La interacción ya tiene ese responsable",
+                        Map.of("responsable", "ya es el responsable de la interacción"));
+            }
+            return registro.asignar(id, responsable, identidad.usuario());
+        });
     }
 
     /** Una interacción cerrada queda como constancia del caso: para modificarla hay que reabrirla (SCRUM-453). */

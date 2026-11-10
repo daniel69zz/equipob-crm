@@ -8,13 +8,15 @@ import java.util.Map;
 
 /**
  * Una consulta, un reclamo o una nota del historial unificado del cliente, con su estado de seguimiento
- * (SCRUM-55): quién lo cambió por última vez y cuándo; y la compra del cliente vinculada, o nula (SCRUM-54).
+ * (SCRUM-55): quién lo cambió por última vez y cuándo; la compra del cliente vinculada, o nula (SCRUM-54); y el
+ * agente responsable, con quién lo asignó y cuándo, o nulos si no tiene (SCRUM-56).
  */
 public record Interaccion(long id, long clienteId, String tipo, String canal, String asunto, String descripcion,
                           String referenciaCompra, String estado, String estadoActualizadoPor,
                           OffsetDateTime estadoActualizadoEn, String registradoPor, String registradoRol,
                           OffsetDateTime registradoEn, String modificadoPor, OffsetDateTime modificadoEn,
-                          long version, CompraVinculada compra) {
+                          long version, CompraVinculada compra, String responsable, String responsableAsignadoPor,
+                          OffsetDateTime responsableAsignadoEn) {
 
     @JsonIgnore
     public boolean cerrada() {
