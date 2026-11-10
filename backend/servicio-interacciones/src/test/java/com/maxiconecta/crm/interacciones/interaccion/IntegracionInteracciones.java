@@ -2,6 +2,7 @@ package com.maxiconecta.crm.interacciones.interaccion;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maxiconecta.crm.interacciones.compras.Compra;
 import com.maxiconecta.crm.interacciones.compras.ComprasCliente;
 import com.maxiconecta.crm.interacciones.compras.ComprasRecientes;
 import com.maxiconecta.crm.interacciones.perfil.ClientesPerfil;
@@ -24,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -34,7 +36,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
@@ -141,6 +146,22 @@ abstract class IntegracionInteracciones {
     ResultActions seguimiento(long id, String usuario, String rol, Map<String, Object> cuerpo) throws Exception {
         return conIdentidad(patch(RUTA_INTERACCION, CLIENTE, id), usuario, rol,
                 "ADMINISTRADOR_CRM".equals(rol) ? PERMISOS_ADMIN : PERMISOS_AGENTE, cuerpo);
+    }
+
+    /** Vincula una compra a la interacción (SCRUM-54). */
+    ResultActions vincular(long id, String usuario, String rol, Map<String, Object> cuerpo) throws Exception {
+        return conIdentidad(put(RUTA_INTERACCION + "/compra", CLIENTE, id), usuario, rol,
+                "ADMINISTRADOR_CRM".equals(rol) ? PERMISOS_ADMIN : PERMISOS_AGENTE, cuerpo);
+    }
+
+    /** La compra V-1001 de CLI-5521 es del cliente 42; cualquier otra referencia no lo es (SCRUM-54). */
+    void comprasDelCliente() {
+        Compra compra = new Compra(OffsetDateTime.parse("2026-10-20T15:30:00Z"), "V-1001", new BigDecimal("350.00"),
+                "CONFIRMADA", List.of(new Compra.Item("Electrónica", 1, new BigDecimal("350.00"))));
+        when(compras.buscar(eq(CLIENTE), eq(List.of(ID_VENTAS)), anyString())).thenAnswer(i ->
+                "V-1001".equals(i.getArgument(2)) ? Optional.of(compra) : Optional.empty());
+        when(compras.elegibles(eq(CLIENTE), eq(List.of(ID_VENTAS)), any(), anyInt()))
+                .thenReturn(new ComprasRecientes(List.of(compra), 1, true));
     }
 
     ResultActions conIdentidad(MockHttpServletRequestBuilder solicitud, String usuario, String rol, String permisos,

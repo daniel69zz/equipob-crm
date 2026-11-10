@@ -6,6 +6,7 @@ import com.maxiconecta.crm.interacciones.comun.Validaciones;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -63,6 +64,24 @@ public class InteraccionesController {
         Identidad identidad = IdentidadGateway.registro(http);
         validaciones.validar(solicitud, "El cambio de seguimiento no es válido");
         return servicio.seguimiento(clienteId, id, solicitud, identidad);
+    }
+
+    /** Vincula una compra del historial del cliente, o reemplaza la vinculada (SCRUM-54). */
+    @PutMapping("/{id}/compra")
+    public Interaccion vincularCompra(@PathVariable long clienteId, @PathVariable long id,
+                                      @RequestBody(required = false) SolicitudVinculacion solicitud,
+                                      HttpServletRequest http) {
+        Identidad identidad = IdentidadGateway.registro(http);
+        validaciones.validar(solicitud, "La vinculación de la compra no es válida");
+        return servicio.vincularCompra(clienteId, id, solicitud, identidad);
+    }
+
+    /** Quita la compra vinculada (SCRUM-54); la versión va como parámetro porque DELETE no lleva cuerpo. */
+    @DeleteMapping("/{id}/compra")
+    public Interaccion desvincularCompra(@PathVariable long clienteId, @PathVariable long id,
+                                         @RequestParam long version, HttpServletRequest http) {
+        Identidad identidad = IdentidadGateway.registro(http);
+        return servicio.desvincularCompra(clienteId, id, version, identidad);
     }
 
     @GetMapping("/{id}")
