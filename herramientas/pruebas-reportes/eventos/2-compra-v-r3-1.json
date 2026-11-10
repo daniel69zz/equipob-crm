@@ -1,0 +1,18 @@
+{
+  "idEvento": "5e000000-0000-4000-8000-000000000104",
+  "tipoEvento": "COMPRA_CONFIRMADA",
+  "fechaEmision": "2026-09-12T10:00:00-04:00",
+  "compra": {
+    "idCompra": "V-R3-1",
+    "idCliente": "CLI-R3",
+    "fecha": "2026-09-12T10:00:00-04:00",
+    "montoTotal": 80.0,
+    "items": [
+      {
+        "categoria": "Deportes",
+        "cantidad": 1,
+        "monto": 80.0
+      }
+    ]
+  }
+}
