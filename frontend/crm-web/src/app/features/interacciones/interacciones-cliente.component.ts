@@ -8,6 +8,7 @@ import { finalize, map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { PaginacionComponent } from '../../core/ui/paginacion.component';
 import { PestaniasClienteComponent } from '../clientes/pestanias-cliente.component';
+import { CompraInteraccionComponent } from './compra-interaccion.component';
 import { FormularioInteraccionComponent } from './formulario-interaccion.component';
 import { SeguimientoInteraccionComponent } from './seguimiento-interaccion.component';
 import {
@@ -31,13 +32,15 @@ const TAMANIO_PAGINA = 20;
  * registran interacciones nuevas y corrigen las existentes (SCRUM-434): el agente, solo las que registró. El
  * historial se filtra por tipo, por texto en el asunto, la descripción o la compra, y por fechas (SCRUM-431). Cada
  * interacción muestra su estado de seguimiento, y el Agente y el Administrador lo actualizan y la reclasifican
- * (SCRUM-55, SCRUM-450); una cerrada no se edita hasta que el Administrador la reabra.
+ * (SCRUM-55, SCRUM-450); una cerrada no se edita hasta que el Administrador la reabra. Cada interacción muestra la
+ * compra del cliente vinculada, y el Agente y el Administrador la vinculan, la cambian o la quitan (SCRUM-54,
+ * SCRUM-444).
  */
 @Component({
   selector: 'app-interacciones-cliente',
   standalone: true,
-  imports: [DatePipe, FormsModule, FormularioInteraccionComponent, PaginacionComponent, PestaniasClienteComponent,
-    SeguimientoInteraccionComponent],
+  imports: [CompraInteraccionComponent, DatePipe, FormsModule, FormularioInteraccionComponent, PaginacionComponent,
+    PestaniasClienteComponent, SeguimientoInteraccionComponent],
   template: `
     <app-pestanias-cliente [id]="clienteId()" />
     <header class="encabezado">
@@ -137,6 +140,8 @@ const TAMANIO_PAGINA = 20;
                     por {{ interaccion.estadoActualizadoPor }}</span>
                 }
               </footer>
+              <app-compra-interaccion [interaccion]="interaccion" (actualizada)="compraActualizada($event)"
+                (recargar)="recargar(interaccion.id)" />
               @if (auth.puedeRegistrarInteracciones()) {
                 <app-seguimiento-interaccion [interaccion]="interaccion" (actualizada)="seguimientoActualizado($event)"
                   (recargar)="recargar(interaccion.id)" />
@@ -301,6 +306,14 @@ export class InteraccionesClienteComponent {
     this.reemplazar(interaccion);
     this.aviso.set(`La interacción n.º ${interaccion.id} quedó ${nombreEstado(interaccion.estado).toLowerCase()}`
       + ` como ${nombreTipo(interaccion.tipo).toLowerCase()}.`);
+  }
+
+  /** SCRUM-444: la compra vinculada, cambiada o quitada. */
+  compraActualizada(interaccion: Interaccion): void {
+    this.reemplazar(interaccion);
+    this.aviso.set(interaccion.compra
+      ? `La interacción n.º ${interaccion.id} quedó vinculada a la compra ${interaccion.compra.referencia}.`
+      : `Se quitó la compra de la interacción n.º ${interaccion.id}.`);
   }
 
   /** Trae la versión vigente después de un 409 y vuelve a abrir el formulario con ella. */

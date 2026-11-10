@@ -101,6 +101,11 @@ export class AuthService {
     return this.puedeRegistrarInteracciones() && this.sesionVigente()!.rol === 'ADMINISTRADOR_CRM';
   }
 
+  /** SCRUM-447: vincular una compra exige registrar interacciones y acceso al historial de compras. */
+  puedeVincularCompras(): boolean {
+    return this.puedeRegistrarInteracciones() && this.sesionVigente()!.permisos.includes('INDICADORES_CONSULTAR');
+  }
+
   /** SCRUM-438: el historial del cliente con sus compras, con la misma combinación de rol y permisos que el Gateway. */
   puedeConsultarHistorialCliente(): boolean {
     const sesion = this.sesionVigente();
