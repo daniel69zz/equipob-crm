@@ -65,3 +65,7 @@ crm:
   perfil:
     url: ${SERVICIO_PERFIL_URL:http://localhost:8081}
     tiempo-espera: ${PERFIL_TIEMPO_ESPERA:2s}
+  # Niveles del corte de fidelizacion del reporte de distribucion de clientes (SCRUM-57, SCRUM-464).
+  fidelizacion:
+    url: ${SERVICIO_FIDELIZACION_URL:http://localhost:8084}
+    tiempo-espera: ${FIDELIZACION_TIEMPO_ESPERA:2s}
