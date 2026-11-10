@@ -14,6 +14,7 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 | `EVENTOS_REPROCESAR` | Ver la bitácora de ingesta y reprocesar eventos fallidos |
 | `SEGMENTOS_CONSULTAR` | Consultar segmentos, clientes por segmento e historial de segmentos del cliente |
 | `SEGMENTACION_CONFIGURAR` | Configurar criterios y reglas de segmentación |
+| `REPORTES_CONSULTAR` | Consultar los reportes de distribución de clientes (SCRUM-57) |
 | `PUNTOS_CONSULTAR` | Consultar saldo y nivel de puntos |
 | `FIDELIZACION_CONFIGURAR` | Configurar reglas de puntos, niveles y ajustes manuales |
 | `INTERACCIONES_CONSULTAR` | Consultar el historial de interacciones |
@@ -33,6 +34,7 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 | `EVENTOS_REPROCESAR` | ✅ | | |
 | `SEGMENTOS_CONSULTAR` | ✅ | | ✅ |
 | `SEGMENTACION_CONFIGURAR` | ✅ | | |
+| `REPORTES_CONSULTAR` | ✅ | | ✅ |
 | `PUNTOS_CONSULTAR` | ✅ | ✅ | ✅ |
 | `FIDELIZACION_CONFIGURAR` | ✅ | | |
 | `INTERACCIONES_CONSULTAR` | ✅ | ✅ | ✅ |
@@ -61,11 +63,13 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/comportamiento/**` | GET | `INDICADORES_CONSULTAR` |
 | `/api/segmentacion/criterios` y `/api/segmentacion/criterios/**` | Todos | Rol `ADMINISTRADOR_CRM` **y** `SEGMENTACION_CONFIGURAR` (regla anterior a la genérica) |
 | `/api/segmentacion/clientes/*/historial-segmentos` | GET | `SEGMENTOS_CONSULTAR`; los métodos de escritura y las subrutas se deniegan antes de la regla genérica |
+| `/api/segmentacion/reportes/**` | GET | `REPORTES_CONSULTAR`: reportes de clientes (SCRUM-57, SCRUM-462, regla anterior a la genérica). Los métodos de escritura se deniegan |
 | `/api/segmentacion/**` | GET | `SEGMENTOS_CONSULTAR` |
 | `/api/segmentacion/**` | POST, PUT, PATCH, DELETE | `SEGMENTACION_CONFIGURAR` |
 | `/api/fidelizacion/clientes/*/saldo` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y `PUNTOS_CONSULTAR` (SCRUM-397, regla anterior a la genérica) |
 | `/api/fidelizacion/ventas/clientes/*/puntos` | GET | Rol `SISTEMA` **y** `PUNTOS_CONSULTAR_VENTAS`: solo el token de servicio de Marketplace y Ventas (RIO-CRM-04, SCRUM-545) |
 | `/api/fidelizacion/clientes/*/ajustes` | POST | Rol `ADMINISTRADOR_CRM` **y** `FIDELIZACION_CONFIGURAR`: ajuste manual del saldo (SCRUM-424, regla anterior a la genérica). El historial (`GET`) sigue la regla genérica de `PUNTOS_CONSULTAR` |
+| `/api/fidelizacion/reportes/**` | Todos | Denegado: consulta interna que hace servicio-segmentacion para el corte de niveles del reporte (SCRUM-464), no para usuarios |
 | `/api/fidelizacion/**` | GET | `PUNTOS_CONSULTAR` (incluye `/api/fidelizacion/caducidad/configuracion`, SCRUM-416) |
 | `/api/fidelizacion/**` | POST, PUT, PATCH, DELETE | `FIDELIZACION_CONFIGURAR` (incluye `POST /api/fidelizacion/caducidad/ejecutar`, que el servicio limita además al rol `ADMINISTRADOR_CRM`, SCRUM-415) |
 | `/api/interacciones/clientes/*/historial` | GET | Rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, con `INTERACCIONES_CONSULTAR` e `INDICADORES_CONSULTAR`: historial del cliente con sus compras (SCRUM-53) |

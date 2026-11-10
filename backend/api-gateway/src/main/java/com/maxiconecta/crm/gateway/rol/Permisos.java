@@ -15,6 +15,11 @@ public final class Permisos {
     public static final String EVENTOS_REPROCESAR = "EVENTOS_REPROCESAR";
     public static final String SEGMENTOS_CONSULTAR = "SEGMENTOS_CONSULTAR";
     public static final String SEGMENTACION_CONFIGURAR = "SEGMENTACION_CONFIGURAR";
+    /**
+     * SCRUM-462: reportes de distribucion de clientes (EPIC-10, SCRUM-57). Es propio de los perfiles de
+     * analisis comercial, mas restrictivo que SEGMENTOS_CONSULTAR: no lo tiene el Agente de Atencion.
+     */
+    public static final String REPORTES_CONSULTAR = "REPORTES_CONSULTAR";
     public static final String PUNTOS_CONSULTAR = "PUNTOS_CONSULTAR";
     /**
      * SCRUM-545: permiso de un cliente de servicio (RIO-CRM-04), no de un rol interno. Se asigna en la

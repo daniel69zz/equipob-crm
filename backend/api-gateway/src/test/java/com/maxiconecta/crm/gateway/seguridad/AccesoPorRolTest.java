@@ -380,6 +380,44 @@ class AccesoPorRolTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Reportes de distribucion de clientes (SCRUM-57, SCRUM-462): solo Administrador y Gerente Comercial ---
+
+    @Test
+    void elAdministradorYElGerenteComercialPuedenAbrirLosReportes() throws Exception {
+        String ruta = "/api/segmentacion/reportes/distribucion";
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "REPORTES_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+        mvc.perform(get(ruta).header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "REPORTES_CONSULTAR"))))
+                .andExpect(pasaElControlDeAcceso());
+    }
+
+    @Test
+    void elAgenteNoPuedeAbrirLosReportesAunqueConsulteClientesYPuntos() throws Exception {
+        String ruta = "/api/segmentacion/reportes/distribucion";
+
+        mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
+                .andExpect(status().isForbidden());
+        // SEGMENTOS_CONSULTAR no sustituye al permiso propio del reporte.
+        mvc.perform(get(ruta).header("Authorization", bearer("luis", "GERENTE_COMERCIAL", PERMISOS_GERENTE)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void losReportesSoloSeLeenYLaDistribucionDeNivelesNoSeExponePorElGateway() throws Exception {
+        String gerente = bearer("luis", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "REPORTES_CONSULTAR"));
+
+        // El reporte es de solo lectura: ningun metodo de escritura pasa.
+        mvc.perform(post("/api/segmentacion/reportes/distribucion").header("Authorization", gerente))
+                .andExpect(status().isForbidden());
+        // SCRUM-464: la distribucion de niveles es interna de servicio-segmentacion, no de los usuarios.
+        mvc.perform(post("/api/fidelizacion/reportes/distribucion-niveles").header("Authorization",
+                        bearer("admin", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "REPORTES_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+    }
+
     // --- Cambios de rol y desactivaciones rigen de inmediato ---
 
     @Test
