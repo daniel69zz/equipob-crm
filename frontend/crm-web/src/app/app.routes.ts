@@ -8,6 +8,7 @@ import { NivelesComponent } from './features/fidelizacion/niveles.component';
 import { ClientesSegmentoComponent } from './features/segmentacion/clientes-segmento.component';
 import { Permisos } from './core/auth/sesion';
 import { RetencionCohortesComponent } from './features/analisis/retencion-cohortes.component';
+import { ReporteComportamientoComponent } from './features/analisis/reporte-comportamiento.component';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
@@ -132,6 +133,13 @@ export const routes: Routes = [
         component: RetencionCohortesComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.INDICADORES_CONSULTAR },
+      },
+      // SCRUM-58: reporte de comportamiento de compra, con el permiso de los reportes (SCRUM-462).
+      {
+        path: 'analisis/comportamiento',
+        component: ReporteComportamientoComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.REPORTES_CONSULTAR },
       },
       {
         path: 'perfiles/revision',
