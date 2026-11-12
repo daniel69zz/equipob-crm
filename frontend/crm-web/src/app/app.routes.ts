@@ -1,4 +1,3 @@
-import { ReportesProgramadosComponent } from './features/analisis/reportes-programados.component';
 import { Routes } from '@angular/router';
 import { historialClienteGuard, preferenciasGuard, saldoPuntosGuard } from './core/auth/auth.guards';
 import { PreferenciasComponent } from './features/clientes/preferencias.component';
@@ -12,6 +11,7 @@ import { RetencionCohortesComponent } from './features/analisis/retencion-cohort
 import { ReporteComportamientoComponent } from './features/analisis/reporte-comportamiento.component';
 import { PanelIndicadoresComponent } from './features/analisis/panel-indicadores.component';
 import { ReporteComparativoComponent } from './features/analisis/reporte-comparativo.component';
+import { ReportesProgramadosComponent } from './features/analisis/reportes-programados.component';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
@@ -151,13 +151,14 @@ export const routes: Routes = [
         canActivate: [permisoGuard],
         data: { permiso: Permisos.REPORTES_CONSULTAR },
       },
-      // SCRUM-58: reporte de comportamiento de compra, con el permiso de los reportes (SCRUM-462).
+      // SCRUM-61: reportes programados; el servidor exige además consultar y exportar.
       {
         path: 'analisis/programaciones',
         component: ReportesProgramadosComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.REPORTES_PROGRAMAR },
       },
+      // SCRUM-58: reporte de comportamiento de compra, con el permiso de los reportes (SCRUM-462).
       {
         path: 'analisis/comportamiento',
         component: ReporteComportamientoComponent,

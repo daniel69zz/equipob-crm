@@ -4,8 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { timer } from 'rxjs';
 import { descargarArchivo } from './exportar-reporte.component';
-import { ConfiguracionReporte, EjecucionReporte, ProgramacionReporte, ReportesProgramadosService } from './reportes-programados.service';
+import {
+  ConfiguracionReporte, EjecucionReporte, EstadoProgramacion, ProgramacionReporte, ReportesProgramadosService,
+  TAMANO_PAGINA, aEntradaBolivia, aFechaBolivia,
+} from './reportes-programados.service';
 
+const INTERVALO_MS = 30000;
+
+/** Programación de reportes de comportamiento de compra, su historial y sus avisos (SCRUM-61). */
 @Component({
   selector: 'app-reportes-programados', standalone: true, imports: [DatePipe, FormsModule],
   template: `
@@ -55,7 +61,7 @@ import { ConfiguracionReporte, EjecucionReporte, ProgramacionReporte, ReportesPr
       } @empty { <p>No hay ejecuciones en esta página.</p> }
     </div>
     <div class="acciones"><button class="secundario" (click)="pagina = pagina - 1; cargar()" [disabled]="pagina === 0">Anterior</button>
-    <span>Página {{ pagina + 1 }}</span><button class="secundario" (click)="pagina = pagina + 1; cargar()" [disabled]="ejecuciones().length < 50">Siguiente</button></div>
+    <span>Página {{ pagina + 1 }}</span><button class="secundario" (click)="pagina = pagina + 1; cargar()" [disabled]="ejecuciones().length < tamanoPagina">Siguiente</button></div>
   `,
   styles: `
     .filtros { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; }
@@ -70,17 +76,19 @@ export class ReportesProgramadosComponent implements OnInit {
   readonly programaciones = signal<ProgramacionReporte[]>([]);
   readonly ejecuciones = signal<EjecucionReporte[]>([]);
   readonly error = signal(''); readonly mensaje = signal(''); readonly ocupado = signal(false);
+  readonly tamanoPagina = TAMANO_PAGINA;
   editando: string | null = null; pagina = 0; inicio = ''; fin = '';
   modelo: ConfiguracionReporte = this.nuevo();
-  constructor() { timer(30000, 30000).pipe(takeUntilDestroyed()).subscribe(() => this.cargar()); }
+  constructor() { timer(INTERVALO_MS, INTERVALO_MS).pipe(takeUntilDestroyed()).subscribe(() => this.cargar()); }
   ngOnInit() { this.cargar(); }
   private nuevo(): ConfiguracionReporte { return { nombre: '', frecuencia: 'SEMANAL', formato: 'CSV', dias: 7, segmento: '', inicio: '', fin: null }; }
   cargar() {
     this.servicio.listar().subscribe({ next: p => this.programaciones.set(p), error: e => this.fallo(e) });
     this.servicio.historial(this.pagina).subscribe({ next: e => this.ejecuciones.set(e), error: e => this.fallo(e) });
+    this.servicio.actualizarAvisos();
   }
   guardar() {
-    const inicio = this.inicio + ':00-04:00'; const fin = this.fin ? this.fin + ':00-04:00' : null;
+    const inicio = aFechaBolivia(this.inicio); const fin = this.fin ? aFechaBolivia(this.fin) : null;
     if (!this.modelo.nombre.trim() || !this.inicio || Date.parse(inicio) <= Date.now() || (fin && Date.parse(fin) < Date.parse(inicio))) {
       this.error.set('Complete el nombre, un inicio futuro y un fin posterior al inicio.'); return;
     }
@@ -90,14 +98,15 @@ export class ReportesProgramadosComponent implements OnInit {
     });
   }
   editar(p: ProgramacionReporte) {
-    this.editando = p.id; this.modelo = { ...p };
-    const local = (fecha: string) => new Date(Date.parse(fecha) - 4 * 3600000).toISOString().slice(0,16);
-    this.inicio = local(p.inicio); this.fin = p.fin ? local(p.fin) : '';
+    // Solo la configuración: el id, el estado y la próxima fecha no se envían al guardar.
+    const { nombre, frecuencia, formato, dias, segmento, inicio, fin } = p;
+    this.editando = p.id; this.modelo = { nombre, frecuencia, formato, dias, segmento, inicio, fin };
+    this.inicio = aEntradaBolivia(inicio); this.fin = fin ? aEntradaBolivia(fin) : '';
     this.error.set(''); this.mensaje.set('Para editar, seleccione el nuevo inicio futuro.');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   limpiar() { this.editando = null; this.modelo = this.nuevo(); this.inicio = ''; this.fin = ''; }
-  estado(p: ProgramacionReporte, estado: string) {
+  estado(p: ProgramacionReporte, estado: EstadoProgramacion) {
     this.ocupado.set(true); this.error.set('');
     this.servicio.estado(p.id, estado).subscribe({ next: () => { this.ocupado.set(false); this.cargar(); }, error: e => this.fallo(e) });
   }

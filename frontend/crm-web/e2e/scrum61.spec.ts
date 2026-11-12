@@ -71,6 +71,7 @@ test('recibe avisos, descarga el archivo y consulta la causa de fallo', async ({
   expect((await descarga).suggestedFilename()).toBe('semanal.csv');
   await disponible.getByRole('button', { name: 'Marcar aviso leído' }).click();
   await expect(disponible.getByRole('button', { name: 'Marcar aviso leído' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Reportes: 1 avisos sin leer' })).toBeVisible();
 });
 
 test('agente sin permiso no accede a las programaciones', async ({ page }) => {
