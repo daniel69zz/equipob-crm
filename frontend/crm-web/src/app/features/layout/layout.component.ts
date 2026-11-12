@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { NombresDeRol, Permisos } from '../../core/auth/sesion';
 import { IconoComponent } from '../../core/ui/icono.component';
 import { NotificacionesPendientes } from '../interacciones/notificaciones-pendientes.service';
+import { AvisosReportesComponent } from '../analisis/avisos-reportes.component';
 
 interface Enlace {
   texto: string;
@@ -38,6 +39,7 @@ const GRUPOS: Grupo[] = [
   {
     titulo: 'Análisis',
     enlaces: [
+      { texto: 'Reportes programados', ruta: '/analisis/programaciones', icono: 'compras', permiso: Permisos.REPORTES_PROGRAMAR },
       { texto: 'Panel de indicadores', ruta: '/analisis/panel', icono: 'inicio', permiso: Permisos.REPORTES_CONSULTAR },
       { texto: 'Retención por cohortes', ruta: '/analisis/cohortes', icono: 'cohortes', permiso: Permisos.INDICADORES_CONSULTAR },
       { texto: 'Comportamiento de compra', ruta: '/analisis/comportamiento', icono: 'compras', permiso: Permisos.REPORTES_CONSULTAR },
@@ -64,7 +66,7 @@ const GRUPOS: Grupo[] = [
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconoComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconoComponent, AvisosReportesComponent],
   template: `
     <div class="aplicacion" [class.menu-abierto]="menuAbierto()">
       <aside class="barra">
@@ -108,6 +110,7 @@ const GRUPOS: Grupo[] = [
 
       <div class="contenido">
         <header class="superior">
+          <app-avisos-reportes />
           <button type="button" class="abrir-menu" aria-label="Abrir menú" (click)="menuAbierto.set(true)">
             <app-icono nombre="menu" />
           </button>

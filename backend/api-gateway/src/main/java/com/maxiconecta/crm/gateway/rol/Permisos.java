@@ -25,6 +25,7 @@ public final class Permisos {
      * REPORTES_CONSULTAR, para poder quitar la exportacion a un rol sin quitarle la consulta.
      */
     public static final String REPORTES_EXPORTAR = "REPORTES_EXPORTAR";
+    public static final String REPORTES_PROGRAMAR = "REPORTES_PROGRAMAR";
     public static final String PUNTOS_CONSULTAR = "PUNTOS_CONSULTAR";
     /**
      * SCRUM-545: permiso de un cliente de servicio (RIO-CRM-04), no de un rol interno. Se asigna en la

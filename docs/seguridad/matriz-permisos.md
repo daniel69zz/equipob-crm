@@ -82,6 +82,15 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/interacciones/**` | POST, PUT, PATCH, DELETE | `INTERACCIONES_REGISTRAR` (servicio-interacciones exige además el rol `ADMINISTRADOR_CRM` o `AGENTE_ATENCION`, y un Agente solo modifica las interacciones que registró; SCRUM-435. El estado y el tipo los actualiza cualquier Agente o el Administrador, y solo el Administrador reabre una interacción cerrada; SCRUM-55. Vincular o desvincular una compra (`…/interacciones/*/compra`) exige además `INDICADORES_CONSULTAR`, y la compra elegible se busca en `GET /api/interacciones/clientes/*/compras` con los mismos permisos que el historial del cliente; SCRUM-54. Asignar o reasignar el responsable (`…/interacciones/*/responsable`) y listar los agentes (`GET /api/interacciones/agentes`) lo hace solo el rol `ADMINISTRADOR_CRM`; las notificaciones (`/api/interacciones/notificaciones`) son las del propio usuario; SCRUM-56) |
 | Cualquier otra | — | Denegado |
 
+## Programación de reportes (SCRUM-61)
+
+`/api/comportamiento/reportes/programaciones` y sus subrutas exigen conjuntamente
+`REPORTES_CONSULTAR`, `REPORTES_EXPORTAR` y `REPORTES_PROGRAMAR`, tanto en el Gateway como
+en servicio-comportamiento. La migración V10 asigna el nuevo permiso al Administrador de CRM
+y al Gerente Comercial (perfil de análisis de datos). El Administrador puede asignarlo a otros
+roles de analista junto con los otros dos permisos. Cada usuario solo consulta y gestiona sus
+programaciones, archivos y avisos. Véase [contrato y operación](../compra/reportes-programados.md).
+
 ## Respuestas
 
 - Sin token o con token inválido o vencido: **401 No autenticado**.

@@ -1,5 +1,7 @@
 # Documentación
 
+- [Reportes programados (SCRUM-61)](compra/reportes-programados.md): periodicidad, filtros, avisos, historial y descarga; [diagramas](compra/reportes-programados-diagramas.md).
+
 - [Simulación de segmentación (SCRUM-29)](segmentacion/simulacion.md): flujo, contrato, límites y nueve subtareas; [diagramas](segmentacion/simulacion-diagramas.md) y [verificación](segmentacion/simulacion-verificacion.md).
 
 - [Consulta de preferencias (SCRUM-43)](preferencias/consulta-preferencias.md): pantalla, acceso por rol, integración y pruebas; [diagramas](preferencias/consulta-diagramas.md).

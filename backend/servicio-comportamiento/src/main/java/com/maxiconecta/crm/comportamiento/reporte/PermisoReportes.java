@@ -10,6 +10,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Comprueba en el propio servicio el permiso del reporte de comportamiento de compra (SCRUM-58),
@@ -19,15 +20,25 @@ import java.util.Arrays;
  *
  * <p>Exportar un reporte a CSV o PDF (SCRUM-60) exige además {@code REPORTES_EXPORTAR} (SCRUM-482): un rol que
  * consulta los reportes pero no puede exportarlos recibe 403 (criterio de aceptación 2).
+ *
+ * <p>Los reportes programados (SCRUM-61) generan y entregan archivos exportados, así que exigen los tres permisos:
+ * consultar, exportar y {@code REPORTES_PROGRAMAR}.
  */
 @Configuration
 public class PermisoReportes implements WebMvcConfigurer {
 
     static final String PERMISO = "REPORTES_CONSULTAR";
     static final String PERMISO_EXPORTAR = "REPORTES_EXPORTAR";
+    static final String PERMISO_PROGRAMAR = "REPORTES_PROGRAMAR";
 
     @Override
     public void addInterceptors(InterceptorRegistry registro) {
+        // SCRUM-61: un interceptor por permiso, para que falte el que falte la respuesta sea 403.
+        for (String permiso : List.of(PERMISO, PERMISO_EXPORTAR, PERMISO_PROGRAMAR)) {
+            registro.addInterceptor(new Control(permiso, "Su rol no tiene permiso para programar reportes"))
+                    .addPathPatterns("/api/comportamiento/reportes/programaciones",
+                            "/api/comportamiento/reportes/programaciones/**");
+        }
         // SCRUM-500: también el comparativo (SCRUM-62) y su exportación. No las consultas internas del panel.
         registro.addInterceptor(new Control(PERMISO, "Su rol no tiene permiso para consultar los reportes de clientes"))
                 .addPathPatterns("/api/comportamiento/reportes/comportamiento", "/api/comportamiento/reportes/comportamiento/**",

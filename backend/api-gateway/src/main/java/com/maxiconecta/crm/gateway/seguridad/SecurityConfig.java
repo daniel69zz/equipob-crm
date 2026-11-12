@@ -37,6 +37,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR_VENTAS;
 import static com.maxiconecta.crm.gateway.rol.Permisos.REPORTES_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.REPORTES_EXPORTAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.REPORTES_PROGRAMAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SEGMENTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.SUGERENCIAS_CONSULTAR;
@@ -125,6 +126,13 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_CONSULTAR),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_EXPORTAR)))
+                        // SCRUM-61: los reportes programados generan y entregan archivos exportados, asi que exigen
+                        // consultar, exportar y programar en todos los metodos (crear, editar, pausar, descargar).
+                        .requestMatchers("/api/comportamiento/reportes/programaciones", "/api/comportamiento/reportes/programaciones/**")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_CONSULTAR),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_EXPORTAR),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_PROGRAMAR)))
                         .requestMatchers(HttpMethod.GET, "/api/comportamiento/reportes/**")
                             .hasAuthority(REPORTES_CONSULTAR)
                         .requestMatchers("/api/comportamiento/reportes/**").denyAll()
