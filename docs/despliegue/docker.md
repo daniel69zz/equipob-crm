@@ -104,9 +104,11 @@ repositorio en el VPS. El servidor conserva su `.env` y la clave; el paquete no 
 servidor: Docker con Compose v2, el nginx ya configurado, la carpeta `SSH_RUTA` con su `.env` y un usuario
 con acceso a Docker.
 
-En el entorno `produccion` del repositorio se configuran las variables `DESPLIEGUE_HABILITADO=true`,
-`SSH_HOST`, `SSH_USUARIO`, `SSH_RUTA`, `URL_WEB` y `URL_API`, y los secretos `SSH_CLAVE`,
-`SSH_KNOWN_HOSTS` (`ssh-keyscan <host>`), `CRM_USUARIO` y `CRM_PASSWORD`. Sin
-`DESPLIEGUE_HABILITADO`, el workflow solo compila y valida.
+En el entorno `produccion` del repositorio se configuran las variables `SSH_HOST`, `SSH_USUARIO`,
+`SSH_RUTA`, `URL_WEB` y `URL_API`, y los secretos `SSH_CLAVE`, `SSH_KNOWN_HOSTS` (`ssh-keyscan <host>`),
+`CRM_USUARIO` y `CRM_PASSWORD`. El despliegue se activa con la **variable del repositorio** (no del entorno)
+`DESPLIEGUE_HABILITADO=true`, porque la condición del job se evalúa antes de cargar el entorno; sin ella,
+el workflow solo compila y valida. Las pruebas de humo se identifican con el User-Agent
+`crm-maxiconecta-humo/1.0`, que Cloudflare no bloquea.
 
 Diagrama: [despliegue](diagrama-despliegue.png) (fuente PlantUML en `diagrama-despliegue.puml`).
