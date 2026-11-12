@@ -1,0 +1,117 @@
+# Despliegue continuo del CRM (SCRUM-631; docs/despliegue/docker.md).
+# En cada push a main: busca secretos en el código, compila los microservicios y el frontend, copia el
+# paquete al servidor por SSH, levanta docker compose y ejecuta las pruebas de humo (SCRUM-632).
+# El servidor conserva su .env y la clave de Google Cloud; nunca viajan en el repositorio ni en el paquete.
+#
+# Configuración del repositorio (Settings → Secrets and variables → Actions), entorno "produccion":
+#   Variables: DESPLIEGUE_HABILITADO=true, SSH_HOST, SSH_USUARIO, SSH_RUTA (carpeta del despliegue),
+#              URL_WEB, URL_API
+#   Secretos:  SSH_CLAVE (clave privada), SSH_KNOWN_HOSTS (ssh-keyscan del servidor),
+#              CRM_USUARIO, CRM_PASSWORD (usuario de las pruebas de humo)
+name: Despliegue
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: despliegue
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  secretos:
+    name: Sin secretos en el código
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  construir:
+    name: Compilar
+    needs: secretos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Microservicios
+        run: |
+          for s in api-gateway servicio-perfil servicio-comportamiento servicio-segmentacion \
+                   servicio-fidelizacion servicio-interacciones; do
+            mvn -B -q -f backend/$s/pom.xml package -DskipTests
+          done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/crm-web/package-lock.json
+      - name: Frontend
+        working-directory: frontend/crm-web
+        run: npm ci && npx ng build
+      - name: Validar docker compose
+        run: |
+          printf '%s\n' DB_PASSWORD=x JWT_SECRETO=x ADMIN_PASSWORD=x DOMINIO_WEB=web.invalid \
+            DOMINIO_API=api.invalid FIDELIZACION_SALIDA_PROYECTO=x GCP_CREDENCIALES_ARCHIVO=/dev/null > .env
+          docker compose config -q
+          rm .env
+      - name: Paquete de despliegue
+        run: |
+          tar czf despliegue.tgz docker-compose.yml .dockerignore docker herramientas/despliegue \
+            backend/*/target/*-0.1.0-SNAPSHOT.jar frontend/crm-web/dist/crm-web/browser
+      - uses: actions/upload-artifact@v4
+        with:
+          name: despliegue
+          path: despliegue.tgz
+          retention-days: 7
+
+  desplegar:
+    name: Desplegar en el servidor
+    needs: construir
+    if: vars.DESPLIEGUE_HABILITADO == 'true'
+    runs-on: ubuntu-latest
+    environment: produccion
+    env:
+      DESTINO: ${{ vars.SSH_USUARIO }}@${{ vars.SSH_HOST }}
+      RUTA: ${{ vars.SSH_RUTA }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: despliegue
+      - name: Configurar SSH
+        env:
+          SSH_CLAVE: ${{ secrets.SSH_CLAVE }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_CLAVE" > ~/.ssh/id_despliegue && chmod 600 ~/.ssh/id_despliegue
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Copiar y levantar
+        run: |
+          scp -i ~/.ssh/id_despliegue despliegue.tgz "$DESTINO:$RUTA/"
+          ssh -i ~/.ssh/id_despliegue "$DESTINO" "set -e; cd '$RUTA'; test -f .env; \
+            rm -rf backend frontend/crm-web/dist; tar xzf despliegue.tgz; rm despliegue.tgz; \
+            docker compose up -d --build --remove-orphans --wait --wait-timeout 300; docker compose ps"
+
+  humo:
+    name: Pruebas de humo
+    needs: desplegar
+    runs-on: ubuntu-latest
+    environment: produccion
+    steps:
+      - uses: actions/checkout@v4
+      - name: Web, API, sesión, ficha del cliente y microservicios
+        env:
+          CRM_USUARIO: ${{ secrets.CRM_USUARIO }}
+          CRM_PASSWORD: ${{ secrets.CRM_PASSWORD }}
+        run: python3 herramientas/despliegue/humo.py --web "${{ vars.URL_WEB }}" --api "${{ vars.URL_API }}"

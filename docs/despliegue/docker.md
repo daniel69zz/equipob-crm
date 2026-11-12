@@ -42,12 +42,23 @@ La clave JSON de la cuenta de servicio se monta como secreto desde `GCP_CREDENCI
 fuera del repositorio, y nunca se copia a la imagen. En Linux, el usuario `crm` del contenedor debe poder
 leerla (por ejemplo, `chmod 644`).
 
-## Comprobación
+## Pruebas de humo
+
+`herramientas/despliegue/humo.py` (solo Python 3) verifica el despliegue y sale con código 1 si algo falla:
+Gateway en `UP`, carga del sitio y de una ruta de la SPA, rechazo de un dominio desconocido, 401 sin token,
+inicio de sesión por el sitio y por la API, listado y ficha de un cliente, y una consulta por cada
+microservicio a través del Gateway. No publica eventos ni toca Pub/Sub.
 
 ```bash
-curl -s -H "Host: api.crm.localhost" http://localhost/actuator/health     # API Gateway
-docker compose logs servicio-fidelizacion | grep -i salida                # envíos a Pub/Sub
+CRM_USUARIO=admin CRM_PASSWORD=... python3 herramientas/despliegue/humo.py \
+  --web https://crm.ejemplo.com --api https://api.crm.ejemplo.com
+# en el propio servidor, sin DNS:
+python3 herramientas/despliegue/humo.py --web http://localhost --host-web crm.localhost \
+  --api http://localhost --host-api api.crm.localhost
 ```
+
+Con `--exigir-cliente` falla si aún no hay clientes para abrir su ficha. Para revisar los envíos del saldo:
+`docker compose logs servicio-fidelizacion | grep -i salida`.
 
 Para inspeccionar el tópico del curso sin consumir los mensajes, seguir la validación de
 [publicación del saldo](../fidelizacion/publicacion-saldo-puntos.md): `pull` sin `--auto-ack`.
@@ -59,6 +70,19 @@ Eventos simulados de Marketplace y Ventas, desde el propio servidor:
 python3 herramientas/simulador-eventos/publicar.py \
   herramientas/simulador-eventos/eventos/compra-ana.json --pubsub --pubsub-url http://localhost:8086
 ```
+
+## Despliegue continuo
+
+`.github/workflows/despliegue.yml` se ejecuta en cada push a `main` (o a mano): busca secretos con
+gitleaks, compila los microservicios y el frontend, valida el compose, copia el paquete al servidor por
+SSH, ejecuta `docker compose up -d --build --wait` y luego las pruebas de humo contra las URL públicas.
+El servidor conserva su `.env` y la clave; el paquete no los incluye. Requisitos del servidor: Docker con
+Compose v2, la carpeta `SSH_RUTA` con su `.env` y un usuario con acceso a Docker.
+
+En el entorno `produccion` del repositorio se configuran las variables `DESPLIEGUE_HABILITADO=true`,
+`SSH_HOST`, `SSH_USUARIO`, `SSH_RUTA`, `URL_WEB` y `URL_API`, y los secretos `SSH_CLAVE`,
+`SSH_KNOWN_HOSTS` (`ssh-keyscan <host>`), `CRM_USUARIO` y `CRM_PASSWORD`. Sin
+`DESPLIEGUE_HABILITADO`, el workflow solo compila y valida.
 
 HTTPS: agregar un `server` con `listen 443 ssl` y los certificados (por ejemplo, de Let's Encrypt)
 en `docker/nginx.conf.template` y publicar el puerto `443`.
