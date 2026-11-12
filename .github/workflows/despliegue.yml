@@ -1,10 +1,12 @@
 # Despliegue continuo del CRM (SCRUM-631; docs/despliegue/docker.md).
 # En cada push a main: busca secretos en el código, compila los microservicios y el frontend, copia el
-# paquete al servidor por SSH, levanta docker compose y ejecuta las pruebas de humo (SCRUM-632).
+# paquete al servidor por SSH, publica el frontend en la carpeta del nginx del VPS, levanta docker compose
+# y ejecuta las pruebas de humo (SCRUM-632).
 # El servidor conserva su .env y la clave de Google Cloud; nunca viajan en el repositorio ni en el paquete.
 #
 # Configuración del repositorio (Settings → Secrets and variables → Actions), entorno "produccion":
 #   Variables: DESPLIEGUE_HABILITADO=true, SSH_HOST, SSH_USUARIO, SSH_RUTA (carpeta del despliegue),
+#              RUTA_WEB (raíz del sitio en el nginx del VPS, por defecto /var/www/crm-maxiconecta),
 #              URL_WEB, URL_API
 #   Secretos:  SSH_CLAVE (clave privada), SSH_KNOWN_HOSTS (ssh-keyscan del servidor),
 #              CRM_USUARIO, CRM_PASSWORD (usuario de las pruebas de humo)
@@ -61,13 +63,13 @@ jobs:
         run: npm ci && npx ng build
       - name: Validar docker compose
         run: |
-          printf '%s\n' DB_PASSWORD=x JWT_SECRETO=x ADMIN_PASSWORD=x DOMINIO_WEB=web.invalid \
-            DOMINIO_API=api.invalid FIDELIZACION_SALIDA_PROYECTO=x GCP_CREDENCIALES_ARCHIVO=/dev/null > .env
+          printf '%s\n' DB_PASSWORD=x JWT_SECRETO=x ADMIN_PASSWORD=x FIDELIZACION_SALIDA_PROYECTO=x \
+            GCP_CREDENCIALES_ARCHIVO=/dev/null > .env
           docker compose config -q
           rm .env
       - name: Paquete de despliegue
         run: |
-          tar czf despliegue.tgz docker-compose.yml .dockerignore docker herramientas/despliegue \
+          tar czf despliegue.tgz docker-compose.yml .dockerignore docker/servicio.Dockerfile \
             backend/*/target/*-0.1.0-SNAPSHOT.jar frontend/crm-web/dist/crm-web/browser
       - uses: actions/upload-artifact@v4
         with:
@@ -84,6 +86,7 @@ jobs:
     env:
       DESTINO: ${{ vars.SSH_USUARIO }}@${{ vars.SSH_HOST }}
       RUTA: ${{ vars.SSH_RUTA }}
+      RUTA_WEB: ${{ vars.RUTA_WEB || '/var/www/crm-maxiconecta' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -101,7 +104,8 @@ jobs:
           scp -i ~/.ssh/id_despliegue despliegue.tgz "$DESTINO:$RUTA/"
           ssh -i ~/.ssh/id_despliegue "$DESTINO" "set -e; cd '$RUTA'; test -f .env; \
             rm -rf backend frontend/crm-web/dist; tar xzf despliegue.tgz; rm despliegue.tgz; \
-            docker compose up -d --build --remove-orphans --wait --wait-timeout 300; docker compose ps"
+            docker compose up -d --build --remove-orphans --wait --wait-timeout 300; docker compose ps; \
+            find '$RUTA_WEB' -mindepth 1 -delete; cp -r frontend/crm-web/dist/crm-web/browser/. '$RUTA_WEB'/"
 
   humo:
     name: Pruebas de humo

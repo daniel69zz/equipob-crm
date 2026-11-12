@@ -1,9 +1,9 @@
 # Despliegue del CRM MaxiConecta en Docker (docs/despliegue/docker.md).
-# Requisitos previos: los jars (mvn package -DskipTests en cada backend/<servicio>) y el frontend
-# compilado (ng build en frontend/crm-web). Variables y secretos en .env (ver .env.example).
+# Requisito previo: los jars (mvn package -DskipTests en cada backend/<servicio>). Variables y secretos
+# en .env (ver .env.example). El frontend lo sirve el nginx del VPS (herramientas/despliegue/nginx-vps.conf).
 #   docker compose up -d --build
 #   docker compose ps
-# Solo nginx publica un puerto (80): DOMINIO_WEB sirve el sitio y DOMINIO_API la API. El resto queda en la
+# Solo el API Gateway publica un puerto, en 127.0.0.1:8080, para el nginx del VPS. El resto queda en la
 # red interna. Eventos entre microservicios: Pub/Sub (emulador interno). Saldo y nivel de puntos (RIO-CRM-06):
 # Google Cloud Pub/Sub real, tópico del curso.
 name: crm-maxiconecta
@@ -74,6 +74,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Solo en localhost: el nginx del VPS es la única entrada pública.
+    ports: ["${GATEWAY_PUERTO:-127.0.0.1:8080}:8080"]
     healthcheck: &salud
       test: ["CMD-SHELL", "wget -qO- http://localhost:$${PUERTO:-8080}/actuator/health | grep -q UP"]
       interval: 10s
@@ -123,19 +125,6 @@ services:
     image: crm-maxiconecta/servicio-interacciones
     environment: {<<: *entorno, PUERTO: "8085"}
     healthcheck: *salud
-
-  # Única entrada pública: sitio web en DOMINIO_WEB y API en DOMINIO_API.
-  nginx:
-    build: {context: ., dockerfile: docker/frontend.Dockerfile}
-    image: crm-maxiconecta/nginx
-    restart: unless-stopped
-    environment:
-      DOMINIO_WEB: ${DOMINIO_WEB:?Defina DOMINIO_WEB en .env}
-      DOMINIO_API: ${DOMINIO_API:?Defina DOMINIO_API en .env}
-    depends_on:
-      api-gateway:
-        condition: service_healthy
-    ports: ["${PUERTO_HTTP:-80}:80"]
 
 # Clave de la cuenta de servicio de Google Cloud: se monta desde fuera del repositorio, nunca se copia.
 secrets:
