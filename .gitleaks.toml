@@ -1,0 +1,16 @@
+# Configuración de gitleaks para el workflow de despliegue (SCRUM-631): reglas por defecto más excepciones
+# de archivos que solo contienen ejemplos de documentación, plantillas o datos de prueba generados al vuelo.
+# Una credencial real nunca va en estos archivos (ver docs/despliegue/docker.md).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ejemplos y plantillas sin credenciales reales"
+paths = [
+  # Plantillas de variables de entorno con valores de ejemplo.
+  '''(^|/)\.env\.example$''',
+  # Contrato RIO-CRM-04: ejemplos de token y secreto de servicio en la documentación.
+  '''^docs/contratos-eventos/RIO-CRM-04-consulta-puntos\.(md|openapi\.yaml)$''',
+  # Prueba que genera una clave RSA al vuelo para una cuenta de servicio ficticia.
+  '''^backend/servicio-fidelizacion/src/test/java/com/maxiconecta/crm/fidelizacion/salida/ConfiguracionDestinoExternoTest\.java$''',
+]
