@@ -1,10 +1,11 @@
 # Despliegue del CRM MaxiConecta en Docker (docs/despliegue/docker.md).
-# Requisito previo: los jars (mvn package -DskipTests en cada backend/<servicio>). Variables y secretos
-# en .env (ver .env.example). El frontend lo sirve el nginx del VPS (herramientas/despliegue/nginx-vps.conf).
+# Requisitos previos: los jars (mvn package -DskipTests en cada backend/<servicio>) y el frontend compilado
+# (ng build en frontend/crm-web). Variables y secretos en .env (ver .env.example). La entrada pública es el
+# nginx del VPS (herramientas/despliegue/nginx-vps.conf).
 #   docker compose up -d --build
 #   docker compose ps
-# Solo el API Gateway publica un puerto, en 127.0.0.1:8080, para el nginx del VPS. El resto queda en la
-# red interna. Eventos entre microservicios: Pub/Sub (emulador interno). Saldo y nivel de puntos (RIO-CRM-06):
+# Solo el frontend (127.0.0.1:8090) y el API Gateway (127.0.0.1:8080) publican un puerto, en localhost, para
+# el nginx del VPS. El resto queda en la red interna. Eventos entre microservicios: Pub/Sub (emulador interno). Saldo y nivel de puntos (RIO-CRM-06):
 # Google Cloud Pub/Sub real, tópico del curso.
 name: crm-maxiconecta
 
@@ -125,6 +126,17 @@ services:
     image: crm-maxiconecta/servicio-interacciones
     environment: {<<: *entorno, PUERTO: "8085"}
     healthcheck: *salud
+
+  # Frontend Angular (Caddy, archivos estáticos). El nginx del VPS le reenvía el sitio; /api va al Gateway.
+  crm-web:
+    build: {context: ., dockerfile: docker/frontend.Dockerfile}
+    image: crm-maxiconecta/crm-web
+    restart: unless-stopped
+    ports: ["${WEB_PUERTO:-127.0.0.1:8090}:80"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ | grep -q app-root"]
+      interval: 10s
+      retries: 10
 
 # Clave de la cuenta de servicio de Google Cloud: se monta desde fuera del repositorio, nunca se copia.
 secrets:
