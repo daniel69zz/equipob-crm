@@ -22,6 +22,7 @@ const NOMBRES_DE_OPERACION: Record<string, string> = {
   USUARIO_CREADO: 'Usuario creado',
   ROL_ASIGNADO: 'Rol asignado',
   USUARIO_DESACTIVADO: 'Usuario desactivado',
+  PARAMETRO_GENERAL_MODIFICADO: 'Parámetro general modificado',
 };
 
 @Component({

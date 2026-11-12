@@ -2,6 +2,9 @@ package com.maxiconecta.crm.comportamiento.parametro;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.flywaydb.core.Flyway;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,12 +44,22 @@ class ParametrosControllerIntegracionTest {
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
+    @DynamicPropertySource
+    static void auditoria(DynamicPropertyRegistry registro) {
+        // Las migraciones reales del Gateway son dueñas de la auditoría compartida (auditoria.evento, SCRUM-521).
+        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .schemas("seguridad").locations("filesystem:../api-gateway/src/main/resources/db/migration").load()
+                .migrate();
+    }
+
     @Autowired
     private MockMvc mvc;
     @Autowired
     private ObjectMapper json;
     @Autowired
     private ParametrosGenerales parametros;
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     @BeforeEach
     void preparar() {
@@ -84,6 +97,36 @@ class ParametrosControllerIntegracionTest {
         assertThat(respuesta.get(0).get("valor").asInt()).isEqualTo(120);
         assertThat(respuesta.get(0).get("version").asLong()).isEqualTo(version + 1);
         assertThat(respuesta.get(0).get("modificadoPor").asText()).isEqualTo("admin");
+
+        // Criterio 3 (SCRUM-521): la auditoría guarda el valor anterior, el nuevo, quién y cuándo.
+        mvc.perform(como("admin", "ADMINISTRADOR_CRM", PERMISOS_ADMIN, get(URL + "/historial")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigo").value(CodigosParametros.INACTIVIDAD_DIAS))
+                .andExpect(jsonPath("$[0].valorAnterior").value(90))
+                .andExpect(jsonPath("$[0].valorNuevo").value(120))
+                .andExpect(jsonPath("$[0].usuario").value("admin"))
+                .andExpect(jsonPath("$[0].unidad").value("días"))
+                .andExpect(jsonPath("$[0].fecha").exists());
+        var evento = jdbc.queryForMap("SELECT usuario, entidad, entidad_id, detalle FROM auditoria.evento "
+                + "WHERE operacion = 'PARAMETRO_GENERAL_MODIFICADO' ORDER BY id DESC LIMIT 1");
+        assertThat(evento).containsEntry("usuario", "admin").containsEntry("entidad", "PARAMETRO_GENERAL")
+                .containsEntry("entidad_id", CodigosParametros.INACTIVIDAD_DIAS);
+        assertThat(json.readTree((String) evento.get("detalle")).get("valorAnterior").asInt()).isEqualTo(90);
+    }
+
+    @Test
+    void unCambioRechazadoNoQuedaEnLaAuditoria() throws Exception {
+        int antes = jdbc.queryForObject("SELECT count(*) FROM auditoria.evento WHERE operacion = "
+                + "'PARAMETRO_GENERAL_MODIFICADO'", Integer.class);
+        long version = parametro(CodigosParametros.INACTIVIDAD_DIAS).version();
+
+        mvc.perform(como("admin", "ADMINISTRADOR_CRM", PERMISOS_ADMIN, put(URL))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cambio(CodigosParametros.INACTIVIDAD_DIAS, "0", version)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM auditoria.evento WHERE operacion = "
+                + "'PARAMETRO_GENERAL_MODIFICADO'", Integer.class)).isEqualTo(antes);
     }
 
     @Test

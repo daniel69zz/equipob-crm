@@ -39,6 +39,13 @@ saldo anterior y el resultante, el motivo, la referencia y el rol. Si ese regist
 El detalle completo también queda en `fidelizacion.ajuste_puntos`, de solo inserción
 (`docs/fidelizacion/ajuste-manual-puntos.md`).
 
+Los parámetros generales del CRM (SCRUM-65) los cambia el Administrador de CRM con `PARAMETROS_CONFIGURAR` en
+`PUT /api/comportamiento/parametros` (periodo de inactividad y umbrales del nivel de consumo) y
+`PUT /api/fidelizacion/parametros` (vigencia de los puntos). Cada servicio agrega `PARAMETRO_GENERAL_MODIFICADO`
+(SCRUM-521) por cada parámetro que cambió, en la misma transacción del cambio, con entidad `PARAMETRO_GENERAL`, el
+código del parámetro y en el detalle su nombre, unidad, valor anterior, valor nuevo y el servicio. Si ese registro
+falla, el parámetro no cambia. Un cambio rechazado no deja registro (`docs/seguridad/parametros-generales.md`).
+
 Las interacciones con el cliente (SCRUM-52) van bajo la ruta del cliente
 (`/api/interacciones/clientes/{clienteId}/interacciones`), así que el Gateway registra `CLIENTE_CONSULTADO` al
 consultar el historial o una interacción, `CLIENTE_MODIFICADO` al registrarla o corregirla, y `ACCESO_DENEGADO` si

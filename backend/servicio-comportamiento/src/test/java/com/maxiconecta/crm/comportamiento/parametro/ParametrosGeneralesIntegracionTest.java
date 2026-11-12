@@ -47,6 +47,7 @@ class ParametrosGeneralesIntegracionTest {
 
     private final RelojMovil reloj = new RelojMovil(Instant.parse("2026-11-12T12:00:00Z"));
     private ParametrosGenerales parametros;
+    private final List<ParametrosGenerales.Modificacion> registrados = new java.util.ArrayList<>();
 
     @BeforeEach
     void preparar() {
@@ -59,7 +60,7 @@ class ParametrosGeneralesIntegracionTest {
         // El monto debe cubrir al menos un boliviano por día: una regla entre dos parámetros.
         return new ParametrosGenerales(jdbc, gestor, reloj, List.of(DIAS, MONTO), valores ->
                 valores.get("PRUEBA_MONTO").compareTo(valores.get("PRUEBA_DIAS")) < 0
-                        ? Map.of("PRUEBA_MONTO", "no puede ser menor que PRUEBA_DIAS") : Map.of(), evento -> { });
+                        ? Map.of("PRUEBA_MONTO", "no puede ser menor que PRUEBA_DIAS") : Map.of(), registrados::add, evento -> { });
     }
 
     @Test
@@ -92,6 +93,8 @@ class ParametrosGeneralesIntegracionTest {
             assertThat(m.usuario()).isEqualTo("admin");
         });
         assertThat(parametros.entero("PRUEBA_DIAS")).isEqualTo(30);
+        assertThat(registrados).as("se registra solo el parámetro que cambió (SCRUM-521)")
+                .extracting(m -> m.definicion().codigo()).containsExactly("PRUEBA_DIAS");
         Parametro dias = parametros.listar().get(0);
         assertThat(dias.version()).isEqualTo(2);
         assertThat(dias.modificadoPor()).isEqualTo("admin");

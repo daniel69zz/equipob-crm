@@ -22,6 +22,7 @@ public class ConfiguracionParametros {
     @Bean(initMethod = "inicializar")
     public ParametrosGenerales parametrosGenerales(
             JdbcTemplate jdbc, PlatformTransactionManager gestor, ApplicationEventPublisher eventos,
+            AuditoriaParametros auditoria,
             @Value("${comportamiento.inactividad.umbral-dias:90}") int inactividadDias,
             @Value("${comportamiento.nivel-consumo.umbral-medio:500}") BigDecimal umbralMedio,
             @Value("${comportamiento.nivel-consumo.umbral-alto:5000}") BigDecimal umbralAlto) {
@@ -38,7 +39,7 @@ public class ConfiguracionParametros {
                         "Valor acumulado de compras vigentes desde el que un cliente es de consumo ALTO. Debe ser "
                                 + "mayor que el umbral medio.", "Bs", new BigDecimal("2.00"),
                         new BigDecimal("10000000.00"), 2, umbralAlto)),
-                ConfiguracionParametros::umbralesOrdenados, eventos);
+                ConfiguracionParametros::umbralesOrdenados, auditoria::registrar, eventos);
     }
 
     /** SCRUM-518: el umbral alto debe superar al medio, si no el nivel MEDIO quedaría vacío. */

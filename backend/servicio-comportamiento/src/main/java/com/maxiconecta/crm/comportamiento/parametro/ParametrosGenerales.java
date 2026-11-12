@@ -43,6 +43,7 @@ public class ParametrosGenerales {
     private final Clock reloj;
     private final Map<String, DefinicionParametro> definiciones = new LinkedHashMap<>();
     private final ReglaConjunto reglaConjunto;
+    private final RegistroCambios registro;
     private final ApplicationEventPublisher eventos;
     private volatile Copia copia;
 
@@ -55,17 +56,27 @@ public class ParametrosGenerales {
         Map<String, String> rechazos(Map<String, BigDecimal> valores);
     }
 
+    /**
+     * Registra cada cambio aplicado (SCRUM-521), dentro de la misma transacción: si el registro falla, el cambio no
+     * se guarda.
+     */
+    @FunctionalInterface
+    public interface RegistroCambios {
+        void registrar(Modificacion cambio);
+    }
+
     private record Copia(Map<String, BigDecimal> valores, Instant leidaEn) {
     }
 
     public ParametrosGenerales(JdbcTemplate jdbc, PlatformTransactionManager gestor, Clock reloj,
                                List<DefinicionParametro> definiciones, ReglaConjunto reglaConjunto,
-                               ApplicationEventPublisher eventos) {
+                               RegistroCambios registro, ApplicationEventPublisher eventos) {
         this.jdbc = jdbc;
         this.tx = new TransactionTemplate(gestor);
         this.reloj = reloj;
         definiciones.forEach(d -> this.definiciones.put(d.codigo(), d));
         this.reglaConjunto = reglaConjunto;
+        this.registro = registro;
         this.eventos = eventos;
     }
 
@@ -95,6 +106,11 @@ public class ParametrosGenerales {
 
     public int entero(String codigo) {
         return valor(codigo).intValueExact();
+    }
+
+    /** Los códigos de los parámetros de este servicio, en el orden en que se definieron. */
+    public List<String> codigos() {
+        return List.copyOf(definiciones.keySet());
     }
 
     /** Todos los parámetros de este servicio, en el orden en que se definieron. */
@@ -199,8 +215,10 @@ public class ParametrosGenerales {
                     UPDATE comportamiento.parametro_general
                     SET valor = ?, version = version + 1, modificado_por = ?, modificado_en = ? WHERE codigo = ?
                     """, cambio.valor(), usuario, ahora, cambio.codigo());
-            aplicadas.add(new Modificacion(definiciones.get(cambio.codigo()), actual.valor(), cambio.valor(),
-                    usuario, ahora));
+            Modificacion modificacion = new Modificacion(definiciones.get(cambio.codigo()), actual.valor(),
+                    cambio.valor(), usuario, ahora);
+            registro.registrar(modificacion);
+            aplicadas.add(modificacion);
         }
         if (aplicadas.isEmpty()) {
             throw new ParametroInvalidoException("Los valores indicados son iguales a los vigentes: no hay cambios",

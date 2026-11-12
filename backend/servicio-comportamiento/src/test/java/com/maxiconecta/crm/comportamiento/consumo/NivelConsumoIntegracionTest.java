@@ -9,6 +9,9 @@ import com.maxiconecta.crm.comportamiento.parametro.CodigosParametros;
 import com.maxiconecta.crm.comportamiento.parametro.Parametro;
 import com.maxiconecta.crm.comportamiento.parametro.ParametroInvalidoException;
 import com.maxiconecta.crm.comportamiento.parametro.ParametrosGenerales;
+import org.flywaydb.core.Flyway;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +63,14 @@ class NivelConsumoIntegracionTest {
     @Container
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    @DynamicPropertySource
+    static void auditoria(DynamicPropertyRegistry registro) {
+        // Las migraciones reales del Gateway son dueñas de la auditoría compartida (auditoria.evento, SCRUM-521).
+        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .schemas("seguridad").locations("filesystem:../api-gateway/src/main/resources/db/migration").load()
+                .migrate();
+    }
 
     @MockBean
     private ClientePerfiles perfiles;

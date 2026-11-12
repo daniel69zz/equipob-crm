@@ -22,6 +22,7 @@ public class ConfiguracionParametros {
     @Bean(initMethod = "inicializar")
     public ParametrosGenerales parametrosGenerales(
             JdbcTemplate jdbc, PlatformTransactionManager gestor, ApplicationEventPublisher eventos,
+            AuditoriaParametros auditoria,
             @Value("${fidelizacion.puntos.vigencia-meses:12}") int vigenciaMeses) {
         return new ParametrosGenerales(jdbc, gestor, Clock.systemUTC(), List.of(
                 DefinicionParametro.entero(CodigosParametros.PUNTOS_VIGENCIA_MESES, "Vigencia de los puntos",
@@ -29,6 +30,6 @@ public class ConfiguracionParametros {
                                 + "La usan la caducidad diaria y las consultas de saldo, también la de Marketplace y "
                                 + "Ventas.", "meses", ReglaCaducidad.VIGENCIA_MINIMA, ReglaCaducidad.VIGENCIA_MAXIMA,
                         vigenciaMeses)),
-                valores -> Map.of(), eventos);
+                valores -> Map.of(), auditoria::registrar, eventos);
     }
 }

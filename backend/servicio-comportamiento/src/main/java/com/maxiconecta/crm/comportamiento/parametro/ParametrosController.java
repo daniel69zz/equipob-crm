@@ -18,16 +18,28 @@ import java.util.List;
 @RequestMapping("/api/comportamiento/parametros")
 public class ParametrosController {
 
-    private final ParametrosGenerales parametros;
+    /** Cambios que muestra el historial de la pantalla. */
+    static final int LIMITE_HISTORIAL = 100;
 
-    public ParametrosController(ParametrosGenerales parametros) {
+    private final ParametrosGenerales parametros;
+    private final AuditoriaParametros auditoria;
+
+    public ParametrosController(ParametrosGenerales parametros, AuditoriaParametros auditoria) {
         this.parametros = parametros;
+        this.auditoria = auditoria;
     }
 
     @GetMapping
     public List<Parametro> listar(HttpServletRequest solicitud) {
         AccesoParametros.administrador(solicitud);
         return parametros.listar();
+    }
+
+    /** SCRUM-521: los últimos cambios de estos parámetros con el valor anterior, el nuevo, quién y cuándo. */
+    @GetMapping("/historial")
+    public List<AuditoriaParametros.CambioRegistrado> historial(HttpServletRequest solicitud) {
+        AccesoParametros.administrador(solicitud);
+        return auditoria.historial(parametros.codigos(), LIMITE_HISTORIAL);
     }
 
     /** Guarda los cambios y devuelve los parámetros como quedaron, con sus versiones nuevas. */
