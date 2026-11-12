@@ -4,9 +4,10 @@
 # (SCRUM-632). La entrada pública es el nginx del VPS, configurado una sola vez.
 # El servidor conserva su .env y la clave de Google Cloud; nunca viajan en el repositorio ni en el paquete.
 #
-# Configuración del repositorio (Settings → Secrets and variables → Actions), entorno "produccion":
-#   Variables: DESPLIEGUE_HABILITADO=true, SSH_HOST, SSH_USUARIO, SSH_RUTA (carpeta del despliegue),
-#              URL_WEB, URL_API
+# Configuración (Settings → Secrets and variables → Actions):
+#   Variable del repositorio: DESPLIEGUE_HABILITADO=true. Va fuera del entorno porque el "if" del job se
+#              evalúa antes de cargar las variables del entorno.
+#   Entorno "produccion", variables: SSH_HOST, SSH_USUARIO, SSH_RUTA (carpeta del despliegue), URL_WEB, URL_API
 #   Secretos:  SSH_CLAVE (clave privada), SSH_KNOWN_HOSTS (ssh-keyscan del servidor),
 #              CRM_USUARIO, CRM_PASSWORD (usuario de las pruebas de humo)
 name: Despliegue
