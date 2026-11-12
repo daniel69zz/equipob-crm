@@ -5,7 +5,7 @@ de compra (SCRUM-58), descargables en CSV o PDF mediante la exportación de SCRU
 Se guardan nombre, frecuencia diaria/semanal/mensual, formato, segmento opcional, cantidad de
 días del reporte (1–1830), inicio futuro y fin opcional inclusivo. El periodo es móvil: los N días
 calendario completos anteriores a la fecha prevista, en `America/La_Paz`; ambos extremos incluidos.
-Un segmento vacío incluye toda la cartera. Los archivos sin compras se generan con el formato
+Un segmento vacío o en blanco incluye toda la cartera y se guarda sin segmento. Los archivos sin compras se generan con el formato
 existente de reporte sin datos. No se incorporan datos personales al archivo.
 
 La recurrencia conserva la hora de Bolivia. La mensual conserva el día del inicio: un inicio el
@@ -33,10 +33,11 @@ invalida la transacción que guarda el fallo. Se conserva el tipo y mensaje de l
 guardan nombre, formato y contenido binario en PostgreSQL, estado `COMPLETADA` y aviso no leído.
 El fallo de generación de un reporte no impide generar los demás; no se reintenta automáticamente
 esa fecha, pero la siguiente recurrencia se mantiene. Si falla la persistencia del resultado,
-la transacción revierte y la programación sigue pendiente para el próximo sondeo.
+la transacción revierte y la programación sigue pendiente para el próximo sondeo. Un error inesperado
+en una programación se registra en el log y no detiene las demás del mismo lote.
 
 Los avisos de éxito y error aparecen en la cabecera del CRM (sondeo cada 30 segundos), y se
-consultan y marcan leídos en la pantalla de programaciones. El archivo se descarga desde allí.
+consultan y marcan leídos en la pantalla de programaciones; el contador de la cabecera baja al marcar uno. El archivo se descarga desde allí.
 La entrega es dentro del CRM; no requiere correo ni un proveedor externo. El historial muestra
 50 filas por página. Archivos e historial se conservan; no hay purga automática en esta versión.
 
@@ -53,7 +54,8 @@ Los servicios deben seguir expuestos únicamente al Gateway, como las demás API
 Base: `/api/comportamiento/reportes/programaciones`.
 
 - `GET /`: lista propia; `POST /`: crear, responde 201 con `id`.
-- `PUT /{id}`: editar filtros y recurrencia; `PUT /{id}/estado`: `{ "estado": "ACTIVA" | "PAUSADA" | "CANCELADA" }`.
+- `PUT /{id}`: editar filtros y recurrencia; `PUT /{id}/estado`: `{ "estado": "ACTIVA" | "PAUSADA" | "CANCELADA" }`
+  (otro valor o sin estado: 400; una programación cancelada: 409).
 - `GET /ejecuciones?pagina=0`: historial propio, 50 filas; `GET /avisos`: contador `noLeidas`.
 - `GET /ejecuciones/{id}/archivo`: CSV/PDF como adjunto; 404 si falló o pertenece a otro usuario.
 - `PUT /ejecuciones/{id}/leida`: marca el aviso propio como leído.
@@ -80,7 +82,8 @@ y frontend. Las sesiones consultan los permisos vigentes del Gateway.
 
 `ProgramacionReportesIntegracionTest` usa PostgreSQL real y generación CSV/PDF real: verifica los
 tres criterios de Jira, aislamiento por usuario, permisos, edición, pausa/reactivación, vigencia,
-concurrencia entre instancias, recuperación tras caída y recurrencia mensual. `AccesoPorRolTest`
+concurrencia entre instancias, recuperación tras caída, recurrencia mensual, que un error inesperado
+en una programación no detenga el lote y que un segmento en blanco sea toda la cartera. `AccesoPorRolTest`
 verifica los permisos en el Gateway. `e2e/scrum61.spec.ts` verifica el flujo de interfaz con una
 API controlada: creación/edición/estados, avisos, descarga, causa de fallo y acceso denegado.
 La batería existente de exportaciones comprueba la correspondencia entre los archivos y los datos.

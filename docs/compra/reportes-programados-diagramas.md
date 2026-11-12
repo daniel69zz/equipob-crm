@@ -28,6 +28,7 @@ classDiagram
         estado()
         ejecutarPendientes()
         siguiente()
+        primeraPosterior()
         historial()
         descargar()
         noLeidas()
@@ -38,17 +39,28 @@ classDiagram
     class ExportacionReportes {
         comportamiento()
     }
+    class EstadoProgramacion {
+        <<enumeration>>
+        ACTIVA
+        PAUSADA
+        CANCELADA
+    }
+    class ResultadoEjecucion {
+        <<enumeration>>
+        COMPLETADA
+        FALLIDA
+    }
     class ReporteProgramado {
         UUID id
         usuario
-        estado
+        EstadoProgramacion estado
         proxima
     }
     class EjecucionReporte {
         UUID id
         prevista
         ejecutada
-        estado
+        ResultadoEjecucion estado
         causa
         contenido
         leida
@@ -59,6 +71,8 @@ classDiagram
     ProgramacionReportes --> ExportacionReportes
     ProgramacionReportes --> ReporteProgramado : JDBC
     ReporteProgramado "1" --> "0..*" EjecucionReporte
+    ReporteProgramado --> EstadoProgramacion
+    EjecucionReporte --> ResultadoEjecucion
     ExportacionReportes --> AuditoriaExportaciones
     ExportacionReportes --> ArchivoExportado
 ```
