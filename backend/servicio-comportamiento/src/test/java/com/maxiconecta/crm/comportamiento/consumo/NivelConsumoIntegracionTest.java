@@ -4,6 +4,11 @@ import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.ingesta.EstadoEvento;
 import com.maxiconecta.crm.comportamiento.ingesta.EventoRecibidoRepository;
 import com.maxiconecta.crm.comportamiento.ingesta.IngestaCompras;
+import com.maxiconecta.crm.comportamiento.parametro.CambioParametro;
+import com.maxiconecta.crm.comportamiento.parametro.CodigosParametros;
+import com.maxiconecta.crm.comportamiento.parametro.Parametro;
+import com.maxiconecta.crm.comportamiento.parametro.ParametroInvalidoException;
+import com.maxiconecta.crm.comportamiento.parametro.ParametrosGenerales;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +26,14 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -76,6 +85,9 @@ class NivelConsumoIntegracionTest {
     @Autowired
     private MockMvc mvc;
 
+    @Autowired
+    private ParametrosGenerales parametros;
+
     @BeforeEach
     void preparar() {
         jdbc.execute("TRUNCATE comportamiento.cliente_nivel_consumo, comportamiento.cliente_inactivo, "
@@ -85,6 +97,23 @@ class NivelConsumoIntegracionTest {
         when(perfiles.buscar(anyString())).thenReturn(Optional.empty());
         when(reloj.instant()).thenReturn(REFERENCIA);
         when(reloj.getZone()).thenReturn(ZoneOffset.UTC);
+        cambiarUmbrales("500.00", "5000.00");
+    }
+
+    /** Fija los umbrales como lo haría el Administrador de CRM (SCRUM-518); el alto primero si sube. */
+    private void cambiarUmbrales(String medio, String alto) {
+        Map<String, String> nuevos = Map.of(CodigosParametros.NIVEL_CONSUMO_UMBRAL_MEDIO, medio,
+                CodigosParametros.NIVEL_CONSUMO_UMBRAL_ALTO, alto);
+        List<CambioParametro> cambios = new ArrayList<>();
+        for (Parametro p : parametros.listar()) {
+            String valor = nuevos.get(p.codigo());
+            if (valor != null && p.valor().compareTo(new BigDecimal(valor)) != 0) {
+                cambios.add(new CambioParametro(p.codigo(), new BigDecimal(valor), p.version()));
+            }
+        }
+        if (!cambios.isEmpty()) {
+            parametros.actualizar(cambios, "admin");
+        }
     }
 
     // --- Criterio 1: se asigna el nivel cuyo umbral corresponde al valor acumulado ---
@@ -112,6 +141,42 @@ class NivelConsumoIntegracionTest {
         assertThat(nivelPersistido("CLI-500")).isEqualTo("MEDIO");
         assertThat(nivelPersistido("CLI-4999")).isEqualTo("MEDIO");
         assertThat(nivelPersistido("CLI-5000")).isEqualTo("ALTO");
+    }
+
+    // --- SCRUM-518: los umbrales son parámetros generales y rigen desde que se guardan ---
+
+    @Test
+    void alCambiarLosUmbralesSeReclasificaATodosLosClientesDeInmediato() throws Exception {
+        comprar("V-U1", "CLI-600", "600.00");
+        comprar("V-U2", "CLI-3000", "3000.00");
+        comprar("V-U3", "CLI-6000", "6000.00");
+        assertThat(nivelPersistido("CLI-600")).isEqualTo("MEDIO");
+        assertThat(nivelPersistido("CLI-3000")).isEqualTo("MEDIO");
+
+        cambiarUmbrales("1000.00", "2500.00");
+
+        assertThat(nivelPersistido("CLI-600")).isEqualTo("BAJO");
+        assertThat(nivelPersistido("CLI-3000")).isEqualTo("ALTO");
+        assertThat(nivelPersistido("CLI-6000")).isEqualTo("ALTO");
+        mvc.perform(get(RUTA_LISTADO).param("nivelConsumo", "ALTO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.umbrales.medio").value(1000.00))
+                .andExpect(jsonPath("$.umbrales.alto").value(2500.00));
+        mvc.perform(get(RUTA_INDICADORES).param("identificador", "CLI-600"))
+                .andExpect(jsonPath("$.nivelConsumo.nivel").value("BAJO"));
+    }
+
+    @Test
+    void unUmbralAltoQueNoSuperaAlMedioSeRechazaSinCambiarNada() {
+        Parametro alto = parametros.listar().stream()
+                .filter(p -> p.codigo().equals(CodigosParametros.NIVEL_CONSUMO_UMBRAL_ALTO)).findFirst().orElseThrow();
+
+        assertThatThrownBy(() -> parametros.actualizar(List.of(new CambioParametro(
+                CodigosParametros.NIVEL_CONSUMO_UMBRAL_ALTO, new BigDecimal("500.00"), alto.version())), "admin"))
+                .isInstanceOfSatisfying(ParametroInvalidoException.class, e -> assertThat(e.campos())
+                        .containsEntry(CodigosParametros.NIVEL_CONSUMO_UMBRAL_ALTO,
+                                "debe ser mayor que el umbral de consumo medio (500.00 Bs)"));
+        assertThat(parametros.valor(CodigosParametros.NIVEL_CONSUMO_UMBRAL_ALTO)).isEqualByComparingTo("5000");
     }
 
     // --- Criterio 2: una compra nueva o una anulación actualiza el nivel si cruza un umbral ---

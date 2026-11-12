@@ -71,7 +71,8 @@ comportamiento:
     zona-horaria: ${EVOLUCION_ZONA_HORARIA:America/La_Paz}
 
   nivel-consumo:
-    # Valor acumulado (en bolivianos) desde el que un cliente es de consumo medio y alto (SCRUM-270).
+    # Valor acumulado (en bolivianos) desde el que un cliente es de consumo medio y alto (SCRUM-270). Son los
+    # valores iniciales de los parámetros generales NIVEL_CONSUMO_UMBRAL_MEDIO y _ALTO (SCRUM-518).
     umbral-medio: ${NIVEL_CONSUMO_UMBRAL_MEDIO:500}
     umbral-alto: ${NIVEL_CONSUMO_UMBRAL_ALTO:5000}
     # Cuándo se reclasifica a todos los clientes (SCRUM-268); por defecto, una vez al día de madrugada.
