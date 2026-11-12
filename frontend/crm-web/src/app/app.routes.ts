@@ -12,6 +12,7 @@ import { ReporteComportamientoComponent } from './features/analisis/reporte-comp
 import { PanelIndicadoresComponent } from './features/analisis/panel-indicadores.component';
 import { ReporteComparativoComponent } from './features/analisis/reporte-comparativo.component';
 import { ReportesProgramadosComponent } from './features/analisis/reportes-programados.component';
+import { ParametrosGeneralesComponent } from './features/admin/parametros-generales.component';
 import { AccesoDenegadoComponent } from './features/acceso-denegado/acceso-denegado.component';
 import { AuditoriaComponent } from './features/auditoria/auditoria.component';
 import { BuscarClientesComponent } from './features/clientes/buscar-clientes.component';
@@ -176,6 +177,13 @@ export const routes: Routes = [
         component: BitacoraIngestaComponent,
         canActivate: [permisoGuard],
         data: { permiso: Permisos.EVENTOS_REPROCESAR },
+      },
+      // SCRUM-516: parámetros generales del CRM; el servicio exige además el rol de Administrador de CRM.
+      {
+        path: 'admin/parametros',
+        component: ParametrosGeneralesComponent,
+        canActivate: [permisoGuard],
+        data: { permiso: Permisos.PARAMETROS_CONFIGURAR },
       },
       {
         path: 'admin/usuarios',
