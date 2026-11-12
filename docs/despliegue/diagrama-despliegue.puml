@@ -1,0 +1,102 @@
+@startuml 00-despliegue-microservicios
+' Diagrama de despliegue UML del CRM MaxiConecta (Sprint 3).
+' Fuente: backend/*/src/main/resources/application*.yml, frontend/crm-web/proxy.conf.json,
+' docs/mensajeria/pubsub.md, docs/seguridad/matriz-permisos.md y las migraciones Flyway.
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam node {
+  BackgroundColor #F7F9FC
+  BorderColor #4A5A70
+}
+skinparam artifact {
+  BackgroundColor #FFFFFF
+  BorderColor #4A5A70
+}
+skinparam database {
+  BackgroundColor #EEF5EE
+  BorderColor #3F6B45
+}
+skinparam queue {
+  BackgroundColor #FFF6E8
+  BorderColor #8A5A12
+}
+skinparam note {
+  BackgroundColor #FFFDF2
+  BorderColor #B8A86A
+}
+skinparam ArrowColor #33415C
+skinparam ArrowFontSize 11
+
+title Diagrama de despliegue · CRM MaxiConecta (microservicios)
+
+node "Equipo del usuario interno" <<device>> as equipo {
+  node "Navegador web" <<execution environment>> as navegador {
+    artifact "crm-web\n(Angular 18 SPA)" as spa
+  }
+}
+
+
+node "Marketplace y Ventas" <<external system>> as ventas
+
+node "Servidor de aplicaciones · Docker Compose" <<device>> as app {
+  node "nginx (único puerto público :80)" <<execution environment>> as web {
+    artifact "crm-web/dist (Angular)\nDOMINIO_WEB → sitio · DOMINIO_API → API" as dist
+  }
+  node "JVM · Spring Boot 3.3 (API Gateway)" <<execution environment>> as jvmgw {
+    artifact "api-gateway.jar :8080\nJWT, roles y permisos, ruteo /api/**" as gw
+  }
+  node "JVM · Spring Boot 3.3 (microservicios)" <<execution environment>> as jvmsvc {
+    artifact "servicio-perfil.jar :8081" as perfil
+    artifact "servicio-comportamiento.jar :8082" as comp
+    artifact "servicio-segmentacion.jar :8083" as seg
+    artifact "servicio-fidelizacion.jar :8084" as fid
+    artifact "servicio-interacciones.jar :8085" as inter
+  }
+  node "Pub/Sub interno (emulador oficial de Google Cloud, red privada)" <<execution environment>> as pubsub {
+    queue "tópico ventas.eventos\nsuscripciones crm.perfil.clientes · crm.comportamiento.compras /\nanulaciones · crm.fidelizacion.movimientos / anulaciones" as tventas
+    queue "tópico crm.comportamiento.eventos\nsuscripciones crm.segmentacion.metricas ·\ncrm.comportamiento.preferencias" as tcrm
+  }
+}
+
+cloud "Google Cloud" as gcp {
+  node "Google Cloud Pub/Sub · proyecto del curso" <<execution environment>> as pubsubgcp {
+    queue "tópico ucb-sis323-sub-b\n(salida de saldo y nivel de puntos)" as tsalida
+  }
+}
+
+node "Servidor de base de datos" <<device>> as srvdb {
+  database "PostgreSQL 16 · crm_maxiconecta" as pg {
+    artifact "esquemas: seguridad · auditoria · perfil · comportamiento\nsegmentacion · fidelizacion · interacciones" as esquemas
+  }
+}
+
+navegador --> web : HTTP(S) · DOMINIO_WEB\n(SPA y /api)
+spa --> web : REST/JSON · Bearer JWT
+ventas --> web : HTTP(S) · DOMINIO_API\ntoken de servicio (RIO-CRM-04)
+web --> gw : HTTP interno
+gw --> jvmsvc : HTTP · X-Usuario,\nX-Usuario-Rol, X-Usuario-Permisos
+
+ventas --> tventas : Pub/Sub · publica RIO-CRM-01/02/03/05 (atributo ruta)\nhoy, simulador de eventos desde el servidor
+tventas --> jvmsvc : suscripciones\n(perfil, comportamiento, fidelización)
+jvmsvc --> tcrm : comportamiento publica\nmetricas.actualizadas
+tcrm --> jvmsvc : segmentación y preferencias
+jvmsvc --> tsalida : fidelización publica\nSALDO_PUNTOS_ACTUALIZADO (Google Cloud real)
+tsalida --> ventas : RIO-CRM-06
+
+jvmgw --> pg : JDBC
+jvmsvc --> pg : JDBC
+
+legend bottom
+  <b>Mensajería</b>: Pub/Sub para toda la integración asíncrona (perfil pubsub de cada servicio). Entre microservicios,
+  Pub/Sub interno (emulador oficial de Google Cloud en la red privada); el saldo de puntos se publica en Google Cloud real,
+  tópico ucb-sis323-sub-b. A futuro, con el consentimiento del docente, los tópicos internos pasan al proyecto del curso.
+  Cada suscripción filtra por el atributo ruta y tiene su tópico y suscripción de respaldo (.respaldo).
+  <b>Llamadas HTTP internas</b>: perfil → comportamiento, segmentación, fidelización · comportamiento → perfil, segmentación ·
+  segmentación → perfil, comportamiento, fidelización · fidelización → perfil · interacciones → perfil, comportamiento
+  Solo nginx es público; los microservicios solo se exponen al API Gateway.
+endlegend
+@enduml
