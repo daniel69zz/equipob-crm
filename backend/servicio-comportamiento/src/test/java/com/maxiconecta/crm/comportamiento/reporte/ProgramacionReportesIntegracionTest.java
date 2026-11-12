@@ -64,7 +64,7 @@ class ProgramacionReportesIntegracionTest {
         var historial = servicio.historial("ana", 0);
         assertThat(historial).hasSize(1);
         var e = historial.get(0);
-        assertThat(e.estado()).isEqualTo("COMPLETADA"); assertThat(e.leida()).isFalse();
+        assertThat(e.estado()).isEqualTo(ResultadoEjecucion.COMPLETADA); assertThat(e.leida()).isFalse();
         var archivo = servicio.descargar("ana", e.id());
         assertThat(new String(archivo.contenido(), java.nio.charset.StandardCharsets.UTF_8)).contains("2026-11-03", "2026-11-09");
         verify(exportacion).comportamiento(new RangoPeriodo(FECHA.toLocalDate().minusDays(7), FECHA.toLocalDate().minusDays(1)),
@@ -78,16 +78,16 @@ class ProgramacionReportesIntegracionTest {
         servicio.guardar("ana", null, solicitud(FormatoExportacion.PDF));
         servicio = conReloj(FECHA); servicio.ejecutarPendientes();
         var e = servicio.historial("ana", 0).get(0);
-        assertThat(e.estado()).isEqualTo("COMPLETADA");
+        assertThat(e.estado()).isEqualTo(ResultadoEjecucion.COMPLETADA);
         assertThat(new String(servicio.descargar("ana", e.id()).contenido(), java.nio.charset.StandardCharsets.ISO_8859_1)).startsWith("%PDF-");
     }
     @Test void canceladaNoGeneraNiSeReactiva() {
         UUID id = servicio.guardar("ana", null, solicitud(FormatoExportacion.CSV));
-        servicio.estado("ana", id, "CANCELADA");
+        servicio.estado("ana", id, EstadoProgramacion.CANCELADA);
         servicio = conReloj(FECHA); servicio.ejecutarPendientes();
         assertThat(servicio.historial("ana", 0)).isEmpty();
         verifyNoInteractions(exportacion);
-        assertThatThrownBy(() -> servicio.estado("ana", id, "ACTIVA")).hasMessageContaining("409");
+        assertThatThrownBy(() -> servicio.estado("ana", id, EstadoProgramacion.ACTIVA)).hasMessageContaining("409");
     }
     @Test void falloPersisteCausaAvisaYContinuaConOtrosReportes() {
         doThrow(new IllegalStateException("Segmentación no disponible")).when(exportacion)
@@ -97,22 +97,22 @@ class ProgramacionReportesIntegracionTest {
         servicio.guardar("ana", null, solicitud(FormatoExportacion.CSV));
         servicio = conReloj(FECHA); servicio.ejecutarPendientes();
         assertThat(servicio.historial("ana", 0)).hasSize(2).anySatisfy(e -> {
-            assertThat(e.estado()).isEqualTo("FALLIDA");
+            assertThat(e.estado()).isEqualTo(ResultadoEjecucion.FALLIDA);
             assertThat(e.causa()).contains("Segmentación no disponible"); assertThat(e.leida()).isFalse();
             assertThatThrownBy(() -> servicio.descargar("ana", e.id())).hasMessageContaining("404");
-        }).anySatisfy(e -> assertThat(e.estado()).isEqualTo("COMPLETADA"));
+        }).anySatisfy(e -> assertThat(e.estado()).isEqualTo(ResultadoEjecucion.COMPLETADA));
     }
     @Test void pausaEdicionActivacionYFinDeVigencia() {
         UUID id = servicio.guardar("ana", null, solicitud(FormatoExportacion.CSV));
-        servicio.estado("ana", id, "PAUSADA");
+        servicio.estado("ana", id, EstadoProgramacion.PAUSADA);
         servicio = conReloj(FECHA); servicio.ejecutarPendientes();
         assertThat(servicio.historial("ana", 0)).isEmpty();
         var nueva = new SolicitudProgramacion("Diario PDF", SolicitudProgramacion.Frecuencia.DIARIA,
                 FormatoExportacion.PDF, 1, null, FECHA.plusDays(1), FECHA.plusDays(1));
-        servicio.guardar("ana", id, nueva); servicio.estado("ana", id, "ACTIVA");
+        servicio.guardar("ana", id, nueva); servicio.estado("ana", id, EstadoProgramacion.ACTIVA);
         servicio = conReloj(FECHA.plusDays(1)); servicio.ejecutarPendientes();
         assertThat(servicio.historial("ana", 0)).hasSize(1);
-        assertThat(servicio.listar("ana").get(0).estado()).isEqualTo("PAUSADA");
+        assertThat(servicio.listar("ana").get(0).estado()).isEqualTo(EstadoProgramacion.PAUSADA);
         servicio = conReloj(FECHA.plusDays(2)); servicio.ejecutarPendientes();
         assertThat(servicio.historial("ana", 0)).hasSize(1);
     }
@@ -136,7 +136,7 @@ class ProgramacionReportesIntegracionTest {
     @Test void otroUsuarioNoConsultaNiModificaNiDescarga() {
         UUID id = servicio.guardar("ana", null, solicitud(FormatoExportacion.CSV));
         assertThat(servicio.listar("luis")).isEmpty();
-        assertThatThrownBy(() -> servicio.estado("luis", id, "CANCELADA")).hasMessageContaining("404");
+        assertThatThrownBy(() -> servicio.estado("luis", id, EstadoProgramacion.CANCELADA)).hasMessageContaining("404");
         assertThatThrownBy(() -> servicio.guardar("luis", id, solicitud(FormatoExportacion.CSV))).hasMessageContaining("404");
         servicio = conReloj(FECHA); servicio.ejecutarPendientes();
         UUID ejecucion = servicio.historial("ana", 0).get(0).id();
@@ -158,7 +158,7 @@ class ProgramacionReportesIntegracionTest {
     @Test void mensualMantieneDiaAnclaYDiariaCruzaAnio() {
         var inicio = OffsetDateTime.parse("2026-01-31T08:00:00-04:00");
         var p = new ProgramacionReportes.Programacion(UUID.randomUUID(), "Mes", SolicitudProgramacion.Frecuencia.MENSUAL,
-                FormatoExportacion.CSV, 30, null, inicio, null, inicio, "ACTIVA");
+                FormatoExportacion.CSV, 30, null, inicio, null, inicio, EstadoProgramacion.ACTIVA);
         var febrero = ProgramacionReportes.siguiente(p, inicio);
         assertThat(febrero.getDayOfMonth()).isEqualTo(28);
         assertThat(ProgramacionReportes.siguiente(p, febrero).getDayOfMonth()).isEqualTo(31);
