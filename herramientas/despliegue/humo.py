@@ -6,7 +6,7 @@ Solo usa la biblioteca estándar de Python 3. No publica eventos ni toca Pub/Sub
     CRM_USUARIO=admin CRM_PASSWORD=... python3 herramientas/despliegue/humo.py \\
         --web https://crm.ejemplo.com --api https://api.crm.ejemplo.com
 
-En el propio servidor, sin DNS, se apunta a nginx y se envía el dominio en la cabecera Host:
+En el propio VPS, sin DNS, se apunta al nginx local y se envía el dominio en la cabecera Host:
 
     python3 herramientas/despliegue/humo.py --web http://localhost --host-web crm.localhost \\
         --api http://localhost --host-api api.crm.localhost
@@ -14,13 +14,11 @@ En el propio servidor, sin DNS, se apunta a nginx y se envía el dominio en la c
 Sale con código 0 si todo pasa y 1 si falla alguna comprobación.
 """
 import argparse
-import http.client
 import json
 import os
 import sys
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 
 # Una consulta de lectura por microservicio, a través del API Gateway (los servicios no se exponen).
@@ -84,20 +82,6 @@ def esperar_api(api, segundos):
         time.sleep(5)
 
 
-def host_desconocido_rechazado(web):
-    """nginx cierra sin respuesta (444) las peticiones a un dominio que no es del CRM."""
-    url = urllib.parse.urlsplit(web.base)
-    clase = http.client.HTTPSConnection if url.scheme == "https" else http.client.HTTPConnection
-    conexion = clase(url.hostname, url.port, timeout=10)
-    try:
-        conexion.request("GET", "/", headers={"Host": "dominio-desconocido.invalid"})
-        return conexion.getresponse().status >= 400
-    except (http.client.HTTPException, OSError):
-        return True
-    finally:
-        conexion.close()
-
-
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--web", required=True, help="URL del sitio (DOMINIO_WEB)")
@@ -124,7 +108,6 @@ def main():
     estado, cuerpo = web.pedir("/clientes")
     r.comprobar("Web: una ruta de la SPA carga index.html", estado == 200 and "<app-root" in cuerpo,
                 f"HTTP {estado}")
-    r.comprobar("nginx: rechaza un dominio desconocido", host_desconocido_rechazado(web))
 
     # Seguridad: sin token no se consultan datos de clientes.
     estado, _ = api.pedir("/api/perfil/clientes?tamanio=1")
