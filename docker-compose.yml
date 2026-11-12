@@ -101,11 +101,20 @@ services:
     environment: {<<: *entorno, PUERTO: "8083", SPRING_PROFILES_ACTIVE: pubsub}
     healthcheck: *salud
 
+  # Además de los eventos internos, publica el saldo y nivel de puntos (RIO-CRM-06) en Google Cloud real.
   servicio-fidelizacion:
     <<: *servicio
     build: {context: ., dockerfile: docker/servicio.Dockerfile, args: {SERVICIO: servicio-fidelizacion}}
     image: crm-maxiconecta/servicio-fidelizacion
-    environment: {<<: *entorno, PUERTO: "8084", SPRING_PROFILES_ACTIVE: pubsub}
+    environment:
+      <<: *entorno
+      PUERTO: "8084"
+      SPRING_PROFILES_ACTIVE: pubsub,salida-pubsub
+      FIDELIZACION_SALIDA_ENABLED: ${FIDELIZACION_SALIDA_ENABLED:-true}
+      FIDELIZACION_SALIDA_PROYECTO: ${FIDELIZACION_SALIDA_PROYECTO:?Defina FIDELIZACION_SALIDA_PROYECTO en .env}
+      FIDELIZACION_SALIDA_TOPICO: ${FIDELIZACION_SALIDA_TOPICO:-ucb-sis323-sub-b}
+      FIDELIZACION_SALIDA_CREDENCIALES: /run/secrets/gcp-pubsub
+    secrets: [gcp-pubsub]
     healthcheck: *salud
 
   servicio-interacciones:
@@ -127,6 +136,11 @@ services:
       api-gateway:
         condition: service_healthy
     ports: ["${PUERTO_HTTP:-80}:80"]
+
+# Clave de la cuenta de servicio de Google Cloud: se monta desde fuera del repositorio, nunca se copia.
+secrets:
+  gcp-pubsub:
+    file: ${GCP_CREDENCIALES_ARCHIVO:?Defina GCP_CREDENCIALES_ARCHIVO en .env}
 
 volumes:
   datos-postgres:
