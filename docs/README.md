@@ -1,6 +1,6 @@
 # Documentación
 
-- [Despliegue con Docker](despliegue/docker.md): contenedores, nginx del VPS para el sitio y la API, Pub/Sub interno entre microservicios y publicación real del saldo de puntos en Google Cloud.
+- [Despliegue con Docker](despliegue/docker.md): frontend y backend en contenedores, nginx del VPS como entrada para el sitio y la API, Pub/Sub interno entre microservicios y publicación real del saldo de puntos en Google Cloud.
 - [Parámetros generales del CRM (SCRUM-65)](seguridad/parametros-generales.md): periodo de inactividad, umbrales de consumo y vigencia de puntos configurables, rangos, auditoría y permisos; [diagramas](seguridad/parametros-generales-diagramas.md).
 - [Reportes programados (SCRUM-61)](compra/reportes-programados.md): periodicidad, filtros, avisos, historial y descarga; [diagramas](compra/reportes-programados-diagramas.md).
 
