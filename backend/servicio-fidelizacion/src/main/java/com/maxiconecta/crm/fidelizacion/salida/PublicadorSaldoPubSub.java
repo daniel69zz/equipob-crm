@@ -3,9 +3,11 @@ package com.maxiconecta.crm.fidelizacion.salida;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.cloud.spring.pubsub.core.PubSubTemplate;
+import com.google.cloud.spring.pubsub.core.publisher.PubSubPublisherOperations;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.maxiconecta.crm.fidelizacion.movimiento.ClientesPerfil;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 public class PublicadorSaldoPubSub {
     public static final String RUTA = "puntos.saldo.actualizado";
     private final JdbcTemplate jdbc;
-    private final PubSubTemplate pubsub;
+    private final PubSubPublisherOperations pubsub;
     private final ObjectMapper json;
     private final ClientesPerfil perfiles;
     private final TransactionTemplate transaccion;
@@ -32,7 +34,8 @@ public class PublicadorSaldoPubSub {
     private final int lote;
     private final long esperaSegundos;
 
-    public PublicadorSaldoPubSub(JdbcTemplate jdbc, PubSubTemplate pubsub, ObjectMapper json,
+    public PublicadorSaldoPubSub(JdbcTemplate jdbc, PubSubTemplate pubsub, ObjectProvider<DestinoExterno> externo,
+                                ObjectMapper json,
                                 ClientesPerfil perfiles, PlatformTransactionManager gestor,
                                 @Value("${fidelizacion.salida.topico:ucb-sis323-sub-b}") String topico,
                                 @Value("${fidelizacion.salida.lote:20}") int lote,
@@ -41,7 +44,9 @@ public class PublicadorSaldoPubSub {
             throw new IllegalArgumentException("Configuracion de salida Pub/Sub invalida");
         }
         this.jdbc = jdbc;
-        this.pubsub = pubsub;
+        // Sin proyecto propio de salida se usa el mismo Pub/Sub que los eventos internos.
+        DestinoExterno destino = externo.getIfAvailable();
+        this.pubsub = destino != null ? destino.publicador() : pubsub;
         this.json = json;
         this.perfiles = perfiles;
         this.transaccion = new TransactionTemplate(gestor);

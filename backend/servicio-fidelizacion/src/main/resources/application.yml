@@ -14,6 +14,10 @@ fidelizacion:
   salida:
     enabled: ${FIDELIZACION_SALIDA_ENABLED:false}
     topico: ${FIDELIZACION_SALIDA_TOPICO:ucb-sis323-sub-b}
+    # Proyecto real del tópico del curso cuando los eventos internos usan otro proyecto o el emulador;
+    # vacío: el mismo Pub/Sub de la mensajería. Credenciales: archivo fuera del repositorio o, vacío, ADC.
+    proyecto: ${FIDELIZACION_SALIDA_PROYECTO:}
+    credenciales: ${FIDELIZACION_SALIDA_CREDENCIALES:}
     intervalo-ms: ${FIDELIZACION_SALIDA_INTERVALO_MS:5000}
     lote: ${FIDELIZACION_SALIDA_LOTE:20}
     espera-segundos: ${FIDELIZACION_SALIDA_ESPERA_SEGUNDOS:10}

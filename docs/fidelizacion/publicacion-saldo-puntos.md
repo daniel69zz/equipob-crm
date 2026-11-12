@@ -35,6 +35,11 @@ Variables de operación:
 - `FIDELIZACION_SALIDA_INTERVALO_MS`: 5000 entre lotes.
 - `FIDELIZACION_SALIDA_LOTE`: 20 filas por ejecución.
 - `FIDELIZACION_SALIDA_ESPERA_SEGUNDOS`: 10 por publicación.
+- `FIDELIZACION_SALIDA_PROYECTO`: proyecto real del tópico cuando la mensajería interna usa otro
+  proyecto o el emulador. Con valor, el saldo se publica con un publicador propio que ignora
+  `PUBSUB_EMULADOR`; vacío, usa el mismo Pub/Sub que los eventos internos.
+- `FIDELIZACION_SALIDA_CREDENCIALES`: ruta a la clave JSON de la cuenta de servicio (fuera del
+  repositorio) para ese publicador; vacía, usa las Application Default Credentials.
 - `PUBSUB_PROYECTO`: proyecto de Google Cloud, requerido para el entorno real.
 - `PUBSUB_EMULADOR`: vacío en la nube; host y puerto en local.
 
