@@ -61,5 +61,59 @@ services:
       start_period: 10s
       retries: 30
 
+  # El Gateway crea los esquemas de seguridad y auditoría que usan los demás: arranca primero.
+  api-gateway:
+    <<: *servicio
+    build: {context: ., dockerfile: docker/servicio.Dockerfile, args: {SERVICIO: api-gateway}}
+    image: crm-maxiconecta/api-gateway
+    environment:
+      <<: *entorno
+      JWT_SECRETO: ${JWT_SECRETO:?Defina JWT_SECRETO en .env}
+      ADMIN_USUARIO: ${ADMIN_USUARIO:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD en .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck: &salud
+      test: ["CMD-SHELL", "wget -qO- http://localhost:$${PUERTO:-8080}/actuator/health | grep -q UP"]
+      interval: 10s
+      start_period: 40s
+      retries: 30
+
+  servicio-perfil:
+    <<: *servicio
+    build: {context: ., dockerfile: docker/servicio.Dockerfile, args: {SERVICIO: servicio-perfil}}
+    image: crm-maxiconecta/servicio-perfil
+    environment: {<<: *entorno, PUERTO: "8081", SPRING_PROFILES_ACTIVE: pubsub}
+    healthcheck: *salud
+
+  servicio-comportamiento:
+    <<: *servicio
+    build: {context: ., dockerfile: docker/servicio.Dockerfile, args: {SERVICIO: servicio-comportamiento}}
+    image: crm-maxiconecta/servicio-comportamiento
+    environment: {<<: *entorno, PUERTO: "8082", SPRING_PROFILES_ACTIVE: pubsub}
+    healthcheck: *salud
+
+  servicio-segmentacion:
+    <<: *servicio
+    build: {context: ., dockerfile: docker/servicio.Dockerfile, args: {SERVICIO: servicio-segmentacion}}
+    image: crm-maxiconecta/servicio-segmentacion
+    environment: {<<: *entorno, PUERTO: "8083", SPRING_PROFILES_ACTIVE: pubsub}
+    healthcheck: *salud
+
+  servicio-fidelizacion:
+    <<: *servicio
+    build: {context: ., dockerfile: docker/servicio.Dockerfile, args: {SERVICIO: servicio-fidelizacion}}
+    image: crm-maxiconecta/servicio-fidelizacion
+    environment: {<<: *entorno, PUERTO: "8084", SPRING_PROFILES_ACTIVE: pubsub}
+    healthcheck: *salud
+
+  servicio-interacciones:
+    <<: *servicio
+    build: {context: ., dockerfile: docker/servicio.Dockerfile, args: {SERVICIO: servicio-interacciones}}
+    image: crm-maxiconecta/servicio-interacciones
+    environment: {<<: *entorno, PUERTO: "8085"}
+    healthcheck: *salud
+
 volumes:
   datos-postgres:
