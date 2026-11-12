@@ -24,14 +24,18 @@ classDiagram
         leer()
     }
     class ProgramacionReportes {
+        listar()
         guardar()
         estado()
         ejecutarPendientes()
+        ejecutar(id)
         siguiente()
+        primeraDesde()
         primeraPosterior()
         historial()
         descargar()
         noLeidas()
+        leer()
     }
     class PlanificadorReportes {
         ejecutar()
@@ -93,7 +97,7 @@ sequenceDiagram
     UI->>GW: POST programaciones
     GW->>GW: Comprueba los tres permisos y añade identidad
     GW->>API: Solicitud validada
-    API->>S: guardar(usuario, solicitud)
+    API->>S: guardar(usuario, null, solicitud)
     S->>DB: INSERT estado ACTIVA y próxima fecha
     API-->>UI: 201 con id
     opt Cancelación antes de la ejecución
@@ -104,7 +108,9 @@ sequenceDiagram
         S->>DB: Bloqueo de fila, verifica propietario y cancela
     end
     P->>S: ejecutarPendientes() cada minuto
-    S->>DB: Busca vencidas ACTIVAS y bloquea SKIP LOCKED
+    S->>DB: Busca hasta 50 vencidas ACTIVAS
+    Note over S: ejecutar(id) por cada una, un error inesperado se registra y no detiene el lote
+    S->>DB: Bloquea la programación con FOR UPDATE SKIP LOCKED
     alt Cancelada o bloqueada por otra instancia
         DB-->>S: Sin fila elegible
     else Programación elegible
