@@ -39,7 +39,8 @@ class Destino:
         self.host = host
 
     def pedir(self, ruta, metodo="GET", cuerpo=None, token=None, tiempo=20):
-        cabeceras = {"Accept": "application/json, text/html"}
+        # User-Agent propio: Cloudflare y otros proxies rechazan (403) el predeterminado de urllib.
+        cabeceras = {"Accept": "application/json, text/html", "User-Agent": "crm-maxiconecta-humo/1.0"}
         if self.host:
             cabeceras["Host"] = self.host
         if token:
