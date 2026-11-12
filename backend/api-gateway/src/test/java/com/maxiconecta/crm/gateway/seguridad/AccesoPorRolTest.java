@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -548,6 +549,29 @@ class AccesoPorRolTest {
         }
         mvc.perform(get(ruta).header("Authorization", bearer("ana", "AGENTE_ATENCION", PERMISOS_AGENTE)))
                 .andExpect(status().isForbidden());
+    }
+
+    // --- SCRUM-520: parámetros generales del CRM, solo el Administrador de CRM con PARAMETROS_CONFIGURAR ---
+
+    @Test
+    void losParametrosGeneralesExigenElRolDeAdministradorYElPermiso() throws Exception {
+        String administrador = bearer("admin-parametros", "ADMINISTRADOR_CRM", agregar(PERMISOS_ADMINISTRADOR, "PARAMETROS_CONFIGURAR"));
+        for (String ruta : List.of("/api/comportamiento/parametros", "/api/fidelizacion/parametros")) {
+            mvc.perform(get(ruta).header("Authorization", administrador)).andExpect(pasaElControlDeAcceso());
+            mvc.perform(put(ruta).header("Authorization", administrador)).andExpect(pasaElControlDeAcceso());
+            mvc.perform(get(ruta + "/historial").header("Authorization", administrador))
+                    .andExpect(pasaElControlDeAcceso());
+
+            // El Administrador sin el permiso, otro rol con el permiso, el Agente y el Gerente: 403.
+            for (String token : List.of(bearer("admin-sin-permiso", "ADMINISTRADOR_CRM", PERMISOS_ADMINISTRADOR),
+                    bearer("gerente-con-permiso", "GERENTE_COMERCIAL", agregar(PERMISOS_GERENTE, "PARAMETROS_CONFIGURAR")),
+                    bearer("agente", "AGENTE_ATENCION", PERMISOS_AGENTE),
+                    bearer("gerente", "GERENTE_COMERCIAL", PERMISOS_GERENTE))) {
+                mvc.perform(get(ruta).header("Authorization", token)).andExpect(status().isForbidden());
+                mvc.perform(put(ruta).header("Authorization", token)).andExpect(status().isForbidden());
+            }
+            mvc.perform(get(ruta)).andExpect(status().isUnauthorized());
+        }
     }
 
     // --- Cambios de rol y desactivaciones rigen de inmediato ---

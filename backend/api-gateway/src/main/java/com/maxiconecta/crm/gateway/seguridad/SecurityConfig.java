@@ -33,6 +33,7 @@ import static com.maxiconecta.crm.gateway.rol.Permisos.FIDELIZACION_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INDICADORES_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.INTERACCIONES_REGISTRAR;
+import static com.maxiconecta.crm.gateway.rol.Permisos.PARAMETROS_CONFIGURAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR;
 import static com.maxiconecta.crm.gateway.rol.Permisos.PUNTOS_CONSULTAR_VENTAS;
 import static com.maxiconecta.crm.gateway.rol.Permisos.REPORTES_CONSULTAR;
@@ -84,6 +85,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasAuthority(USUARIOS_ADMINISTRAR)
 
                         .requestMatchers("/api/comportamiento/eventos/**").hasAuthority(EVENTOS_REPROCESAR)
+                        // SCRUM-520: parametros generales del CRM (SCRUM-65), en comportamiento y fidelizacion. Solo
+                        // el Administrador de CRM con PARAMETROS_CONFIGURAR, para consultarlos y para cambiarlos.
+                        .requestMatchers("/api/comportamiento/parametros", "/api/comportamiento/parametros/**",
+                                "/api/fidelizacion/parametros", "/api/fidelizacion/parametros/**")
+                            .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole("ADMINISTRADOR_CRM"),
+                                org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(PARAMETROS_CONFIGURAR)))
 
                         // Ficha integral (SCRUM-10): permiso propio, mas restrictivo que el perfil basico
                         // (CLIENTE_CONSULTAR), asi que su regla va antes.

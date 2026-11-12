@@ -19,6 +19,7 @@ fidelizacion:
     espera-segundos: ${FIDELIZACION_SALIDA_ESPERA_SEGUNDOS:10}
   puntos:
     # SCRUM-525: meses de vigencia del saldo desde la última acumulación (RIO-CRM-04 y la caducidad, SCRUM-50).
+    # Es el valor inicial del parámetro general PUNTOS_VIGENCIA_MESES, que luego cambia el Administrador (SCRUM-517).
     vigencia-meses: ${FIDELIZACION_VIGENCIA_MESES:12}
   caducidad:
     # SCRUM-415: proceso diario de caducidad de puntos, antes del recálculo de niveles.

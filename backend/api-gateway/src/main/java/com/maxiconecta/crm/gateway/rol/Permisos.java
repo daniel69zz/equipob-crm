@@ -26,6 +26,8 @@ public final class Permisos {
      */
     public static final String REPORTES_EXPORTAR = "REPORTES_EXPORTAR";
     public static final String REPORTES_PROGRAMAR = "REPORTES_PROGRAMAR";
+    /** SCRUM-520: parámetros generales del CRM (SCRUM-65), solo el Administrador de CRM. */
+    public static final String PARAMETROS_CONFIGURAR = "PARAMETROS_CONFIGURAR";
     public static final String PUNTOS_CONSULTAR = "PUNTOS_CONSULTAR";
     /**
      * SCRUM-545: permiso de un cliente de servicio (RIO-CRM-04), no de un rol interno. Se asigna en la

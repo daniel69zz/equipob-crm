@@ -22,6 +22,7 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 | `INTERACCIONES_REGISTRAR` | Registrar, clasificar y asignar interacciones |
 | `USUARIOS_ADMINISTRAR` | Crear usuarios internos, asignar roles y administrar permisos |
 | `AUDITORIA_CONSULTAR` | Consultar los registros de auditoría |
+| `PARAMETROS_CONFIGURAR` | Consultar y cambiar los parámetros generales del CRM: periodo de inactividad, umbrales del nivel de consumo y vigencia de los puntos (SCRUM-65) |
 
 ## Matriz
 
@@ -43,6 +44,7 @@ Los permisos son la unidad de control de acceso. El API Gateway valida el permis
 | `INTERACCIONES_REGISTRAR` | ✅ | ✅ | |
 | `USUARIOS_ADMINISTRAR` | ✅ | | |
 | `AUDITORIA_CONSULTAR` | ✅ | | |
+| `PARAMETROS_CONFIGURAR` | ✅ | | |
 
 ## Permiso requerido por ruta en el API Gateway
 
@@ -55,6 +57,7 @@ Las reglas se evalúan en este orden; la primera que coincide decide.
 | `/api/admin/auditoria/**` | Todos | `AUDITORIA_CONSULTAR` |
 | `/api/admin/**` | Todos | `USUARIOS_ADMINISTRAR` |
 | `/api/comportamiento/eventos/**` | Todos | `EVENTOS_REPROCESAR` |
+| `/api/comportamiento/parametros/**` y `/api/fidelizacion/parametros/**` | Todos | Rol `ADMINISTRADOR_CRM` **y** `PARAMETROS_CONFIGURAR`: parámetros generales del CRM (SCRUM-520, regla anterior a las genéricas de cada servicio). Cada servicio lo vuelve a comprobar |
 | `/api/perfil/**` | GET | `CLIENTE_CONSULTAR` |
 | `/api/perfil/**` | POST, PUT, PATCH, DELETE | `CLIENTE_EDITAR` |
 | `/api/comportamiento/clientes/*/evolucion-consumo` | GET | `EVOLUCION_CONSUMO_CONSULTAR` |

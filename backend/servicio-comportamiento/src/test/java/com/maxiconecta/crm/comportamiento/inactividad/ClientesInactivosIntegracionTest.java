@@ -2,6 +2,13 @@ package com.maxiconecta.crm.comportamiento.inactividad;
 
 import com.maxiconecta.crm.comportamiento.compra.ClientePerfiles;
 import com.maxiconecta.crm.comportamiento.ingesta.IngestaCompras;
+import com.maxiconecta.crm.comportamiento.parametro.CambioParametro;
+import com.maxiconecta.crm.comportamiento.parametro.CodigosParametros;
+import com.maxiconecta.crm.comportamiento.parametro.Parametro;
+import com.maxiconecta.crm.comportamiento.parametro.ParametrosGenerales;
+import org.flywaydb.core.Flyway;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +22,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import static com.maxiconecta.crm.comportamiento.ingesta.LectorEventosTest.ejemplo;
 import static org.mockito.Mockito.when;
@@ -44,6 +53,14 @@ class ClientesInactivosIntegracionTest {
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
+    @DynamicPropertySource
+    static void auditoria(DynamicPropertyRegistry registro) {
+        // Las migraciones reales del Gateway son dueñas de la auditoría compartida (auditoria.evento, SCRUM-521).
+        Flyway.configure().dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
+                .schemas("seguridad").locations("filesystem:../api-gateway/src/main/resources/db/migration").load()
+                .migrate();
+    }
+
     @MockBean
     private ClientePerfiles perfiles;
 
@@ -62,6 +79,9 @@ class ClientesInactivosIntegracionTest {
     @Autowired
     private MockMvc mvc;
 
+    @Autowired
+    private ParametrosGenerales parametros;
+
     @BeforeEach
     void preparar() {
         jdbc.execute("TRUNCATE comportamiento.cliente_inactivo, comportamiento.frecuencia_compra, "
@@ -70,6 +90,17 @@ class ClientesInactivosIntegracionTest {
                 + "comportamiento.compra_item, comportamiento.compra, comportamiento.evento_recibido");
         when(reloj.instant()).thenReturn(REFERENCIA);
         when(reloj.getZone()).thenReturn(ZoneOffset.UTC);
+        cambiarPeriodoDeInactividad(90);
+    }
+
+    /** Deja el periodo de inactividad en {@code dias}, como lo haría el Administrador de CRM (SCRUM-515). */
+    private void cambiarPeriodoDeInactividad(int dias) {
+        Parametro actual = parametros.listar().stream()
+                .filter(p -> p.codigo().equals(CodigosParametros.INACTIVIDAD_DIAS)).findFirst().orElseThrow();
+        if (actual.valor().intValue() != dias) {
+            parametros.actualizar(List.of(new CambioParametro(CodigosParametros.INACTIVIDAD_DIAS,
+                    BigDecimal.valueOf(dias), actual.version())), "admin");
+        }
     }
 
     // --- Criterio 1: un cliente sin compras vigentes en el periodo definido aparece listado ---
@@ -152,6 +183,30 @@ class ClientesInactivosIntegracionTest {
                 .andExpect(jsonPath("$.content[0].idClienteOrigen").value("CLI-5521"))
                 .andExpect(jsonPath("$.content[0].ultimaCompra").value("2026-06-01T00:00:00Z"))
                 .andExpect(jsonPath("$.content[0].diasTranscurridos").value(120));
+    }
+
+    // --- SCRUM-515: el periodo de inactividad es un parámetro general que rige desde que se guarda ---
+
+    @Test
+    void alAmpliarElPeriodoDeInactividadElClienteDejaDeFigurarSinEsperarElProcesoNocturno() throws Exception {
+        // 2026-09-29 menos 100 días: inactivo con 90 días, activo con 120.
+        ingesta.recibir(compraDe("77777777-7777-4777-8777-777777777777", "V-PARAMETRO-1", "2026-06-21T12:00:00Z"));
+        detector.detectar();
+        mvc.perform(get(RUTA)).andExpect(jsonPath("$.umbralDias").value(90)).andExpect(jsonPath("$.total").value(1));
+
+        cambiarPeriodoDeInactividad(120);
+
+        mvc.perform(get(RUTA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.umbralDias").value(120))
+                .andExpect(jsonPath("$.total").value(0));
+
+        cambiarPeriodoDeInactividad(60);
+
+        mvc.perform(get(RUTA))
+                .andExpect(jsonPath("$.umbralDias").value(60))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.content[0].diasTranscurridos").value(100));
     }
 
     private static String compraDe(String idEvento, String idCompra, String fecha) {
