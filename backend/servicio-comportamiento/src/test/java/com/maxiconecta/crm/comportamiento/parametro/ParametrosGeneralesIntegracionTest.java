@@ -59,7 +59,7 @@ class ParametrosGeneralesIntegracionTest {
         // El monto debe cubrir al menos un boliviano por día: una regla entre dos parámetros.
         return new ParametrosGenerales(jdbc, gestor, reloj, List.of(DIAS, MONTO), valores ->
                 valores.get("PRUEBA_MONTO").compareTo(valores.get("PRUEBA_DIAS")) < 0
-                        ? Map.of("PRUEBA_MONTO", "no puede ser menor que PRUEBA_DIAS") : Map.of());
+                        ? Map.of("PRUEBA_MONTO", "no puede ser menor que PRUEBA_DIAS") : Map.of(), evento -> { });
     }
 
     @Test

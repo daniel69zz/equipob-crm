@@ -60,7 +60,8 @@ comportamiento:
     # Zona horaria del negocio con la que cada compra se asigna a su día en la consulta por periodo (SCRUM-39).
     zona-horaria: ${CONSUMO_PERIODO_ZONA_HORARIA:America/La_Paz}
   inactividad:
-    # Días sin ninguna compra vigente para considerar inactivo a un cliente (SCRUM-295).
+    # Días sin ninguna compra vigente para considerar inactivo a un cliente (SCRUM-295). Es el valor inicial del
+    # parámetro general INACTIVIDAD_DIAS: después lo cambia el Administrador de CRM sin reiniciar (SCRUM-515).
     umbral-dias: ${INACTIVIDAD_UMBRAL_DIAS:90}
     # Cuándo corre la identificación automática (SCRUM-297); por defecto, una vez al día de madrugada.
     cron: ${INACTIVIDAD_CRON:0 0 3 * * *}

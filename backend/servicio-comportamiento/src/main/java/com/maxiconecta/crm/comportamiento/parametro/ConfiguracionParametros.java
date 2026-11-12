@@ -1,5 +1,7 @@
 package com.maxiconecta.crm.comportamiento.parametro;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -17,7 +19,15 @@ import java.util.Map;
 public class ConfiguracionParametros {
 
     @Bean(initMethod = "inicializar")
-    public ParametrosGenerales parametrosGenerales(JdbcTemplate jdbc, PlatformTransactionManager gestor, Clock reloj) {
-        return new ParametrosGenerales(jdbc, gestor, reloj, List.of(), valores -> Map.of());
+    public ParametrosGenerales parametrosGenerales(
+            JdbcTemplate jdbc, PlatformTransactionManager gestor, ApplicationEventPublisher eventos,
+            @Value("${comportamiento.inactividad.umbral-dias:90}") int inactividadDias) {
+        // Reloj propio del sistema: varias pruebas reemplazan el Clock del servicio por uno simulado.
+        return new ParametrosGenerales(jdbc, gestor, Clock.systemUTC(), List.of(
+                DefinicionParametro.entero(CodigosParametros.INACTIVIDAD_DIAS, "Periodo de inactividad",
+                        "Días sin ninguna compra vigente para considerar inactivo a un cliente. Lo usan la lista de "
+                                + "clientes inactivos, los clientes activos del panel y el riesgo de abandono.",
+                        "días", 7, 730, inactividadDias)),
+                valores -> Map.of(), eventos);
     }
 }
