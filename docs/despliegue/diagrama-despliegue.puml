@@ -44,9 +44,12 @@ node "Marketplace y Ventas" <<external system>> as ventas
 
 node "VPS" <<device>> as app {
   node "nginx del VPS (fuera de Docker, :80/:443)" <<execution environment>> as web {
-    artifact "crm-web/dist (Angular) en /var/www/crm-maxiconecta\ncrm.dominio → sitio y /api · api.crm.dominio → API" as dist
+    artifact "proxy por dominio\ncrm.dominio → crm-web y /api · api.crm.dominio → API" as proxy
   }
   node "Docker Compose" <<execution environment>> as compose {
+  node "Caddy (contenedor crm-web)" <<execution environment>> as caddy {
+    artifact "crm-web/dist (Angular)\n127.0.0.1:8090" as dist
+  }
   node "JVM · Spring Boot 3.3 (API Gateway)" <<execution environment>> as jvmgw {
     artifact "api-gateway.jar :8080\nJWT, roles y permisos, ruteo /api/**" as gw
   }
@@ -77,6 +80,7 @@ cloud "Google Cloud" as gcp {
 navegador --> web : HTTPS · crm.dominio\n(SPA y /api)
 spa --> web : REST/JSON · Bearer JWT
 ventas --> web : HTTPS · api.crm.dominio\ntoken de servicio (RIO-CRM-04)
+web --> caddy : HTTP 127.0.0.1:8090\n(archivos de la SPA)
 web --> gw : HTTP 127.0.0.1:8080
 gw --> jvmsvc : HTTP · X-Usuario,\nX-Usuario-Rol, X-Usuario-Permisos
 
@@ -97,6 +101,6 @@ legend bottom
   Cada suscripción filtra por el atributo ruta y tiene su tópico y suscripción de respaldo (.respaldo).
   <b>Llamadas HTTP internas</b>: perfil → comportamiento, segmentación, fidelización · comportamiento → perfil, segmentación ·
   segmentación → perfil, comportamiento, fidelización · fidelización → perfil · interacciones → perfil, comportamiento
-  Solo el nginx del VPS es público; el Gateway escucha en localhost y los microservicios solo se exponen a él.
+  Solo el nginx del VPS es público; frontend y Gateway escuchan en localhost y los microservicios solo se exponen al Gateway.
 endlegend
 @enduml
