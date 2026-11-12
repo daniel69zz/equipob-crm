@@ -115,5 +115,18 @@ services:
     environment: {<<: *entorno, PUERTO: "8085"}
     healthcheck: *salud
 
+  # Única entrada pública: sitio web en DOMINIO_WEB y API en DOMINIO_API.
+  nginx:
+    build: {context: ., dockerfile: docker/frontend.Dockerfile}
+    image: crm-maxiconecta/nginx
+    restart: unless-stopped
+    environment:
+      DOMINIO_WEB: ${DOMINIO_WEB:?Defina DOMINIO_WEB en .env}
+      DOMINIO_API: ${DOMINIO_API:?Defina DOMINIO_API en .env}
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    ports: ["${PUERTO_HTTP:-80}:80"]
+
 volumes:
   datos-postgres:
