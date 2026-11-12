@@ -1,0 +1,19 @@
+# Servidor estático del frontend Angular dentro de su contenedor. No es la entrada pública: el nginx del
+# VPS le reenvía el sitio y envía /api al API Gateway.
+{
+	admin off
+}
+
+:80 {
+	root * /srv
+	encode gzip
+
+	# Los archivos de Angular llevan hash en el nombre: se pueden cachear; index.html no.
+	@estaticos path *.js *.css *.woff *.woff2 *.png *.svg *.ico
+	header @estaticos Cache-Control "public, max-age=2592000, immutable"
+	header /index.html Cache-Control "no-cache"
+
+	# Rutas de la SPA: cualquier ruta desconocida carga index.html.
+	try_files {path} /index.html
+	file_server
+}

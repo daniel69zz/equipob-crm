@@ -1,2 +1,4 @@
 **
 !backend/*/target/*-0.1.0-SNAPSHOT.jar
+!frontend/crm-web/dist/crm-web/browser/**
+!docker/Caddyfile
