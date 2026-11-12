@@ -1,12 +1,18 @@
 # Despliegue con Docker
 
-`docker-compose.yml` levanta el CRM completo: PostgreSQL, el Pub/Sub interno, el API Gateway, los
-cinco microservicios y nginx. Solo nginx publica un puerto; lo demás queda en la red interna de Docker.
+`docker-compose.yml` levanta el backend del CRM: PostgreSQL, el Pub/Sub interno, el API Gateway y los
+cinco microservicios. La única entrada pública es el **nginx del VPS** (instalado fuera de Docker), que sirve
+el sitio y redirige la API al Gateway. El Gateway valida el JWT o el token de servicio y es el único que
+consulta a los microservicios; estos no se publican, porque confían en las cabeceras de identidad que pone él.
+
+```
+Internet → nginx del VPS ─┬─ crm.tudominio.com      → /var/www/crm-maxiconecta (Angular) y /api → Gateway
+                          └─ api.crm.tudominio.com  → Gateway (127.0.0.1:8080) → microservicios (red Docker)
+```
 
 | Contenedor | Función | Expuesto |
 |---|---|---|
-| `nginx` | Entrada por dominio: `DOMINIO_WEB` sirve el sitio (Angular) y `DOMINIO_API` la API | `80` |
-| `api-gateway` | JWT, roles y permisos; consulta a los microservicios por la red interna | no |
+| `api-gateway` | JWT, roles y permisos; consulta a los microservicios por la red interna | solo `127.0.0.1:8080` |
 | `servicio-perfil`, `-comportamiento`, `-segmentacion`, `-fidelizacion`, `-interacciones` | Microservicios | no |
 | `pubsub-interno` | Pub/Sub entre microservicios (emulador oficial de Google Cloud) | solo `127.0.0.1:8086` |
 | `postgres` | Base `crm_maxiconecta`, un esquema por dominio | solo `127.0.0.1:55432` |
@@ -25,7 +31,7 @@ cinco microservicios y nginx. Solo nginx publica un puerto; lo demás queda en l
 ## Puesta en marcha
 
 ```bash
-cp .env.example .env        # completar contraseñas, dominios, proyecto y ruta de la clave
+cp .env.example .env        # completar contraseñas, proyecto y ruta de la clave
 for s in api-gateway servicio-perfil servicio-comportamiento servicio-segmentacion \
          servicio-fidelizacion servicio-interacciones; do
   (cd backend/$s && mvn -B package -DskipTests)
@@ -33,10 +39,25 @@ done
 (cd frontend/crm-web && npm ci && npx ng build)
 docker compose up -d --build --remove-orphans
 docker compose ps
+sudo cp -r frontend/crm-web/dist/crm-web/browser/. /var/www/crm-maxiconecta/
 ```
 
-Los registros DNS de `DOMINIO_WEB` y `DOMINIO_API` deben apuntar al servidor. En una máquina local
-sirven `crm.localhost` y `api.crm.localhost`. Un host distinto se rechaza (444).
+## nginx del VPS (una sola vez)
+
+[`herramientas/despliegue/nginx-vps.conf`](../../herramientas/despliegue/nginx-vps.conf) tiene los dos
+`server`: el sitio (archivos de Angular, con `/api` hacia el Gateway en el mismo dominio, sin CORS) y la API.
+
+```bash
+sudo mkdir -p /var/www/crm-maxiconecta && sudo chown $USER /var/www/crm-maxiconecta
+sudo cp herramientas/despliegue/nginx-vps.conf /etc/nginx/sites-available/crm-maxiconecta
+sudo nano /etc/nginx/sites-available/crm-maxiconecta     # reemplazar los dos dominios
+sudo ln -s /etc/nginx/sites-available/crm-maxiconecta /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d crm.tudominio.com -d api.crm.tudominio.com   # HTTPS
+```
+
+Los registros DNS de ambos dominios deben apuntar al VPS antes de ejecutar certbot. Si el puerto 8080 ya
+está ocupado en el VPS, cambiar `GATEWAY_PUERTO` en `.env` y el `upstream` de la configuración de nginx.
 
 La clave JSON de la cuenta de servicio se monta como secreto desde `GCP_CREDENCIALES_ARCHIVO`, una ruta
 fuera del repositorio, y nunca se copia a la imagen. En Linux, el usuario `crm` del contenedor debe poder
@@ -45,14 +66,14 @@ leerla (por ejemplo, `chmod 644`).
 ## Pruebas de humo
 
 `herramientas/despliegue/humo.py` (solo Python 3) verifica el despliegue y sale con código 1 si algo falla:
-Gateway en `UP`, carga del sitio y de una ruta de la SPA, rechazo de un dominio desconocido, 401 sin token,
+Gateway en `UP`, carga del sitio y de una ruta de la SPA, 401 sin token,
 inicio de sesión por el sitio y por la API, listado y ficha de un cliente, y una consulta por cada
 microservicio a través del Gateway. No publica eventos ni toca Pub/Sub.
 
 ```bash
 CRM_USUARIO=admin CRM_PASSWORD=... python3 herramientas/despliegue/humo.py \
   --web https://crm.ejemplo.com --api https://api.crm.ejemplo.com
-# en el propio servidor, sin DNS:
+# en el propio VPS, sin DNS:
 python3 herramientas/despliegue/humo.py --web http://localhost --host-web crm.localhost \
   --api http://localhost --host-api api.crm.localhost
 ```
@@ -75,16 +96,16 @@ python3 herramientas/simulador-eventos/publicar.py \
 
 `.github/workflows/despliegue.yml` se ejecuta en cada push a `main` (o a mano): busca secretos con
 gitleaks, compila los microservicios y el frontend, valida el compose, copia el paquete al servidor por
-SSH, ejecuta `docker compose up -d --build --wait` y luego las pruebas de humo contra las URL públicas.
-El servidor conserva su `.env` y la clave; el paquete no los incluye. Requisitos del servidor: Docker con
-Compose v2, la carpeta `SSH_RUTA` con su `.env` y un usuario con acceso a Docker.
+SSH, ejecuta `docker compose up -d --build --wait`, copia el frontend a `RUTA_WEB` (la raíz del sitio en el
+nginx del VPS) y luego ejecuta las pruebas de humo contra las URL públicas. No hace falta clonar el
+repositorio en el VPS. El servidor conserva su `.env` y la clave; el paquete no los incluye. Requisitos del
+servidor: Docker con Compose v2, el nginx ya configurado, la carpeta `SSH_RUTA` con su `.env` y un usuario
+con acceso a Docker y escritura en `RUTA_WEB`.
 
 En el entorno `produccion` del repositorio se configuran las variables `DESPLIEGUE_HABILITADO=true`,
-`SSH_HOST`, `SSH_USUARIO`, `SSH_RUTA`, `URL_WEB` y `URL_API`, y los secretos `SSH_CLAVE`,
+`SSH_HOST`, `SSH_USUARIO`, `SSH_RUTA`, `URL_WEB`, `URL_API` y, opcional, `RUTA_WEB`
+(`/var/www/crm-maxiconecta` por defecto), y los secretos `SSH_CLAVE`,
 `SSH_KNOWN_HOSTS` (`ssh-keyscan <host>`), `CRM_USUARIO` y `CRM_PASSWORD`. Sin
 `DESPLIEGUE_HABILITADO`, el workflow solo compila y valida.
-
-HTTPS: agregar un `server` con `listen 443 ssl` y los certificados (por ejemplo, de Let's Encrypt)
-en `docker/nginx.conf.template` y publicar el puerto `443`.
 
 Diagrama: [despliegue](diagrama-despliegue.png) (fuente PlantUML en `diagrama-despliegue.puml`).
