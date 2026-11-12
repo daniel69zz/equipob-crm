@@ -7,6 +7,10 @@ import com.maxiconecta.crm.fidelizacion.movimiento.BitacoraMovimientos.Estado;
 import com.maxiconecta.crm.fidelizacion.movimiento.BitacoraMovimientos.EventoMovimiento;
 import com.maxiconecta.crm.fidelizacion.movimiento.ClientesPerfil;
 import com.maxiconecta.crm.fidelizacion.movimiento.IngestaMovimientos;
+import com.maxiconecta.crm.fidelizacion.parametro.CambioParametro;
+import com.maxiconecta.crm.fidelizacion.parametro.CodigosParametros;
+import com.maxiconecta.crm.fidelizacion.parametro.Parametro;
+import com.maxiconecta.crm.fidelizacion.parametro.ParametrosGenerales;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +29,7 @@ import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -101,6 +106,9 @@ class CaducidadPuntosIntegracionTest {
     @Autowired
     private ObjectMapper json;
 
+    @Autowired
+    private ParametrosGenerales parametros;
+
     @BeforeEach
     void preparar() {
         jdbc.execute("TRUNCATE fidelizacion.movimiento_puntos, fidelizacion.evento_movimiento, fidelizacion.saldo_puntos, "
@@ -108,6 +116,54 @@ class CaducidadPuntosIntegracionTest {
         when(perfiles.buscar(anyString())).thenReturn(Optional.of(CLIENTE));
         when(perfiles.buscar("CLI-7")).thenReturn(Optional.of(7L));
         when(perfiles.buscar("CLI-8")).thenReturn(Optional.of(8L));
+        cambiarVigencia(12);
+    }
+
+    /** Deja la vigencia de los puntos en {@code meses}, como lo haría el Administrador de CRM (SCRUM-517). */
+    private void cambiarVigencia(int meses) {
+        Parametro actual = parametros.listar().stream()
+                .filter(p -> p.codigo().equals(CodigosParametros.PUNTOS_VIGENCIA_MESES)).findFirst().orElseThrow();
+        if (actual.valor().intValue() != meses) {
+            parametros.actualizar(List.of(new CambioParametro(CodigosParametros.PUNTOS_VIGENCIA_MESES,
+                    BigDecimal.valueOf(meses), actual.version())), "admin");
+        }
+    }
+
+    // --- SCRUM-517: la vigencia es un parámetro general y rige en la consulta y la caducidad siguientes ---
+
+    @Test
+    void alAmpliarLaVigenciaElSaldoVuelveAEstarDisponibleYLaCaducidadNoLoToca() throws Exception {
+        OffsetDateTime compra = haceMeses(13);
+        acumular("V-VIG-1", "CLI-5521", "350.50", compra);
+        assertThat(consultarSaldo().get("puntosCaducados").asLong()).isEqualTo(35);
+
+        cambiarVigencia(18);
+
+        JsonNode saldo = consultarSaldo();
+        assertThat(saldo.get("saldo").asLong()).isEqualTo(35);
+        assertThat(saldo.get("puntosCaducados").asLong()).isZero();
+        assertThat(OffsetDateTime.parse(saldo.get("fechaCaducidad").asText()).toInstant())
+                .isEqualTo(compra.plusMonths(18).toInstant());
+        proceso.caducarVencidos();
+        assertThat(saldo(CLIENTE)).isEqualTo(35);
+        assertThat(caducidades()).isZero();
+        mvc.perform(como("admin", "ADMINISTRADOR_CRM", ADMINISTRADOR_PERMISOS,
+                        get("/api/fidelizacion/caducidad/configuracion")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vigenciaMeses").value(18));
+    }
+
+    @Test
+    void alReducirLaVigenciaLaCaducidadSiguienteVenceLosPuntosConElValorNuevo() {
+        acumular("V-VIG-2", "CLI-5521", "350.50", haceMeses(7));
+        proceso.caducarVencidos();
+        assertThat(saldo(CLIENTE)).isEqualTo(35);
+
+        cambiarVigencia(6);
+        proceso.caducarVencidos();
+
+        assertThat(saldo(CLIENTE)).isZero();
+        assertThat(caducidades()).isEqualTo(1);
     }
 
     // --- Criterio 1: los puntos vencidos se descuentan y queda un movimiento de caducidad ---

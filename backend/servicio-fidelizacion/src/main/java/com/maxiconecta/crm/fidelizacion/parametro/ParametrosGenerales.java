@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.fidelizacion.parametro;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.util.function.Function;
 
 /**
@@ -41,6 +43,7 @@ public class ParametrosGenerales {
     private final Clock reloj;
     private final Map<String, DefinicionParametro> definiciones = new LinkedHashMap<>();
     private final ReglaConjunto reglaConjunto;
+    private final ApplicationEventPublisher eventos;
     private volatile Copia copia;
 
     /**
@@ -56,12 +59,14 @@ public class ParametrosGenerales {
     }
 
     public ParametrosGenerales(JdbcTemplate jdbc, PlatformTransactionManager gestor, Clock reloj,
-                               List<DefinicionParametro> definiciones, ReglaConjunto reglaConjunto) {
+                               List<DefinicionParametro> definiciones, ReglaConjunto reglaConjunto,
+                               ApplicationEventPublisher eventos) {
         this.jdbc = jdbc;
         this.tx = new TransactionTemplate(gestor);
         this.reloj = reloj;
         definiciones.forEach(d -> this.definiciones.put(d.codigo(), d));
         this.reglaConjunto = reglaConjunto;
+        this.eventos = eventos;
     }
 
     /** Crea los parámetros que todavía no existen con el valor de la configuración; no toca los que ya existen. */
@@ -107,12 +112,16 @@ public class ParametrosGenerales {
      * Aplica varios cambios a la vez: o se guardan todos o ninguno. Rechaza un valor fuera de rango (400), un
      * parámetro que otro usuario cambió desde la versión indicada (409) y una solicitud que no cambia nada (400).
      *
+     * <p>Después de guardar publica {@link ParametrosModificados}: lo que dependía del valor anterior se recalcula.
+     *
      * @return los cambios efectivamente aplicados, con el valor anterior
      */
     public List<Modificacion> actualizar(List<CambioParametro> cambios, String usuario) {
         Map<String, CambioParametro> porCodigo = validar(cambios);
         List<Modificacion> aplicadas = tx.execute(estado -> aplicar(porCodigo, usuario));
         copia = null;
+        eventos.publishEvent(new ParametrosModificados(aplicadas.stream()
+                .map(m -> m.definicion().codigo()).collect(Collectors.toUnmodifiableSet())));
         return aplicadas;
     }
 

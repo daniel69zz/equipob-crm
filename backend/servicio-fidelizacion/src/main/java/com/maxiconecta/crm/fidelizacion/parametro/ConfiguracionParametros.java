@@ -1,5 +1,8 @@
 package com.maxiconecta.crm.fidelizacion.parametro;
 
+import com.maxiconecta.crm.fidelizacion.caducidad.ReglaCaducidad;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -17,7 +20,15 @@ import java.util.Map;
 public class ConfiguracionParametros {
 
     @Bean(initMethod = "inicializar")
-    public ParametrosGenerales parametrosGenerales(JdbcTemplate jdbc, PlatformTransactionManager gestor) {
-        return new ParametrosGenerales(jdbc, gestor, Clock.systemUTC(), List.of(), valores -> Map.of());
+    public ParametrosGenerales parametrosGenerales(
+            JdbcTemplate jdbc, PlatformTransactionManager gestor, ApplicationEventPublisher eventos,
+            @Value("${fidelizacion.puntos.vigencia-meses:12}") int vigenciaMeses) {
+        return new ParametrosGenerales(jdbc, gestor, Clock.systemUTC(), List.of(
+                DefinicionParametro.entero(CodigosParametros.PUNTOS_VIGENCIA_MESES, "Vigencia de los puntos",
+                        "Meses que dura el saldo de puntos de un cliente desde su última compra que acumuló puntos. "
+                                + "La usan la caducidad diaria y las consultas de saldo, también la de Marketplace y "
+                                + "Ventas.", "meses", ReglaCaducidad.VIGENCIA_MINIMA, ReglaCaducidad.VIGENCIA_MAXIMA,
+                        vigenciaMeses)),
+                valores -> Map.of(), eventos);
     }
 }
