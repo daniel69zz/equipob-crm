@@ -1,6 +1,8 @@
 package com.maxiconecta.crm.comportamiento.reporte;
 
 import com.maxiconecta.crm.comportamiento.periodo.RangoPeriodo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ public class ProgramacionReportes {
     /** Largo de la columna {@code ejecucion_reporte.causa}. */
     static final int LARGO_CAUSA = 500;
     private static final int PAGINA_MAXIMA = 1_000_000;
+    private static final Logger log = LoggerFactory.getLogger(ProgramacionReportes.class);
 
     private final JdbcTemplate jdbc;
     private final ExportacionReportes exportacion;
@@ -62,6 +65,10 @@ public class ProgramacionReportes {
     public record Ejecucion(UUID id, UUID programacion, String reporte, OffsetDateTime prevista,
                             OffsetDateTime ejecutada, ResultadoEjecucion estado, String causa, String nombre,
                             boolean leida) {
+    }
+
+    /** Una programación vencida junto con su propietario, que firma el archivo y su auditoría. */
+    private record Vencida(Programacion programacion, String usuario) {
     }
 
     private static Programacion fila(ResultSet rs) throws SQLException {
@@ -181,7 +188,11 @@ public class ProgramacionReportes {
         return proxima;
     }
 
-    /** Un lote acotado; SKIP LOCKED evita duplicados entre instancias. Se procesa una vez tras una caída. */
+    /**
+     * Un lote acotado; SKIP LOCKED evita duplicados entre instancias. Se procesa una vez tras una caída. Un error
+     * inesperado en una programación (no en su reporte, que queda como FALLIDA) se registra y no detiene al resto:
+     * esa programación sigue vencida y se reintenta en la próxima pasada.
+     */
     public void ejecutarPendientes() {
         List<UUID> ids = jdbc.query("""
                 SELECT id FROM comportamiento.reporte_programado
@@ -189,28 +200,32 @@ public class ProgramacionReportes {
                 """, (rs, n) -> rs.getObject(1, UUID.class), EstadoProgramacion.ACTIVA.name(),
                 OffsetDateTime.now(reloj), LOTE_DE_EJECUCION);
         for (UUID id : ids) {
-            ejecutar(id);
+            try {
+                ejecutar(id);
+            } catch (RuntimeException ex) {
+                log.warn("No se pudo ejecutar el reporte programado {}; se reintentará", id, ex);
+            }
         }
     }
 
     void ejecutar(UUID id) {
         tx.executeWithoutResult(t -> {
             OffsetDateTime ahora = OffsetDateTime.now(reloj);
-            var filas = jdbc.query("""
+            List<Vencida> filas = jdbc.query("""
                     SELECT * FROM comportamiento.reporte_programado WHERE id=? AND estado=?
                     AND proxima<=? FOR UPDATE SKIP LOCKED
-                    """, (rs, n) -> fila(rs), id, EstadoProgramacion.ACTIVA.name(), ahora);
+                    """, (rs, n) -> new Vencida(fila(rs), rs.getString("usuario")), id,
+                    EstadoProgramacion.ACTIVA.name(), ahora);
             if (filas.isEmpty()) {
                 return;
             }
-            Programacion p = filas.get(0);
+            Programacion p = filas.get(0).programacion();
+            String usuario = filas.get(0).usuario();
             if (fueraDeVigencia(p, p.proxima())) {
                 jdbc.update("UPDATE comportamiento.reporte_programado SET estado=? WHERE id=?",
                         EstadoProgramacion.PAUSADA.name(), id);
                 return;
             }
-            String usuario = jdbc.queryForObject("SELECT usuario FROM comportamiento.reporte_programado WHERE id=?",
-                    String.class, id);
             ArchivoExportado archivo = null;
             String causa = null;
             try {

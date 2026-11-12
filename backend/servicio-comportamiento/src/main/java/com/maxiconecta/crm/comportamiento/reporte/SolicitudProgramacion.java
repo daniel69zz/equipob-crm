@@ -21,5 +21,15 @@ public record SolicitudProgramacion(
         @NotNull OffsetDateTime inicio,
         OffsetDateTime fin) {
 
+    /** Un segmento en blanco es toda la cartera: se guarda nulo, no como un segmento sin nombre. */
+    public SolicitudProgramacion {
+        if (segmento != null) {
+            segmento = segmento.strip();
+            if (segmento.isEmpty()) {
+                segmento = null;
+            }
+        }
+    }
+
     public enum Frecuencia { DIARIA, SEMANAL, MENSUAL }
 }

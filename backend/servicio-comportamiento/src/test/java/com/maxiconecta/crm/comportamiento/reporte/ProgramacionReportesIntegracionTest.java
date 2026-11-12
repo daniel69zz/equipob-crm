@@ -166,4 +166,21 @@ class ProgramacionReportesIntegracionTest {
                 SolicitudProgramacion.Frecuencia.DIARIA, FormatoExportacion.CSV, 1, null, FECHA.minusDays(2), null)))
                 .hasMessageContaining("400");
     }
+    @Test void unErrorInesperadoNoDetieneLasDemasProgramaciones() {
+        UUID primera = servicio.guardar("ana", null, solicitud(FormatoExportacion.CSV));
+        servicio.guardar("ana", null, new SolicitudProgramacion("Otra", SolicitudProgramacion.Frecuencia.SEMANAL,
+                FormatoExportacion.CSV, 7, null, FECHA.plusMinutes(1), null));
+        var espia = spy(conReloj(FECHA.plusMinutes(1)));
+        doThrow(new IllegalStateException("Conexión perdida")).when(espia).ejecutar(primera);
+        espia.ejecutarPendientes();
+        assertThat(servicio.historial("ana", 0)).singleElement()
+                .satisfies(e -> assertThat(e.reporte()).isEqualTo("Otra"));
+        conReloj(FECHA.plusMinutes(1)).ejecutarPendientes();
+        assertThat(servicio.historial("ana", 0)).hasSize(2);
+    }
+    @Test void segmentoEnBlancoEsTodaLaCartera() {
+        servicio.guardar("ana", null, new SolicitudProgramacion("Cartera", SolicitudProgramacion.Frecuencia.DIARIA,
+                FormatoExportacion.CSV, 1, "   ", FECHA, null));
+        assertThat(servicio.listar("ana").get(0).segmento()).isNull();
+    }
 }
