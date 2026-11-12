@@ -1,5 +1,6 @@
 package com.maxiconecta.crm.segmentacion.mensajeria;
 
+import com.google.api.gax.rpc.AlreadyExistsException;
 import com.google.cloud.spring.core.GcpProjectIdProvider;
 import com.google.cloud.spring.pubsub.PubSubAdmin;
 import com.google.protobuf.Duration;
@@ -14,7 +15,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Crea en Pub/Sub los tópicos y suscripciones que faltan, como RabbitMQ declara sus colas al
  * arrancar: el tópico, la suscripción filtrada por ruta con su política de reintentos y de respaldo, y
- * el tópico y la suscripción de respaldo. No modifica recursos que ya existen.
+ * el tópico y la suscripción de respaldo. No modifica recursos que ya existen. Varios servicios
+ * comparten tópicos y arrancan a la vez: si otro lo crea primero, se toma como existente.
  */
 public class RecursosPubSub {
 
@@ -34,7 +36,7 @@ public class RecursosPubSub {
         crearTopico(suscripcion.topico());
         crearTopico(suscripcion.respaldo());
         if (admin.getSubscription(suscripcion.nombre()) == null) {
-            admin.createSubscription(Subscription.newBuilder()
+            siFalta(() -> admin.createSubscription(Subscription.newBuilder()
                     .setName(ProjectSubscriptionName.of(proyecto, suscripcion.nombre()).toString())
                     .setTopic(TopicName.of(proyecto, suscripcion.topico()).toString())
                     .setFilter(suscripcion.filtro())
@@ -44,19 +46,28 @@ public class RecursosPubSub {
                             .setMaximumBackoff(Duration.newBuilder().setSeconds(60)))
                     .setDeadLetterPolicy(DeadLetterPolicy.newBuilder()
                             .setDeadLetterTopic(TopicName.of(proyecto, suscripcion.respaldo()).toString())
-                            .setMaxDeliveryAttempts(maxIntentos)));
+                            .setMaxDeliveryAttempts(maxIntentos))));
             log.info("Suscripción {} creada sobre {} ({})", suscripcion.nombre(), suscripcion.topico(),
                     suscripcion.filtro());
         }
         if (admin.getSubscription(suscripcion.respaldo()) == null) {
-            admin.createSubscription(suscripcion.respaldo(), suscripcion.respaldo());
+            siFalta(() -> admin.createSubscription(suscripcion.respaldo(), suscripcion.respaldo()));
         }
     }
 
     private void crearTopico(String nombre) {
         if (admin.getTopic(nombre) == null) {
-            admin.createTopic(nombre);
-            log.info("Tópico {} creado", nombre);
+            siFalta(() -> admin.createTopic(nombre));
+            log.info("Tópico {} disponible", nombre);
+        }
+    }
+
+    /** Crea el recurso; si otro servicio lo creó entre la consulta y la creación, ya está disponible. */
+    private static void siFalta(Runnable creacion) {
+        try {
+            creacion.run();
+        } catch (AlreadyExistsException yaExiste) {
+            log.debug("Recurso creado por otro servicio al mismo tiempo: {}", yaExiste.getMessage());
         }
     }
 }
