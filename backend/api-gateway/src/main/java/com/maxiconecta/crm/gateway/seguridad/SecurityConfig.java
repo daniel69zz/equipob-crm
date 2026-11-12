@@ -126,6 +126,8 @@ public class SecurityConfig {
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_CONSULTAR),
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_EXPORTAR)))
+                        // SCRUM-61: los reportes programados generan y entregan archivos exportados, asi que exigen
+                        // consultar, exportar y programar en todos los metodos (crear, editar, pausar, descargar).
                         .requestMatchers("/api/comportamiento/reportes/programaciones", "/api/comportamiento/reportes/programaciones/**")
                             .access(org.springframework.security.authorization.AuthorizationManagers.allOf(
                                 org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority(REPORTES_CONSULTAR),
