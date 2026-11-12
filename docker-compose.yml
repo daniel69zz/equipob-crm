@@ -1,0 +1,65 @@
+# Despliegue del CRM MaxiConecta en Docker (docs/despliegue/docker.md).
+# Requisitos previos: los jars (mvn package -DskipTests en cada backend/<servicio>) y el frontend
+# compilado (ng build en frontend/crm-web). Variables y secretos en .env (ver .env.example).
+#   docker compose up -d --build
+#   docker compose ps
+# Solo nginx publica un puerto (80): DOMINIO_WEB sirve el sitio y DOMINIO_API la API. El resto queda en la
+# red interna. Eventos entre microservicios: Pub/Sub (emulador interno). Saldo y nivel de puntos (RIO-CRM-06):
+# Google Cloud Pub/Sub real, tópico del curso.
+name: crm-maxiconecta
+
+x-servicio: &servicio
+  restart: unless-stopped
+  environment: &entorno
+    DB_URL: jdbc:postgresql://postgres:5432/crm_maxiconecta
+    DB_USUARIO: ${DB_USUARIO:-crm}
+    DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env}
+    # Mensajería interna entre microservicios (tópicos ventas.eventos y crm.comportamiento.eventos).
+    PUBSUB_PROYECTO: crm-maxiconecta
+    PUBSUB_EMULADOR: pubsub-interno:8085
+    SERVICIO_PERFIL_URL: http://servicio-perfil:8081
+    SERVICIO_COMPORTAMIENTO_URL: http://servicio-comportamiento:8082
+    SERVICIO_SEGMENTACION_URL: http://servicio-segmentacion:8083
+    SERVICIO_FIDELIZACION_URL: http://servicio-fidelizacion:8084
+    SERVICIO_INTERACCIONES_URL: http://servicio-interacciones:8085
+  depends_on: &dependencias
+    postgres:
+      condition: service_healthy
+    pubsub-interno:
+      condition: service_healthy
+    api-gateway:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crm_maxiconecta
+      POSTGRES_USER: ${DB_USUARIO:-crm}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env}
+    # Solo accesible desde el propio servidor (administración); no se expone a la red.
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: [datos-postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d crm_maxiconecta"]
+      interval: 5s
+      retries: 20
+
+  # Pub/Sub interno entre microservicios (emulador oficial de Google Cloud). Solo accesible desde el
+  # propio servidor (simulador de eventos de Marketplace y Ventas); no se expone a la red.
+  # Cada servicio crea sus tópicos y suscripciones al arrancar. A futuro, con el consentimiento del
+  # docente, estos tópicos pueden pasar al proyecto de Google Cloud del curso.
+  pubsub-interno:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    restart: unless-stopped
+    command: ["gcloud", "beta", "emulators", "pubsub", "start", "--host-port=0.0.0.0:8085", "--project=crm-maxiconecta"]
+    ports: ["127.0.0.1:8086:8085"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8085 | grep -q Ok"]
+      interval: 5s
+      start_period: 10s
+      retries: 30
+
+volumes:
+  datos-postgres:
